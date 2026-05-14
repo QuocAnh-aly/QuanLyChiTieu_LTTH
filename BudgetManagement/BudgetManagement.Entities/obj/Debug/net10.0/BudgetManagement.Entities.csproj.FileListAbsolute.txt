@@ -1,0 +1,13 @@
+E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.Entities\bin\Debug\net10.0\BudgetManagement.Entities.deps.json
+E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.Entities\bin\Debug\net10.0\BudgetManagement.Entities.dll
+E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.Entities\bin\Debug\net10.0\BudgetManagement.Entities.pdb
+E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.Entities\obj\Debug\net10.0\BudgetManagement.Entities.csproj.AssemblyReference.cache
+E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.Entities\obj\Debug\net10.0\BudgetManagement.Entities.GeneratedMSBuildEditorConfig.editorconfig
+E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.Entities\obj\Debug\net10.0\BudgetManagement.Entities.AssemblyInfoInputs.cache
+E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.Entities\obj\Debug\net10.0\BudgetManagement.Entities.AssemblyInfo.cs
+E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.Entities\obj\Debug\net10.0\BudgetManagement.Entities.csproj.CoreCompileInputs.cache
+E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.Entities\obj\Debug\net10.0\BudgetManagement.Entities.sourcelink.json
+E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.Entities\obj\Debug\net10.0\BudgetManagement.Entities.dll
+E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.Entities\obj\Debug\net10.0\refint\BudgetManagement.Entities.dll
+E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.Entities\obj\Debug\net10.0\BudgetManagement.Entities.pdb
+E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.Entities\obj\Debug\net10.0\ref\BudgetManagement.Entities.dll

@@ -6,166 +6,41 @@ import {
   Search,
   ArrowUpRight,
   ArrowDownRight,
-  Coffee,
-  ShoppingBag,
-  Car,
-  Home,
-  Zap,
-  Heart,
-  DollarSign,
-  Settings,
+  ArrowLeftRight,
   Bell,
   Shield,
   Globe,
-  Moon,
   Palette,
 } from "lucide-react";
 import { format } from "date-fns";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import { toast } from "sonner";
+import { authApi } from "../../api/authApi";
+import { transactionApi } from "../../api/transactionApi";
+import { useEffect } from "react";
 
-const allTransactions = [
-  {
-    id: 1,
-    name: "Salary Deposit",
-    amount: 5000,
-    category: "Income",
-    date: new Date(2026, 4, 1),
-    type: "income",
-    icon: DollarSign,
-    iconColor: "text-green-600",
-    iconBg: "bg-green-100",
-  },
-  {
-    id: 2,
-    name: "Grocery Store",
-    amount: -85.5,
-    category: "Food & Dining",
-    date: new Date(2026, 4, 3),
-    type: "expense",
-    icon: Coffee,
-    iconColor: "text-orange-600",
-    iconBg: "bg-orange-100",
-  },
-  {
-    id: 3,
-    name: "Electric Bill",
-    amount: -120.0,
-    category: "Bills & Utilities",
-    date: new Date(2026, 4, 2),
-    type: "expense",
-    icon: Zap,
-    iconColor: "text-yellow-600",
-    iconBg: "bg-yellow-100",
-  },
-  {
-    id: 4,
-    name: "Amazon Purchase",
-    amount: -129.99,
-    category: "Shopping",
-    date: new Date(2026, 3, 29),
-    type: "expense",
-    icon: ShoppingBag,
-    iconColor: "text-pink-600",
-    iconBg: "bg-pink-100",
-  },
-  {
-    id: 5,
-    name: "Netflix Subscription",
-    amount: -15.99,
-    category: "Entertainment",
-    date: new Date(2026, 4, 1),
-    type: "expense",
-    icon: Heart,
-    iconColor: "text-purple-600",
-    iconBg: "bg-purple-100",
-  },
-  {
-    id: 6,
-    name: "Uber Ride",
-    amount: -24.5,
-    category: "Transportation",
-    date: new Date(2026, 3, 30),
-    type: "expense",
-    icon: Car,
-    iconColor: "text-blue-600",
-    iconBg: "bg-blue-100",
-  },
-  {
-    id: 7,
-    name: "Rent Payment",
-    amount: -2000,
-    category: "Housing",
-    date: new Date(2026, 4, 1),
-    type: "expense",
-    icon: Home,
-    iconColor: "text-green-600",
-    iconBg: "bg-green-100",
-  },
-  {
-    id: 8,
-    name: "Coffee Shop",
-    amount: -12.5,
-    category: "Food & Dining",
-    date: new Date(2026, 4, 2),
-    type: "expense",
-    icon: Coffee,
-    iconColor: "text-orange-600",
-    iconBg: "bg-orange-100",
-  },
-  {
-    id: 9,
-    name: "Freelance Payment",
-    amount: 850,
-    category: "Income",
-    date: new Date(2026, 3, 28),
-    type: "income",
-    icon: DollarSign,
-    iconColor: "text-green-600",
-    iconBg: "bg-green-100",
-  },
-  {
-    id: 10,
-    name: "Gas Station",
-    amount: -55.0,
-    category: "Transportation",
-    date: new Date(2026, 4, 1),
-    type: "expense",
-    icon: Car,
-    iconColor: "text-blue-600",
-    iconBg: "bg-blue-100",
-  },
-  {
-    id: 11,
-    name: "Restaurant Dinner",
-    amount: -78.3,
-    category: "Food & Dining",
-    date: new Date(2026, 3, 27),
-    type: "expense",
-    icon: Coffee,
-    iconColor: "text-orange-600",
-    iconBg: "bg-orange-100",
-  },
-  {
-    id: 12,
-    name: "Online Course",
-    amount: -199,
-    category: "Education",
-    date: new Date(2026, 3, 26),
-    type: "expense",
-    icon: Heart,
-    iconColor: "text-purple-600",
-    iconBg: "bg-purple-100",
-  },
-];
+function mapTransaction(t) {
+  const details       = t.details || [];
+  const expenseDetail = details.find(d => d.typeId === 5 && d.debit > 0);
+  const revenueDetail = details.find(d => d.typeId === 4 && d.credit > 0);
+  const isTransfer    = !expenseDetail && !revenueDetail;
+  const isIncome      = !!revenueDetail;
+
+  let categoryName = "Uncategorized";
+  if (expenseDetail)      categoryName = expenseDetail.accountName  || "Chi tiêu";
+  else if (revenueDetail) categoryName = revenueDetail.accountName  || "Thu nhập";
+  else if (isTransfer)    categoryName = "Chuyển khoản";
+
+  return { ...t, categoryName, isIncome, isTransfer };
+}
 
 export function Account() {
   const [activeTab, setActiveTab] = useState("transactions");
   const [selectedDate, setSelectedDate] = useState(undefined);
   const [showCalendar, setShowCalendar] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [filterType, setFilterType] = useState("all"); // all | income | expense | transfer
 
   const [notifications, setNotifications] = useState({
     email: true,
@@ -175,54 +50,103 @@ export function Account() {
   const [theme, setTheme] = useState("light");
   const [currency, setCurrency] = useState("USD");
 
-  const categories = [
-    "All",
-    "Income",
-    "Food & Dining",
-    "Shopping",
-    "Transportation",
-    "Bills & Utilities",
-    "Entertainment",
-    "Housing",
+  const [userProfile, setUserProfile] = useState({
+    fullName: "",
+    email: "",
+  });
+  const [transactions, setTransactions] = useState([]);
+  const [cashFlow, setCashFlow] = useState({
+    totalIncome: 0,
+    totalExpense: 0,
+    netFlow: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        // Fetch Profile
+        const profile = await authApi.getProfile();
+        setUserProfile({
+          fullName: profile.fullName || "",
+          email: profile.email || "",
+        });
+
+        // Fetch Transactions
+        const transData = await transactionApi.getAll({ page: 1, pageSize: 50 });
+        const items = (transData.items || transData || []).map(mapTransaction);
+        setTransactions(items);
+
+        // Fetch CashFlow
+        const summary = await transactionApi.getCashFlow();
+        setCashFlow({
+          totalIncome: summary.totalIncome || 0,
+          totalExpense: summary.totalExpense || 0,
+          netFlow: (summary.totalIncome || 0) - (summary.totalExpense || 0),
+        });
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast.error("Không thể tải dữ liệu tài khoản");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const TX_FILTER_TYPES = [
+    { key: "all",      label: "Tất cả" },
+    { key: "income",   label: "Thu nhập" },
+    { key: "expense",  label: "Chi tiêu" },
+    { key: "transfer", label: "Chuyển khoản" },
   ];
 
-  const filteredTransactions = allTransactions.filter((transaction) => {
+  const filteredTransactions = transactions.filter((t) => {
     const matchesSearch =
-      transaction.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.category.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "All" || transaction.category === selectedCategory;
+      (t.description || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (t.categoryName || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType =
+      filterType === "all" ||
+      (filterType === "income"   && t.isIncome)   ||
+      (filterType === "transfer" && t.isTransfer)  ||
+      (filterType === "expense"  && !t.isIncome && !t.isTransfer);
     const matchesDate =
       !selectedDate ||
-      format(transaction.date, "yyyy-MM-dd") ===
-        format(selectedDate, "yyyy-MM-dd");
+      format(new Date(t.transactionDate), "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd");
 
-    return matchesSearch && matchesCategory && matchesDate;
+    return matchesSearch && matchesType && matchesDate;
   });
 
-  const totalIncome = filteredTransactions
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
+  const handleUpdateProfile = async () => {
+    try {
+      await authApi.updateProfile({
+        fullName: userProfile.fullName,
+        email: userProfile.email,
+      });
+      toast.success("Đã cập nhật hồ sơ thành công!");
+    } catch (error) {
+      toast.error("Không thể cập nhật hồ sơ");
+    }
+  };
 
-  const totalExpenses = Math.abs(
-    filteredTransactions
-      .filter((t) => t.type === "expense")
-      .reduce((sum, t) => sum + t.amount, 0),
-  );
+  const totalIncome = cashFlow.totalIncome;
+  const totalExpenses = cashFlow.totalExpense;
 
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Account</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Tài khoản</h1>
           <p className="text-slate-500 mt-1">
-            Manage your transactions and settings
+            Quản lý giao dịch và cài đặt của bạn
           </p>
         </div>
         {activeTab === "transactions" && (
           <button className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
             <Download size={18} />
-            <span>Export</span>
+            <span>Xuất dữ liệu</span>
           </button>
         )}
       </div>
@@ -236,7 +160,7 @@ export function Account() {
               : "text-slate-600 hover:text-slate-900"
           }`}
         >
-          Transactions
+          Giao dịch
         </button>
         <button
           onClick={() => setActiveTab("settings")}
@@ -246,7 +170,7 @@ export function Account() {
               : "text-slate-600 hover:text-slate-900"
           }`}
         >
-          Settings
+          Cài đặt
         </button>
       </div>
 
@@ -255,7 +179,7 @@ export function Account() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-white rounded-2xl p-6 border border-slate-200">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-slate-600">Total Income</span>
+                <span className="text-slate-600">Tổng thu nhập</span>
                 <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
                   <ArrowUpRight size={20} className="text-green-600" />
                 </div>
@@ -264,15 +188,13 @@ export function Account() {
                 ${totalIncome.toLocaleString()}
               </p>
               <p className="text-green-600 text-sm mt-1">
-                From{" "}
-                {filteredTransactions.filter((t) => t.type === "income").length}{" "}
-                transaction(s)
+                {filteredTransactions.filter((t) => t.isIncome).length} giao dịch
               </p>
             </div>
 
             <div className="bg-white rounded-2xl p-6 border border-slate-200">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-slate-600">Total Expenses</span>
+                <span className="text-slate-600">Tổng chi tiêu</span>
                 <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
                   <ArrowDownRight size={20} className="text-red-600" />
                 </div>
@@ -281,25 +203,20 @@ export function Account() {
                 ${totalExpenses.toLocaleString()}
               </p>
               <p className="text-red-600 text-sm mt-1">
-                From{" "}
-                {
-                  filteredTransactions.filter((t) => t.type === "expense")
-                    .length
-                }{" "}
-                transaction(s)
+                {filteredTransactions.filter((t) => !t.isIncome && !t.isTransfer).length} giao dịch
               </p>
             </div>
 
             <div className="bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl p-6 text-white">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-purple-100">Net Flow</span>
+                <span className="text-purple-100">Dòng tiền ròng</span>
                 <div className="w-2 h-2 rounded-full bg-purple-200"></div>
               </div>
               <p className="text-3xl font-bold">
                 ${(totalIncome - totalExpenses).toLocaleString()}
               </p>
               <p className="text-purple-100 text-sm mt-1">
-                {filteredTransactions.length} total transaction(s)
+                {filteredTransactions.length} giao dịch
               </p>
             </div>
           </div>
@@ -313,29 +230,27 @@ export function Account() {
                 />
                 <input
                   type="text"
-                  placeholder="Search transactions..."
+                  placeholder="Tìm kiếm giao dịch..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
-              <div className="relative">
-                <Filter
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
-                  size={20}
-                />
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none bg-white"
-                >
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
+              <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1">
+                {TX_FILTER_TYPES.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setFilterType(key)}
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      filterType === key
+                        ? "bg-purple-600 text-white"
+                        : "text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
 
               <div className="relative">
@@ -348,8 +263,8 @@ export function Account() {
                   className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-left bg-white"
                 >
                   {selectedDate
-                    ? format(selectedDate, "MMM dd, yyyy")
-                    : "Select date"}
+                    ? format(selectedDate, "dd/MM/yyyy")
+                    : "Chọn ngày"}
                 </button>
                 {showCalendar && (
                   <div className="absolute z-10 mt-2 bg-white border border-slate-200 rounded-lg shadow-lg p-4">
@@ -370,7 +285,7 @@ export function Account() {
                         }}
                         className="w-full mt-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
                       >
-                        Clear Date
+                        Xóa ngày
                       </button>
                     )}
                   </div>
@@ -385,60 +300,49 @@ export function Account() {
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
                     <th className="text-left px-6 py-4 text-sm font-semibold text-slate-700">
-                      Transaction
+                      Giao dịch
                     </th>
                     <th className="text-left px-6 py-4 text-sm font-semibold text-slate-700">
-                      Category
+                      Danh mục
                     </th>
                     <th className="text-left px-6 py-4 text-sm font-semibold text-slate-700">
-                      Date
+                      Ngày
                     </th>
                     <th className="text-right px-6 py-4 text-sm font-semibold text-slate-700">
-                      Amount
+                      Số tiền
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredTransactions.map((transaction) => {
-                    const Icon = transaction.icon;
+                  {filteredTransactions.map((t) => {
+                    const iconBg  = t.isTransfer ? "bg-blue-50"    : t.isIncome ? "bg-green-100" : "bg-red-50";
+                    const Icon    = t.isTransfer ? ArrowLeftRight   : t.isIncome ? ArrowUpRight   : ArrowDownRight;
+                    const iconCls = t.isTransfer ? "text-blue-500"  : t.isIncome ? "text-green-600" : "text-red-500";
+                    const amtCls  = t.isTransfer ? "text-blue-600"  : t.isIncome ? "text-green-600" : "text-slate-900";
+                    const prefix  = t.isIncome ? "+" : t.isTransfer ? "" : "-";
                     return (
-                      <tr
-                        key={transaction.id}
-                        className="hover:bg-slate-50 transition-colors"
-                      >
+                      <tr key={t.journalId} className="hover:bg-slate-50 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div
-                              className={`w-10 h-10 rounded-full ${transaction.iconBg} flex items-center justify-center`}
-                            >
-                              <Icon
-                                size={18}
-                                className={transaction.iconColor}
-                              />
+                            <div className={`w-10 h-10 rounded-full ${iconBg} flex items-center justify-center`}>
+                              <Icon size={18} className={iconCls} />
                             </div>
                             <span className="font-semibold text-slate-900">
-                              {transaction.name}
+                              {t.description || "—"}
                             </span>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-sm">
-                            {transaction.category}
+                            {t.categoryName}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-slate-600">
-                          {format(transaction.date, "MMM dd, yyyy")}
+                          {format(new Date(t.transactionDate), "dd/MM/yyyy")}
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <span
-                            className={`font-bold text-lg ${
-                              transaction.type === "income"
-                                ? "text-green-600"
-                                : "text-slate-900"
-                            }`}
-                          >
-                            {transaction.type === "income" ? "+" : "-"}$
-                            {Math.abs(transaction.amount).toLocaleString()}
+                          <span className={`font-bold text-lg ${amtCls}`}>
+                            {prefix}${Math.abs(t.totalAmount).toLocaleString()}
                           </span>
                         </td>
                       </tr>
@@ -448,7 +352,7 @@ export function Account() {
               </table>
               {filteredTransactions.length === 0 && (
                 <div className="text-center py-12">
-                  <p className="text-slate-500">No transactions found</p>
+                  <p className="text-slate-500">Không tìm thấy giao dịch</p>
                 </div>
               )}
             </div>
@@ -465,10 +369,10 @@ export function Account() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-slate-900">
-                  Notifications
+                  Thông báo
                 </h2>
                 <p className="text-sm text-slate-500">
-                  Manage how you receive notifications
+                  Quản lý cách bạn nhận thông báo
                 </p>
               </div>
             </div>
@@ -476,10 +380,10 @@ export function Account() {
               <div className="flex items-center justify-between py-3 border-b border-slate-100">
                 <div>
                   <p className="font-semibold text-slate-900">
-                    Email Notifications
+                    Thông báo Email
                   </p>
                   <p className="text-sm text-slate-500">
-                    Receive updates via email
+                    Nhận cập nhật qua email
                   </p>
                 </div>
                 <button
@@ -506,10 +410,10 @@ export function Account() {
               <div className="flex items-center justify-between py-3 border-b border-slate-100">
                 <div>
                   <p className="font-semibold text-slate-900">
-                    Push Notifications
+                    Thông báo đẩy
                   </p>
                   <p className="text-sm text-slate-500">
-                    Receive push notifications on your device
+                    Nhận thông báo trên thiết bị của bạn
                   </p>
                 </div>
                 <button
@@ -536,10 +440,10 @@ export function Account() {
               <div className="flex items-center justify-between py-3">
                 <div>
                   <p className="font-semibold text-slate-900">
-                    SMS Notifications
+                    Thông báo SMS
                   </p>
                   <p className="text-sm text-slate-500">
-                    Receive text message alerts
+                    Nhận cảnh báo qua tin nhắn văn bản
                   </p>
                 </div>
                 <button
@@ -572,28 +476,28 @@ export function Account() {
                 <Palette size={24} className="text-blue-600" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Appearance</h2>
+                <h2 className="text-xl font-bold text-slate-900">Giao diện</h2>
                 <p className="text-sm text-slate-500">
-                  Customize your app experience
+                  Tùy chỉnh trải nghiệm ứng dụng của bạn
                 </p>
               </div>
             </div>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Theme
+                  Chủ đề
                 </label>
                 <select
                   value={theme}
                   onChange={(e) => {
                     setTheme(e.target.value);
-                    toast.success(`Theme changed to ${e.target.value}`);
+                    toast.success(`Đã đổi chủ đề sang ${e.target.value === 'light' ? 'Sáng' : e.target.value === 'dark' ? 'Tối' : 'Tự động'}`);
                   }}
                   className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
-                  <option value="light">Light</option>
-                  <option value="dark">Dark</option>
-                  <option value="auto">Auto</option>
+                  <option value="light">Sáng</option>
+                  <option value="dark">Tối</option>
+                  <option value="auto">Tự động</option>
                 </select>
               </div>
             </div>
@@ -606,17 +510,17 @@ export function Account() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-slate-900">
-                  Regional Settings
+                  Cài đặt vùng
                 </h2>
                 <p className="text-sm text-slate-500">
-                  Set your currency and region
+                  Thiết lập tiền tệ và vùng của bạn
                 </p>
               </div>
             </div>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Currency
+                  Tiền tệ
                 </label>
                 <select
                   value={currency}
@@ -643,37 +547,38 @@ export function Account() {
                 <Shield size={24} className="text-red-600" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Security</h2>
+                <h2 className="text-xl font-bold text-slate-900">Bảo mật</h2>
                 <p className="text-sm text-slate-500">
-                  Manage your account security
+                  Quản lý bảo mật tài khoản
                 </p>
               </div>
             </div>
             <div className="space-y-3">
               <button className="w-full px-4 py-3 bg-slate-50 text-slate-700 rounded-lg hover:bg-slate-100 transition-colors text-left font-semibold">
-                Change Password
+                Đổi mật khẩu
               </button>
               <button className="w-full px-4 py-3 bg-slate-50 text-slate-700 rounded-lg hover:bg-slate-100 transition-colors text-left font-semibold">
-                Enable Two-Factor Authentication
+                Bật xác thực hai yếu tố
               </button>
               <button className="w-full px-4 py-3 bg-slate-50 text-slate-700 rounded-lg hover:bg-slate-100 transition-colors text-left font-semibold">
-                Connected Devices
+                Thiết bị đã kết nối
               </button>
             </div>
           </div>
 
           <div className="bg-white rounded-2xl p-6 border border-slate-200">
             <h2 className="text-xl font-bold text-slate-900 mb-4">
-              Account Information
+              Thông tin tài khoản
             </h2>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Full Name
+                  Họ và tên
                 </label>
                 <input
                   type="text"
-                  defaultValue="John Doe"
+                  value={userProfile.fullName}
+                  onChange={(e) => setUserProfile({ ...userProfile, fullName: e.target.value })}
                   className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
@@ -683,15 +588,16 @@ export function Account() {
                 </label>
                 <input
                   type="email"
-                  defaultValue="john@example.com"
+                  value={userProfile.email}
+                  onChange={(e) => setUserProfile({ ...userProfile, email: e.target.value })}
                   className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
               <button
-                onClick={() => toast.success("Profile updated successfully!")}
+                onClick={handleUpdateProfile}
                 className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
               >
-                Save Changes
+                Lưu thay đổi
               </button>
             </div>
           </div>

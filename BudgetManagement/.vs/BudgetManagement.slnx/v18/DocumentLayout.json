@@ -1,0 +1,237 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "E:\\Web\\chi_tieu\\Budget Management\\Budget Management\\BudgetManagement\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{FD231803-B8B4-7F97-9CE5-8D9F988374E8}|BudgetManagement.Repository\\BudgetManagement.Repository.csproj|e:\\web\\chi_tieu\\budget management\\budget management\\budgetmanagement\\budgetmanagement.repository\\implementations\\baserepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FD231803-B8B4-7F97-9CE5-8D9F988374E8}|BudgetManagement.Repository\\BudgetManagement.Repository.csproj|solutionrelative:budgetmanagement.repository\\implementations\\baserepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2FF8C39F-42FE-F620-801C-EDCB0EDBA388}|BudgetManagement.AuthService\\BudgetManagement.AuthService.csproj|e:\\web\\chi_tieu\\budget management\\budget management\\budgetmanagement\\budgetmanagement.authservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2FF8C39F-42FE-F620-801C-EDCB0EDBA388}|BudgetManagement.AuthService\\BudgetManagement.AuthService.csproj|solutionrelative:budgetmanagement.authservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2FF8C39F-42FE-F620-801C-EDCB0EDBA388}|BudgetManagement.AuthService\\BudgetManagement.AuthService.csproj|e:\\web\\chi_tieu\\budget management\\budget management\\budgetmanagement\\budgetmanagement.authservice\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{2FF8C39F-42FE-F620-801C-EDCB0EDBA388}|BudgetManagement.AuthService\\BudgetManagement.AuthService.csproj|solutionrelative:budgetmanagement.authservice\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6628D84E-A66C-FC66-1CFE-D96366A72CF7}|BudgetManagement.APIService\\BudgetManagement.APIService.csproj|e:\\web\\chi_tieu\\budget management\\budget management\\budgetmanagement\\budgetmanagement.apiservice\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{6628D84E-A66C-FC66-1CFE-D96366A72CF7}|BudgetManagement.APIService\\BudgetManagement.APIService.csproj|solutionrelative:budgetmanagement.apiservice\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{028AC9C8-34F6-AAA9-72E1-A096D8BC8804}|BudgetManagement.APIGateway\\BudgetManagement.APIGateway.csproj|e:\\web\\chi_tieu\\budget management\\budget management\\budgetmanagement\\budgetmanagement.apigateway\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{028AC9C8-34F6-AAA9-72E1-A096D8BC8804}|BudgetManagement.APIGateway\\BudgetManagement.APIGateway.csproj|solutionrelative:budgetmanagement.apigateway\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6628D84E-A66C-FC66-1CFE-D96366A72CF7}|BudgetManagement.APIService\\BudgetManagement.APIService.csproj|e:\\web\\chi_tieu\\budget management\\budget management\\budgetmanagement\\budgetmanagement.apiservice\\budgetmanagement.apiservice.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{6628D84E-A66C-FC66-1CFE-D96366A72CF7}|BudgetManagement.APIService\\BudgetManagement.APIService.csproj|solutionrelative:budgetmanagement.apiservice\\budgetmanagement.apiservice.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6628D84E-A66C-FC66-1CFE-D96366A72CF7}|BudgetManagement.APIService\\BudgetManagement.APIService.csproj|e:\\web\\chi_tieu\\budget management\\budget management\\budgetmanagement\\budgetmanagement.apiservice\\recurringhostedservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6628D84E-A66C-FC66-1CFE-D96366A72CF7}|BudgetManagement.APIService\\BudgetManagement.APIService.csproj|solutionrelative:budgetmanagement.apiservice\\recurringhostedservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6628D84E-A66C-FC66-1CFE-D96366A72CF7}|BudgetManagement.APIService\\BudgetManagement.APIService.csproj|e:\\web\\chi_tieu\\budget management\\budget management\\budgetmanagement\\budgetmanagement.apiservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6628D84E-A66C-FC66-1CFE-D96366A72CF7}|BudgetManagement.APIService\\BudgetManagement.APIService.csproj|solutionrelative:budgetmanagement.apiservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 1,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedHeight": 511,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:129:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:130:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            }
+          ]
+        },
+        {
+          "DockedHeight": 219,
+          "SelectedChildIndex": 8,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{004be353-6879-467c-9d1e-9ac23cdf6d49}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:4:0:{e8034f19-ab72-4f06-83fd-f6832b41aa63}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{40ea2e6b-2121-4bb8-a43e-c83c04b51041}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{0ad07096-bba9-4900-a651-0598d26f6d24}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "E:\\Web\\chi_tieu\\Budget Management\\Budget Management\\BudgetManagement\\BudgetManagement.AuthService\\appsettings.json",
+              "RelativeDocumentMoniker": "BudgetManagement.AuthService\\appsettings.json",
+              "ToolTip": "E:\\Web\\chi_tieu\\Budget Management\\Budget Management\\BudgetManagement\\BudgetManagement.AuthService\\appsettings.json",
+              "RelativeToolTip": "BudgetManagement.AuthService\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAhAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-05-08T09:47:43.173Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "BudgetManagement.APIService.csproj",
+              "DocumentMoniker": "E:\\Web\\chi_tieu\\Budget Management\\Budget Management\\BudgetManagement\\BudgetManagement.APIService\\BudgetManagement.APIService.csproj",
+              "RelativeDocumentMoniker": "BudgetManagement.APIService\\BudgetManagement.APIService.csproj",
+              "ToolTip": "E:\\Web\\chi_tieu\\Budget Management\\Budget Management\\BudgetManagement\\BudgetManagement.APIService\\BudgetManagement.APIService.csproj",
+              "RelativeToolTip": "BudgetManagement.APIService\\BudgetManagement.APIService.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-05-08T09:47:07.336Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Baserepository.cs",
+              "DocumentMoniker": "E:\\Web\\chi_tieu\\Budget Management\\Budget Management\\BudgetManagement\\BudgetManagement.Repository\\Implementations\\Baserepository.cs",
+              "RelativeDocumentMoniker": "BudgetManagement.Repository\\Implementations\\Baserepository.cs",
+              "ToolTip": "E:\\Web\\chi_tieu\\Budget Management\\Budget Management\\BudgetManagement\\BudgetManagement.Repository\\Implementations\\Baserepository.cs",
+              "RelativeToolTip": "BudgetManagement.Repository\\Implementations\\Baserepository.cs",
+              "ViewState": "AgIAABAAAAAAAAAAAAAQwBkAAAAIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T09:07:39.819Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Program.cs",
+              "DocumentMoniker": "E:\\Web\\chi_tieu\\Budget Management\\Budget Management\\BudgetManagement\\BudgetManagement.AuthService\\Program.cs",
+              "RelativeDocumentMoniker": "BudgetManagement.AuthService\\Program.cs",
+              "ToolTip": "E:\\Web\\chi_tieu\\Budget Management\\Budget Management\\BudgetManagement\\BudgetManagement.AuthService\\Program.cs",
+              "RelativeToolTip": "BudgetManagement.AuthService\\Program.cs",
+              "ViewState": "AgIAACIAAAAAAAAAAAAkwDAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T07:58:06.882Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "Recurringhostedservice.cs",
+              "DocumentMoniker": "E:\\Web\\chi_tieu\\Budget Management\\Budget Management\\BudgetManagement\\BudgetManagement.APIService\\Recurringhostedservice.cs",
+              "RelativeDocumentMoniker": "BudgetManagement.APIService\\Recurringhostedservice.cs",
+              "ToolTip": "E:\\Web\\chi_tieu\\Budget Management\\Budget Management\\BudgetManagement\\BudgetManagement.APIService\\Recurringhostedservice.cs",
+              "RelativeToolTip": "BudgetManagement.APIService\\Recurringhostedservice.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAjAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-04T09:46:16.994Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "Program.cs",
+              "DocumentMoniker": "E:\\Web\\chi_tieu\\Budget Management\\Budget Management\\BudgetManagement\\BudgetManagement.APIService\\Program.cs",
+              "RelativeDocumentMoniker": "BudgetManagement.APIService\\Program.cs",
+              "ToolTip": "E:\\Web\\chi_tieu\\Budget Management\\Budget Management\\BudgetManagement\\BudgetManagement.APIService\\Program.cs",
+              "RelativeToolTip": "BudgetManagement.APIService\\Program.cs",
+              "ViewState": "AgIAAEEAAAAAAAAAAAAqwFUAAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-04T09:29:27.61Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Program.cs",
+              "DocumentMoniker": "E:\\Web\\chi_tieu\\Budget Management\\Budget Management\\BudgetManagement\\BudgetManagement.APIGateway\\Program.cs",
+              "RelativeDocumentMoniker": "BudgetManagement.APIGateway\\Program.cs",
+              "ToolTip": "E:\\Web\\chi_tieu\\Budget Management\\Budget Management\\BudgetManagement\\BudgetManagement.APIGateway\\Program.cs",
+              "RelativeToolTip": "BudgetManagement.APIGateway\\Program.cs",
+              "ViewState": "AgIAABoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-04T09:28:54.991Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "E:\\Web\\chi_tieu\\Budget Management\\Budget Management\\BudgetManagement\\BudgetManagement.APIService\\appsettings.json",
+              "RelativeDocumentMoniker": "BudgetManagement.APIService\\appsettings.json",
+              "ToolTip": "E:\\Web\\chi_tieu\\Budget Management\\Budget Management\\BudgetManagement\\BudgetManagement.APIService\\appsettings.json",
+              "RelativeToolTip": "BudgetManagement.APIService\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAALAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-05-04T09:16:37.242Z"
+            }
+          ]
+        },
+        {
+          "DockedHeight": 219,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:1:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:4:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
+            }
+          ]
+        },
+        {
+          "DockedHeight": 167,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{eefa5220-e298-11d0-8f78-00a0c9110057}"
+            }
+          ]
+        },
+        {
+          "DockedHeight": 167,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{b1e99781-ab81-11d0-b683-00aa00a3ee26}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

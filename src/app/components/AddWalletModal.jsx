@@ -2,53 +2,17 @@ import { X } from "lucide-react";
 import { useState } from "react";
 
 const accountTypes = [
-  {
-    name: "Checking Account",
-    icon: "Landmark",
-    color: "blue",
-    gradientFrom: "#3b82f6",
-    gradientTo: "#1d4ed8",
-  },
-  {
-    name: "Savings Account",
-    icon: "WalletIcon",
-    color: "green",
-    gradientFrom: "#22c55e",
-    gradientTo: "#15803d",
-  },
-  {
-    name: "Credit Card",
-    icon: "CreditCard",
-    color: "purple",
-    gradientFrom: "#a855f7",
-    gradientTo: "#7e22ce",
-  },
-  {
-    name: "Business Account",
-    icon: "Landmark",
-    color: "orange",
-    gradientFrom: "#f97316",
-    gradientTo: "#c2410c",
-  },
-  {
-    name: "Investment Account",
-    icon: "TrendingUp",
-    color: "emerald",
-    gradientFrom: "#10b981",
-    gradientTo: "#047857",
-  },
-  {
-    name: "Other",
-    icon: "Wallet",
-    color: "slate",
-    gradientFrom: "#64748b",
-    gradientTo: "#475569",
-  },
+  { label: "Tài khoản thanh toán", iconName: "Landmark",   color: "blue"    },
+  { label: "Tài khoản tiết kiệm",  iconName: "WalletIcon", color: "green"   },
+  { label: "Thẻ tín dụng",        iconName: "CreditCard", color: "purple"  },
+  { label: "Tài khoản kinh doanh", iconName: "Landmark",   color: "orange"  },
+  { label: "Đầu tư",              iconName: "TrendingUp", color: "emerald" },
+  { label: "Khác",                iconName: "WalletIcon", color: "slate"   },
 ];
 
 export function AddWalletModal({ isOpen, onClose, onAdd }) {
   const [name, setName] = useState("");
-  const [type, setType] = useState("");
+  const [typeIndex, setTypeIndex] = useState("");
   const [balance, setBalance] = useState("");
   const [cardNumber, setCardNumber] = useState("");
 
@@ -56,21 +20,20 @@ export function AddWalletModal({ isOpen, onClose, onAdd }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (name && type && balance) {
-      const selectedType = accountTypes.find((t) => t.name === type);
-      onAdd({
-        name,
-        type,
-        balance: parseFloat(balance),
-        cardNumber: cardNumber || "•••• ••••",
-        color: selectedType?.color || "blue",
-      });
-      setName("");
-      setType("");
-      setBalance("");
-      setCardNumber("");
-      onClose();
-    }
+    if (!name || typeIndex === "") return;
+    const selected = accountTypes[typeIndex];
+    onAdd({
+      name,
+      iconName: selected.iconName,
+      color: selected.color,
+      balance: parseFloat(balance) || 0,
+      cardNumber: cardNumber || null,
+    });
+    setName("");
+    setTypeIndex("");
+    setBalance("");
+    setCardNumber("");
+    onClose();
   };
 
   return (
@@ -83,57 +46,52 @@ export function AddWalletModal({ isOpen, onClose, onAdd }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-slate-900">Add Account</h2>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600"
-          >
+          <h2 className="text-2xl font-bold text-slate-900">Thêm tài khoản</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <X size={24} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Account Type
+              Loại tài khoản <span className="text-red-500">*</span>
             </label>
             <select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
+              value={typeIndex}
+              onChange={(e) => setTypeIndex(e.target.value)}
               className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               required
             >
-              <option value="">Select account type</option>
-              {accountTypes.map((accType) => (
-                <option key={accType.name} value={accType.name}>
-                  {accType.name}
+              <option value="">Chọn loại tài khoản</option>
+              {accountTypes.map((t, i) => (
+                <option key={t.iconName + i} value={i}>
+                  {t.label}
                 </option>
               ))}
             </select>
           </div>
 
-          <div className="mb-4">
+          <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Account Name
+              Tên tài khoản <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-              placeholder="e.g., Chase Checking"
+              placeholder="Ví dụ: Ví chính của tôi"
               required
             />
           </div>
 
-          <div className="mb-4">
+          <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Current Balance
+              Số dư ban đầu
             </label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500">
-                $
-              </span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">$</span>
               <input
                 type="number"
                 value={balance}
@@ -141,38 +99,37 @@ export function AddWalletModal({ isOpen, onClose, onAdd }) {
                 className="w-full pl-8 pr-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 placeholder="0.00"
                 step="0.01"
-                required
               />
             </div>
           </div>
 
-          <div className="mb-6">
+          <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Card Number (Last 4 digits)
+              Số thẻ (4 số cuối)
             </label>
             <input
               type="text"
               value={cardNumber}
               onChange={(e) => setCardNumber(e.target.value)}
               className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-              placeholder="•••• 1234"
+              placeholder="Ví dụ: •••• 1234"
               maxLength={9}
             />
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
               className="flex-1 px-4 py-3 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-semibold"
             >
-              Cancel
+              Hủy
             </button>
             <button
               type="submit"
               className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
             >
-              Add Account
+              Thêm tài khoản
             </button>
           </div>
         </form>

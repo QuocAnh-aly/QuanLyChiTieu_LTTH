@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "BudgetManagement.Dto/1.0.0": {
+        "dependencies": {
+          "BudgetManagement.Common": "1.0.0"
+        },
+        "runtime": {
+          "BudgetManagement.Dto.dll": {}
+        }
+      },
+      "BudgetManagement.Common/1.0.0": {
+        "runtime": {
+          "BudgetManagement.Common.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "BudgetManagement.Dto/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "BudgetManagement.Common/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

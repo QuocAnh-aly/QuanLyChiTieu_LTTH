@@ -5,16 +5,28 @@ import { Budget } from "./components/pages/Budget";
 import { Savings } from "./components/pages/Savings";
 import { Wallet } from "./components/pages/Wallet";
 import { Account } from "./components/pages/Account";
+import { Transactions } from "./components/pages/Transactions";
+import { Login } from "./components/pages/Login";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 export const router = createBrowserRouter([
   {
+    path: "/login",
+    element: <Login />,
+  },
+  {
     path: "/",
-    element: <Layout />,
+    element: (
+      <ProtectedRoute>
+        <Layout />
+      </ProtectedRoute>
+    ),
     children: [
       { index: true, element: <Dashboard /> },
       { path: "budget", element: <Budget /> },
       { path: "savings", element: <Savings /> },
       { path: "wallet", element: <Wallet /> },
+      { path: "transactions", element: <Transactions /> },
       { path: "account", element: <Account /> },
     ],
   },
