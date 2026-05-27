@@ -120,6 +120,60 @@ public class BudgetController : BaseController
         return CreatedAtAction(nameof(GetSavingsGoalById), new { id = result.BudgetId }, result);
     }
 
+    // POST api/budgets/savings/{id}/add
+    [HttpPost("savings/{id:int}/add")]
+    public async Task<IActionResult> AddMoney(int id, [FromBody] AddRemoveMoneyDto request)
+    {
+        try
+        {
+            var result = await _budgetService.AddMoneyAsync(GetUserId(), id, request.Amount, request.Notes);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (ArgumentException ex)    { return BadRequest(new { message = ex.Message }); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
+    }
+
+    // POST api/budgets/savings/{id}/remove
+    [HttpPost("savings/{id:int}/remove")]
+    public async Task<IActionResult> RemoveMoney(int id, [FromBody] AddRemoveMoneyDto request)
+    {
+        try
+        {
+            var result = await _budgetService.RemoveMoneyAsync(GetUserId(), id, request.Amount, request.Notes);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (ArgumentException ex)    { return BadRequest(new { message = ex.Message }); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
+    }
+
+    // POST api/budgets/savings/{id}/reset
+    [HttpPost("savings/{id:int}/reset")]
+    public async Task<IActionResult> ResetHistory(int id)
+    {
+        try
+        {
+            await _budgetService.ResetHistoryAsync(GetUserId(), id);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
+    }
+
+    // GET api/budgets/savings/{id}/events
+    [HttpGet("savings/{id:int}/events")]
+    public async Task<IActionResult> GetEvents(int id)
+    {
+        try
+        {
+            var result = await _budgetService.GetEventsAsync(GetUserId(), id);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
+    }
+
     // PUT api/budgets/savings/{id}
     [HttpPut("savings/{id:int}")]
     public async Task<IActionResult> UpdateSavingsGoal(int id, [FromBody] UpdateSavingsGoalDto request)

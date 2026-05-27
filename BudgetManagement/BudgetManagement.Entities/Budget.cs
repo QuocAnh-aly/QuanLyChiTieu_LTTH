@@ -23,4 +23,5 @@ public class Budget
 
     public User User { get; set; } = null!;
     public Account Account { get; set; } = null!;
+    public ICollection<PiggyBankEvent> PiggyBankEvents { get; set; } = new List<PiggyBankEvent>();
 }

@@ -6,9 +6,9 @@ export const authApi = {
     return axiosClient.post(url, data);
   },
 
-  register(data) {
+  register({ account, password, userName, email }) {
     const url = '/api/auth/signup';
-    return axiosClient.post(url, data);
+    return axiosClient.post(url, { account, password, user_name: userName, email });
   },
 
   refresh() {

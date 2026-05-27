@@ -135,7 +135,7 @@ public class BudgetService : IBudgetService
             MonthlyContribution  = request.MonthlyContribution ?? 0,
             PeriodType           = "monthly",
             StartDate            = DateTime.UtcNow,
-            Deadline             = request.Deadline,
+            Deadline             = request.TargetDate,
             IconName             = request.IconName ?? "PiggyBank",
             Color                = request.Color    ?? "green",
             IsActive             = true,
@@ -157,13 +157,72 @@ public class BudgetService : IBudgetService
         goal.Title               = request.Title               ?? goal.Title;
         goal.TargetAmount        = request.TargetAmount        ?? goal.TargetAmount;
         goal.MonthlyContribution = request.MonthlyContribution ?? goal.MonthlyContribution;
-        goal.Deadline            = request.Deadline            ?? goal.Deadline;
+        goal.Deadline            = request.TargetDate          ?? goal.Deadline;
         goal.IconName            = request.IconName            ?? goal.IconName;
         goal.Color               = request.Color               ?? goal.Color;
         goal.IsActive            = request.IsActive            ?? goal.IsActive;
 
         var updated = await _budgetRepo.UpdateAsync(goal);
         return MapToSavingsDto(updated);
+    }
+
+    public async Task<SavingsGoalDto> AddMoneyAsync(int userId, int budgetId, decimal amount, string? notes)
+    {
+        var goal = await _budgetRepo.GetByIdAsync(budgetId)
+                   ?? throw new KeyNotFoundException("Savings goal not found.");
+        if (goal.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
+        if (amount <= 0) throw new ArgumentException("Amount must be positive.");
+
+        var newAmount = (goal.CurrentAmount ?? 0) + amount;
+        if (newAmount > goal.TargetAmount) newAmount = goal.TargetAmount;   // clamp to target
+
+        await _budgetRepo.UpdateCurrentAmountAsync(budgetId, newAmount);
+        await _budgetRepo.AddEventAsync(budgetId, amount, notes);
+
+        return MapToSavingsDto((await _budgetRepo.GetByIdAsync(budgetId))!);
+    }
+
+    public async Task<SavingsGoalDto> RemoveMoneyAsync(int userId, int budgetId, decimal amount, string? notes)
+    {
+        var goal = await _budgetRepo.GetByIdAsync(budgetId)
+                   ?? throw new KeyNotFoundException("Savings goal not found.");
+        if (goal.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
+        if (amount <= 0) throw new ArgumentException("Amount must be positive.");
+
+        var current    = goal.CurrentAmount ?? 0;
+        var newAmount  = Math.Max(0, current - amount);
+
+        await _budgetRepo.UpdateCurrentAmountAsync(budgetId, newAmount);
+        await _budgetRepo.AddEventAsync(budgetId, -amount, notes);  // negative = remove
+
+        return MapToSavingsDto((await _budgetRepo.GetByIdAsync(budgetId))!);
+    }
+
+    public async Task<bool> ResetHistoryAsync(int userId, int budgetId)
+    {
+        var goal = await _budgetRepo.GetByIdAsync(budgetId)
+                   ?? throw new KeyNotFoundException("Savings goal not found.");
+        if (goal.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
+
+        await _budgetRepo.DeleteEventsByBudgetIdAsync(budgetId);
+        await _budgetRepo.UpdateCurrentAmountAsync(budgetId, 0);
+        return true;
+    }
+
+    public async Task<IEnumerable<PiggyBankEventDto>> GetEventsAsync(int userId, int budgetId)
+    {
+        var goal = await _budgetRepo.GetByIdAsync(budgetId)
+                   ?? throw new KeyNotFoundException("Savings goal not found.");
+        if (goal.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
+
+        var events = await _budgetRepo.GetEventsByBudgetIdAsync(budgetId);
+        return events.Select(e => new PiggyBankEventDto
+        {
+            EventId   = e.EventId,
+            Amount    = e.Amount,
+            EventDate = e.EventDate,
+            Notes     = e.Notes,
+        });
     }
 
     public async Task UpdateSpentAmountAsync(int accountId, decimal delta)
@@ -194,25 +253,38 @@ public class BudgetService : IBudgetService
         IsActive      = b.IsActive ?? true
     };
 
-    private static SavingsGoalDto MapToSavingsDto(Budget b) => new()
+    private static SavingsGoalDto MapToSavingsDto(Budget b)
     {
-        BudgetId             = b.BudgetId,
-        AccountId            = b.AccountId,
-        AccountName          = b.Account?.Name,
-        Title                = b.Title,
-        TargetAmount         = b.TargetAmount,
-        CurrentAmount        = b.CurrentAmount ?? 0,
-        MonthlyContribution  = b.MonthlyContribution ?? 0,
-        Percentage           = b.TargetAmount > 0
-                               ? Math.Round((b.CurrentAmount ?? 0) / b.TargetAmount * 100, 1)
-                               : 0,
-        Deadline             = b.Deadline,
-        IconName             = b.IconName,
-        Color                = b.Color,
-        IsActive             = b.IsActive ?? true,
-        // Ước tính số tháng còn lại
-        MonthsRemaining      = b.MonthlyContribution > 0
-            ? (int)Math.Ceiling((double)((b.TargetAmount - (b.CurrentAmount ?? 0)) / b.MonthlyContribution))
-            : null
-    };
+        var current    = b.CurrentAmount ?? 0;
+        var leftToSave = Math.Max(0, b.TargetAmount - current);
+        var monthly    = b.MonthlyContribution ?? 0;
+
+        return new SavingsGoalDto
+        {
+            BudgetId        = b.BudgetId,
+            AccountId       = b.AccountId,
+            AccountName     = b.Account?.Name,
+            Title           = b.Title,
+            TargetAmount    = b.TargetAmount,
+            CurrentAmount   = current,
+            SavePerMonth    = monthly,
+            Percentage      = b.TargetAmount > 0
+                              ? Math.Round(current / b.TargetAmount * 100, 1)
+                              : 0,
+            TargetDate      = b.Deadline,
+            IconName        = b.IconName,
+            Color           = b.Color,
+            IsActive        = b.IsActive ?? true,
+            MonthsRemaining = monthly > 0
+                ? (int)Math.Ceiling((double)(leftToSave / monthly))
+                : null,
+            Events = b.PiggyBankEvents.Select(e => new PiggyBankEventDto
+            {
+                EventId   = e.EventId,
+                Amount    = e.Amount,
+                EventDate = e.EventDate,
+                Notes     = e.Notes,
+            }).ToList(),
+        };
+    }
 }

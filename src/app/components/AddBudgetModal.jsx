@@ -1,21 +1,12 @@
 import { X } from "lucide-react";
 import { useState } from "react";
-
-const categories = [
-  { label: "Ăn uống",           iconName: "Coffee",      color: "orange"  },
-  { label: "Mua sắm",            iconName: "ShoppingBag", color: "pink"    },
-  { label: "Di chuyển",          iconName: "Car",         color: "blue"    },
-  { label: "Giải trí",           iconName: "Heart",       color: "purple"  },
-  { label: "Hóa đơn & Tiện ích", iconName: "Zap",         color: "yellow"  },
-  { label: "Nhà cửa",            iconName: "Home",        color: "green"   },
-  { label: "Sức khỏe",           iconName: "Heart",       color: "red"     },
-  { label: "Khác",               iconName: "Wallet",      color: "slate"   },
-];
+import { useCategories } from "../context/CategoriesContext";
 
 const periodTypes = ["daily", "weekly", "monthly", "yearly"];
 
 export function AddBudgetModal({ isOpen, onClose, onAdd }) {
-  const [catIndex,    setCatIndex]    = useState("");
+  const { expenseCategories } = useCategories();
+  const [catId,       setCatId]       = useState("");
   const [title,       setTitle]       = useState("");
   const [amount,      setAmount]      = useState("");
   const [periodType,  setPeriodType]  = useState("monthly");
@@ -27,8 +18,7 @@ export function AddBudgetModal({ isOpen, onClose, onAdd }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!title || !amount || !startDate) return;
-    const selected = catIndex !== "" ? categories[catIndex] : null;
-    // accountId không gửi — backend sẽ tự tạo Expense account
+    const selected = expenseCategories.find(c => c.id === catId) || null;
     onAdd({
       title,
       targetAmount: parseFloat(amount),
@@ -38,7 +28,7 @@ export function AddBudgetModal({ isOpen, onClose, onAdd }) {
       iconName: selected?.iconName || "Coffee",
       color: selected?.color || "orange",
     });
-    setTitle(""); setCatIndex(""); setAmount("");
+    setTitle(""); setCatId(""); setAmount("");
     setPeriodType("monthly");
     setStartDate(new Date().toISOString().slice(0, 10));
     setEndDate("");
@@ -68,17 +58,19 @@ export function AddBudgetModal({ isOpen, onClose, onAdd }) {
               Danh mục
             </label>
             <select
-              value={catIndex}
+              value={catId}
               onChange={(e) => {
-                setCatIndex(e.target.value);
-                if (e.target.value !== "" && !title)
-                  setTitle(categories[e.target.value].label);
+                setCatId(e.target.value);
+                if (e.target.value && !title) {
+                  const cat = expenseCategories.find(c => c.id === e.target.value);
+                  if (cat) setTitle(cat.label);
+                }
               }}
               className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
               <option value="">Chọn danh mục</option>
-              {categories.map((c, i) => (
-                <option key={c.iconName + i} value={i}>{c.label}</option>
+              {expenseCategories.map((c) => (
+                <option key={c.id} value={c.id}>{c.label}</option>
               ))}
             </select>
           </div>

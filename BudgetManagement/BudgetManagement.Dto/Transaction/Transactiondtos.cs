@@ -4,12 +4,15 @@ namespace BudgetManagement.Dto;
 
 public class CreateTransactionDto
 {
-    public int      DebitAccountId    { get; set; }   // Tài khoản bị ghi Nợ
-    public int      CreditAccountId   { get; set; }   // Tài khoản bị ghi Có (0 = auto tạo cho thu nhập)
-    public decimal  Amount            { get; set; }
-    public string?  Description       { get; set; }
-    public DateTime? TransactionDate  { get; set; }   // null → dùng DateTime.UtcNow
-    public string?  IncomeCategoryName { get; set; }  // Thu nhập: tên danh mục, backend tự tạo Revenue account
+    public int      DebitAccountId      { get; set; }
+    public int      CreditAccountId     { get; set; }
+    public decimal  Amount              { get; set; }
+    public string?  Description         { get; set; }
+    public string?  Notes               { get; set; }
+    public string?  Tags                { get; set; }   // comma-separated tag names
+    public DateTime? TransactionDate    { get; set; }
+    public string?  IncomeCategoryName  { get; set; }   // Thu nhập: backend tự tạo Revenue account
+    public string?  ExpenseCategoryName { get; set; }   // Chi tiêu: backend tự tạo Expense account
 }
 
 // ─── Response ────────────────────────────────────────────────────────────────
@@ -19,6 +22,8 @@ public class TransactionDto
     public int      JournalId       { get; set; }
     public DateTime TransactionDate { get; set; }
     public string?  Description     { get; set; }
+    public string?  Notes           { get; set; }
+    public string?  Tags            { get; set; }
     public DateTime? CreatedAt      { get; set; }
     public List<JournalDetailDto> Details { get; set; } = [];
 
@@ -37,11 +42,13 @@ public class JournalDetailDto
     public decimal Credit      { get; set; }
 }
 
-// ─── Update Transaction (chỉ mô tả + ngày) ───────────────────────────────────
+// ─── Update Transaction ───────────────────────────────────────────────────────
 
 public class UpdateTransactionDto
 {
     public string?   Description     { get; set; }
+    public string?   Notes           { get; set; }
+    public string?   Tags            { get; set; }
     public DateTime? TransactionDate { get; set; }
 }
 

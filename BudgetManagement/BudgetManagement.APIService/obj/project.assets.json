@@ -3742,6 +3742,7 @@
       },
       "frameworks": {
         "net10.0": {
+          "framework": "net10.0",
           "targetAlias": "net10.0",
           "projectReferences": {
             "E:\\Web\\chi_tieu\\Budget Management\\Budget Management\\BudgetManagement\\BudgetManagement.Common\\BudgetManagement.Common.csproj": {
@@ -3770,6 +3771,7 @@
     },
     "frameworks": {
       "net10.0": {
+        "framework": "net10.0",
         "targetAlias": "net10.0",
         "dependencies": {
           "Microsoft.AspNetCore.Authentication.JwtBearer": {

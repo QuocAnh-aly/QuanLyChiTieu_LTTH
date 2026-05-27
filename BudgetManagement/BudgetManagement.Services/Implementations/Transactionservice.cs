@@ -49,6 +49,25 @@ public class TransactionService : ITransactionService
 
     public async Task<TransactionDto> CreateAsync(int userId, CreateTransactionDto request)
     {
+        // Chi tiêu theo danh mục: tự tìm hoặc tạo Expense account
+        if (!string.IsNullOrWhiteSpace(request.ExpenseCategoryName))
+        {
+            var expenseAcct =
+                await _accountRepo.FindByUserAndNameAsync(userId, TypeExpense, request.ExpenseCategoryName)
+                ?? await _accountRepo.CreateAsync(new Account
+                {
+                    UserId    = userId,
+                    TypeId    = TypeExpense,
+                    Name      = request.ExpenseCategoryName,
+                    IconName  = "ShoppingCart",
+                    Color     = "red",
+                    Balance   = 0,
+                    IsActive  = true,
+                    CreatedAt = DateTime.UtcNow,
+                });
+            request.DebitAccountId = expenseAcct.AccountId;
+        }
+
         // Thu nhập: tự tìm hoặc tạo Revenue account theo tên danh mục
         if (!string.IsNullOrWhiteSpace(request.IncomeCategoryName))
         {
@@ -83,6 +102,8 @@ public class TransactionService : ITransactionService
             UserId          = userId,
             TransactionDate = request.TransactionDate ?? DateTime.UtcNow,
             Description     = request.Description ?? "Unknown",
+            Notes           = request.Notes,
+            Tags            = request.Tags,
             CreatedAt       = DateTime.UtcNow
         };
 
@@ -115,7 +136,7 @@ public class TransactionService : ITransactionService
         if (entry.UserId != userId)
             throw new UnauthorizedAccessException("Access denied.");
 
-        await _journalRepo.UpdateEntryAsync(journalId, request.Description, request.TransactionDate);
+        await _journalRepo.UpdateEntryAsync(journalId, request.Description, request.Notes, request.Tags, request.TransactionDate);
 
         var updated = await _journalRepo.GetWithDetailsAsync(journalId);
         return MapToDto(updated!);
@@ -191,6 +212,8 @@ public class TransactionService : ITransactionService
         JournalId       = e.JournalId,
         TransactionDate = e.TransactionDate,
         Description     = e.Description,
+        Notes           = e.Notes,
+        Tags            = e.Tags,
         CreatedAt       = e.CreatedAt,
         Details         = e.JournalDetails.Select(d => new JournalDetailDto
         {

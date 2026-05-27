@@ -23,12 +23,14 @@ builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<IJournalRepository, JournalRepository>();
 builder.Services.AddScoped<IBudgetRepository, BudgetRepository>();
 builder.Services.AddScoped<IRecurringRepository, RecurringRepository>();
+builder.Services.AddScoped<IBillRepository, BillRepository>();
 
 // ─── Services ────────────────────────────────────────────────────────────────
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<IBudgetService, BudgetService>();
 builder.Services.AddScoped<IRecurringService, RecurringService>();
+builder.Services.AddScoped<IBillService, BillService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 // ─── JWT Authentication ──────────────────────────────────────────────────────

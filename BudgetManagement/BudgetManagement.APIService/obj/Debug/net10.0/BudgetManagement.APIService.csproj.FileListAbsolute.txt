@@ -172,4 +172,3 @@ E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManag
 E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.APIService\obj\Debug\net10.0\BudgetManagement.APIService.pdb
 E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.APIService\obj\Debug\net10.0\BudgetManagement.APIService.genruntimeconfig.cache
 E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.APIService\obj\Debug\net10.0\ref\BudgetManagement.APIService.dll
-E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.APIService\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt

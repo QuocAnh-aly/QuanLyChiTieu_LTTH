@@ -66,12 +66,14 @@ public class JournalRepository : BaseRepository<JournalEntry>, IJournalRepositor
         }
     }
 
-    public async Task<bool> UpdateEntryAsync(int journalId, string? description, DateTime? transactionDate)
+    public async Task<bool> UpdateEntryAsync(int journalId, string? description, string? notes, string? tags, DateTime? transactionDate)
     {
         var entry = await _context.JournalEntries.FindAsync(journalId);
         if (entry is null) return false;
 
         if (description is not null)  entry.Description     = description;
+        if (notes       is not null)  entry.Notes           = notes;
+        if (tags        is not null)  entry.Tags            = tags;
         if (transactionDate.HasValue) entry.TransactionDate = transactionDate.Value;
 
         await _context.SaveChangesAsync();

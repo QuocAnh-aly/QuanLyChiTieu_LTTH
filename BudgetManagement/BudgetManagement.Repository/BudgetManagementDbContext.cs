@@ -15,6 +15,8 @@ public class BudgetManagementDbContext : DbContext
     public DbSet<Budget> Budgets { get; set; } = null!;
     public DbSet<RecurringJournal> RecurringJournals { get; set; } = null!;
     public DbSet<RecurringInstance> RecurringInstances { get; set; } = null!;
+    public DbSet<PiggyBankEvent> PiggyBankEvents { get; set; } = null!;
+    public DbSet<Bill> Bills { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -27,6 +29,8 @@ public class BudgetManagementDbContext : DbContext
         modelBuilder.Entity<Budget>().HasKey(b => b.BudgetId);
         modelBuilder.Entity<RecurringJournal>().HasKey(rj => rj.RecurringId);
         modelBuilder.Entity<RecurringInstance>().HasKey(ri => ri.InstanceId);
+        modelBuilder.Entity<PiggyBankEvent>().HasKey(pe => pe.EventId);
+        modelBuilder.Entity<Bill>().HasKey(b => b.BillId);
 
         // ─── Snake Case Mapping ───────────────────────────────────────────────────
         foreach (var entity in modelBuilder.Model.GetEntityTypes())
@@ -41,6 +45,7 @@ public class BudgetManagementDbContext : DbContext
 
         // Special mapping for tables with underscores in SQL script
         modelBuilder.Entity<AccountType>().ToTable("Account_Types");
+        modelBuilder.Entity<PiggyBankEvent>().ToTable("Piggy_Bank_Events");
         modelBuilder.Entity<JournalEntry>().ToTable("Journal_Entries");
         modelBuilder.Entity<JournalDetail>().ToTable("Journal_Details");
         modelBuilder.Entity<RecurringJournal>().ToTable("Recurring_Journals");
@@ -79,6 +84,26 @@ public class BudgetManagementDbContext : DbContext
             .WithMany()
             .HasForeignKey(d => d.CreditAccountId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<PiggyBankEvent>()
+            .HasOne(e => e.Budget)
+            .WithMany(b => b.PiggyBankEvents)
+            .HasForeignKey(e => e.BudgetId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Bill>()
+            .HasOne(b => b.User)
+            .WithMany()
+            .HasForeignKey(b => b.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // ClientSetNull: no SQL-level cascade rule (avoids multi-path conflict via Users→Bills and Users→JournalEntries)
+        // Service always calls UnlinkAllEntriesAsync before deleting a Bill
+        modelBuilder.Entity<JournalEntry>()
+            .HasOne(j => j.Bill)
+            .WithMany(b => b.JournalEntries)
+            .HasForeignKey(j => j.BillId)
+            .OnDelete(DeleteBehavior.ClientSetNull);
     }
 
     private string ToSnakeCase(string input)

@@ -48,9 +48,35 @@ public class BudgetRepository : BaseRepository<Budget>, IBudgetRepository
                 s.SetProperty(b => b.CurrentAmount, amount)
             );
 
-    // Override GetByIdAsync để include Account
+    // Override GetByIdAsync để include Account + Events
     public override async Task<Budget?> GetByIdAsync(int id)
         => await _dbSet
             .Include(b => b.Account)
+            .Include(b => b.PiggyBankEvents.OrderBy(e => e.EventDate))
             .FirstOrDefaultAsync(b => b.BudgetId == id);
+
+    public async Task AddEventAsync(int budgetId, decimal amount, string? notes)
+    {
+        _context.PiggyBankEvents.Add(new PiggyBankEvent
+        {
+            BudgetId  = budgetId,
+            Amount    = amount,
+            EventDate = DateTime.UtcNow,
+            Notes     = notes,
+        });
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<PiggyBankEvent>> GetEventsByBudgetIdAsync(int budgetId)
+        => await _context.PiggyBankEvents
+            .Where(e => e.BudgetId == budgetId)
+            .OrderByDescending(e => e.EventDate)
+            .ToListAsync();
+
+    public async Task DeleteEventsByBudgetIdAsync(int budgetId)
+    {
+        await _context.PiggyBankEvents
+            .Where(e => e.BudgetId == budgetId)
+            .ExecuteDeleteAsync();
+    }
 }

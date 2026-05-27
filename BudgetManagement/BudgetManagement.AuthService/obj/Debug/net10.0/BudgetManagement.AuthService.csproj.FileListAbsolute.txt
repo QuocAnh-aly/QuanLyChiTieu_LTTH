@@ -87,4 +87,3 @@ E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManag
 E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.AuthService\obj\Debug\net10.0\BudgetManagement.AuthService.pdb
 E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.AuthService\obj\Debug\net10.0\BudgetManagement.AuthService.genruntimeconfig.cache
 E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.AuthService\obj\Debug\net10.0\ref\BudgetManagement.AuthService.dll
-E:\Web\chi_tieu\Budget Management\Budget Management\BudgetManagement\BudgetManagement.AuthService\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt

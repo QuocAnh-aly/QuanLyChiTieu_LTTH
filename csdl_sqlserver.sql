@@ -46,6 +46,7 @@ CREATE TABLE Accounts (
 	gradient_from NVARCHAR(10) DEFAULT '#3b82f6',
 	gradient_to NVARCHAR(10) DEFAULT '#1d4ed8',
 	balance DECIMAL(18,2) DEFAULT 0,
+	initial_balance DECIMAL(18,2) DEFAULT 0,
 	card_number NVARCHAR(20) DEFAULT '•••• ••••',
 	is_active BIT DEFAULT 1,
 	created_at DATETIME2 DEFAULT GETDATE(),
@@ -59,8 +60,12 @@ CREATE TABLE Journal_Entries (
 	user_id INT NOT NULL,
 	transaction_date DATETIME2 NOT NULL,
 	description NVARCHAR(500) DEFAULT 'Unknown',
+	notes NVARCHAR(MAX) NULL,
+	tags NVARCHAR(1000) NULL,
+	bill_id INT NULL,
 	created_at DATETIME2 DEFAULT GETDATE(),
 	FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
+	-- FK to Bills added after Bills table: see section 9
 );
 
 CREATE INDEX idx_journal_user_date ON Journal_Entries (user_id, transaction_date);
@@ -135,3 +140,49 @@ CREATE TABLE Recurring_Instances (
 	FOREIGN KEY (journal_id) REFERENCES Journal_Entries(journal_id),
 	CONSTRAINT CHK_Status CHECK (status IN ('pending', 'completed', 'skipped'))
 );
+
+-- 8. LỊCH SỬ LỢN TIẾT KIỆM (Piggy_Bank_Events)
+CREATE TABLE Piggy_Bank_Events (
+	event_id INT IDENTITY(1,1) PRIMARY KEY,
+	budget_id INT NOT NULL,
+	amount DECIMAL(18,2) NOT NULL,    -- dương = nạp, âm = rút
+	event_date DATETIME2 DEFAULT GETDATE(),
+	notes NVARCHAR(500) NULL,
+	FOREIGN KEY (budget_id) REFERENCES Budgets(budget_id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_piggy_event_budget ON Piggy_Bank_Events (budget_id);
+
+-- 9. HÓAĐƠN ĐỊNH KỲ / SUBSCRIPTIONS (Bills)
+CREATE TABLE Bills (
+    bill_id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id INT NOT NULL,
+    name NVARCHAR(255) NOT NULL,
+    amount_min DECIMAL(18,2) NOT NULL DEFAULT 0,
+    amount_max DECIMAL(18,2) NOT NULL DEFAULT 0,
+    date DATE NOT NULL,
+    end_date DATE NULL,
+    extension_date DATE NULL,
+    repeat_freq NVARCHAR(20) NOT NULL DEFAULT 'monthly',
+    skip INT NOT NULL DEFAULT 0,
+    active BIT NOT NULL DEFAULT 1,
+    notes NVARCHAR(MAX) NULL,
+    object_group NVARCHAR(255) NULL,
+    created_at DATETIME2 DEFAULT GETDATE(),
+    CONSTRAINT CHK_BillRepeatFreq CHECK (repeat_freq IN ('daily','weekly','monthly','quarterly','half-year','yearly')),
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_bill_user ON Bills (user_id);
+
+-- No cascade here: avoids SQL Server multi-path conflict (Users→Bills and Users→JournalEntries both cascade)
+-- The service manually unlinks entries before deleting a Bill
+ALTER TABLE Journal_Entries ADD CONSTRAINT FK_JournalEntries_Bills
+    FOREIGN KEY (bill_id) REFERENCES Bills(bill_id) ON DELETE NO ACTION;
+
+-- ─── Alter existing DB (run once if tables were already created) ─────────────
+-- ALTER TABLE Journal_Entries ADD notes NVARCHAR(MAX) NULL;
+-- ALTER TABLE Journal_Entries ADD tags  NVARCHAR(1000) NULL;
+-- ALTER TABLE Journal_Entries ADD bill_id INT NULL;
+-- ALTER TABLE Journal_Entries ADD CONSTRAINT FK_JournalEntries_Bills
+--     FOREIGN KEY (bill_id) REFERENCES Bills(bill_id) ON DELETE NO ACTION;

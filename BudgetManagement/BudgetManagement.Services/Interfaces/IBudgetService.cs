@@ -17,6 +17,12 @@ public interface IBudgetService
     Task<SavingsGoalDto> CreateSavingsGoalAsync(int userId, CreateSavingsGoalDto request);
     Task<SavingsGoalDto> UpdateSavingsGoalAsync(int userId, int budgetId, UpdateSavingsGoalDto request);
 
+    // Piggy bank actions
+    Task<SavingsGoalDto> AddMoneyAsync(int userId, int budgetId, decimal amount, string? notes);
+    Task<SavingsGoalDto> RemoveMoneyAsync(int userId, int budgetId, decimal amount, string? notes);
+    Task<bool> ResetHistoryAsync(int userId, int budgetId);
+    Task<IEnumerable<PiggyBankEventDto>> GetEventsAsync(int userId, int budgetId);
+
     // Cập nhật số tiền đã chi / đã tiết kiệm
     Task UpdateSpentAmountAsync(int budgetId, decimal delta);
 }
