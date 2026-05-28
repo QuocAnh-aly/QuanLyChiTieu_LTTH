@@ -11,6 +11,12 @@
 -- Frontend: Layout.jsx (tên, email, avatar)
 --           Profile.jsx / Preferences.jsx (theme, currency, notifications)
 -- =============================================
+CREATE DATABASE BudgetManagement
+GO
+
+USE BudgetManagement
+GO 
+
 CREATE TABLE Users (
 	user_id INT IDENTITY(1,1) PRIMARY KEY,
 	user_account NVARCHAR(50) NOT NULL UNIQUE,
