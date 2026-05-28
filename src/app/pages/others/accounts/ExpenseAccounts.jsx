@@ -2,7 +2,7 @@ import { Plus, CreditCard, Pencil, Trash2, ArrowDownRight, Search } from "lucide
 import { useState, useEffect, useCallback } from "react";
 import { walletApi } from "../../../api/walletApi";
 import { useSettings } from "../../../context/SettingsContext";
-import { AccountFormModal } from "../../../components/AccountFormModal";
+import { AccountFormModal } from "../../../components/modals/AccountFormModal";
 import { toast } from "sonner";
 
 export function ExpenseAccounts() {

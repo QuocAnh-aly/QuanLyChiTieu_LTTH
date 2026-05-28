@@ -12,9 +12,9 @@ import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 import { piggyBankApi } from "../../api/piggyBankApi";
 import { toast } from "sonner";
-import { AddMoneyModal } from "../../components/AddMoneyModal";
-import { RemoveMoneyModal } from "../../components/RemoveMoneyModal";
-import { PiggyBankFormModal } from "../../components/PiggyBankFormModal";
+import { AddMoneyModal } from "../../components/modals/AddMoneyModal";
+import { RemoveMoneyModal } from "../../components/modals/RemoveMoneyModal";
+import { PiggyBankFormModal } from "../../components/modals/PiggyBankFormModal";
 import { useSettings } from "../../context/SettingsContext";
 
 const COLOR_MAP = {

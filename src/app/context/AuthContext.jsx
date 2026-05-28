@@ -25,9 +25,10 @@ export function AuthProvider({ children }) {
 
   const login = async (credentials) => {
     const data = await authApi.login(credentials);
+    if (!data?.access_token) throw new Error('Phản hồi đăng nhập không hợp lệ.');
     localStorage.setItem('access_token', data.access_token);
     localStorage.setItem('refresh_token', data.refresh_token);
-    localStorage.setItem('user_id', data.user_id);
+    localStorage.setItem('user_id', String(data.user_id));
     const profile = await authApi.getProfile();
     setUser(profile);
     return profile;
@@ -35,9 +36,10 @@ export function AuthProvider({ children }) {
 
   const register = async (userData) => {
     const data = await authApi.register(userData);
+    if (!data?.access_token) throw new Error('Phản hồi đăng ký không hợp lệ.');
     localStorage.setItem('access_token', data.access_token);
     localStorage.setItem('refresh_token', data.refresh_token);
-    localStorage.setItem('user_id', data.user_id);
+    localStorage.setItem('user_id', String(data.user_id));
     const profile = await authApi.getProfile();
     setUser(profile);
     return profile;

@@ -9,7 +9,7 @@ import { format, parseISO, differenceInDays } from "date-fns";
 import { vi } from "date-fns/locale";
 import { toast } from "sonner";
 import { billApi } from "../../api/billApi";
-import { SubscriptionFormModal } from "../../components/SubscriptionFormModal";
+import { SubscriptionFormModal } from "../../components/modals/SubscriptionFormModal";
 import { useSettings } from "../../context/SettingsContext";
 
 const FREQ_LABELS = {

@@ -1,5 +1,5 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import { Layout } from "./components/Layout";
+import { Layout } from "./components/layout/Layout";
 
 // Auth & Dashboard
 import { Login } from "./pages/auth/Login";
@@ -45,7 +45,7 @@ import { ExchangeRates } from "./pages/options/ExchangeRates";
 import { Administrations } from "./pages/options/Administrations";
 import { SystemSettings } from "./pages/options/SystemSettings";
 
-import { ProtectedRoute } from "./components/ProtectedRoute";
+import { ProtectedRoute } from "./components/layout/ProtectedRoute";
 
 export const router = createBrowserRouter([
   {

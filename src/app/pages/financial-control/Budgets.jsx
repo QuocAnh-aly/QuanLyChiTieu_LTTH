@@ -26,8 +26,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useState, useEffect, useMemo } from "react";
-import { AddBudgetModal } from "../../components/AddBudgetModal";
-import { EditBudgetModal } from "../../components/EditBudgetModal";
+import { AddBudgetModal } from "../../components/modals/AddBudgetModal";
+import { EditBudgetModal } from "../../components/modals/EditBudgetModal";
 import { toast } from "sonner";
 import { budgetApi } from "../../api/budgetApi";
 import { useSettings } from "../../context/SettingsContext";

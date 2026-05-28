@@ -10,10 +10,12 @@ const axiosClient = axios.create({
 // Interceptor for requests
 axiosClient.interceptors.request.use(
   (config) => {
-    // You can attach token here later if needed
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const isAuthRoute = config.url?.startsWith('/api/auth/signin') || config.url?.startsWith('/api/auth/signup');
+    if (!isAuthRoute) {
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },

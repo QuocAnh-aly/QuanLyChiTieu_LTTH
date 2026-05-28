@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router';
 import { Eye, EyeOff, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../../context/AuthContext';
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
+import { Button } from "../../components/ui/inputs/button";
+import { Input } from "../../components/ui/inputs/input";
+import { Label } from "../../components/ui/inputs/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/navigation/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/layout/card";
 
 export function Login() {
   const navigate = useNavigate();

@@ -9,8 +9,8 @@ import {
 import { vi } from "date-fns/locale";
 import { transactionApi } from "../../api/transactionApi";
 import { toast } from "sonner";
-import { AddTransactionModal } from "../../components/AddTransactionModal";
-import { EditTransactionModal } from "../../components/EditTransactionModal";
+import { AddTransactionModal } from "../../components/modals/AddTransactionModal";
+import { EditTransactionModal } from "../../components/modals/EditTransactionModal";
 import { useSettings } from "../../context/SettingsContext";
 
 function mapTx(t) {

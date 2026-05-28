@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BudgetManagement.AuthService.Controllers;
 
+[ApiController]
 [Route("api/auth")]
 public class AuthController : BaseController
 {

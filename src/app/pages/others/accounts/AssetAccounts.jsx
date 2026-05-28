@@ -31,9 +31,9 @@ import {
 } from "recharts";
 import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
-import { AddWalletModal } from "../../../components/AddWalletModal";
-import { EditWalletModal } from "../../../components/EditWalletModal";
-import { QuickTransferModal } from "../../../components/QuickTransferModal";
+import { AddWalletModal } from "../../../components/modals/AddWalletModal";
+import { EditWalletModal } from "../../../components/modals/EditWalletModal";
+import { QuickTransferModal } from "../../../components/modals/QuickTransferModal";
 import { toast } from "sonner";
 import { walletApi } from "../../../api/walletApi";
 import { transactionApi } from "../../../api/transactionApi";

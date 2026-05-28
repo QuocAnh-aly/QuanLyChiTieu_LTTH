@@ -7,7 +7,7 @@ import {
 import { piggyBankApi } from "../../api/piggyBankApi";
 import { walletApi } from "../../api/walletApi";
 import { toast } from "sonner";
-import { PiggyBankFormModal } from "../../components/PiggyBankFormModal";
+import { PiggyBankFormModal } from "../../components/modals/PiggyBankFormModal";
 import { useSettings } from "../../context/SettingsContext";
 
 const COLOR_MAP = {
