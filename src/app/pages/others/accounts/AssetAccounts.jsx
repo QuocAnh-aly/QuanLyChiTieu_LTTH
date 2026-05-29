@@ -40,15 +40,16 @@ import { transactionApi } from "../../../api/transactionApi";
 import { useSettings } from "../../../context/SettingsContext";
 
 function mapTransaction(t) {
-  const details       = t.details || [];
-  const expenseDetail = details.find(d => d.typeId === 5 && d.debit > 0);
-  const revenueDetail = details.find(d => d.typeId === 4 && d.credit > 0);
-  const isTransfer    = !expenseDetail && !revenueDetail;
-  const isIncome      = !!revenueDetail;
+  const details = t.details || [];
+  const expenseDetail = details.find((d) => d.typeId === 5 && d.debit > 0);
+  const revenueDetail = details.find((d) => d.typeId === 4 && d.credit > 0);
+  const isTransfer = !expenseDetail && !revenueDetail;
+  const isIncome = !!revenueDetail;
   let categoryName = "Uncategorized";
-  if (expenseDetail)      categoryName = expenseDetail.accountName  || "Chi tiêu";
-  else if (revenueDetail) categoryName = revenueDetail.accountName  || "Thu nhập";
-  else if (isTransfer)    categoryName = "Chuyển khoản";
+  if (expenseDetail) categoryName = expenseDetail.accountName || "Chi tiêu";
+  else if (revenueDetail)
+    categoryName = revenueDetail.accountName || "Thu nhập";
+  else if (isTransfer) categoryName = "Chuyển khoản";
   return { ...t, categoryName, isIncome, isTransfer };
 }
 
@@ -63,15 +64,22 @@ const iconMap = {
 };
 
 const colorGradients = {
-  blue:    { from: "#3b82f6", to: "#1d4ed8" },
-  green:   { from: "#22c55e", to: "#15803d" },
-  purple:  { from: "#a855f7", to: "#7e22ce" },
-  orange:  { from: "#f97316", to: "#c2410c" },
+  blue: { from: "#3b82f6", to: "#1d4ed8" },
+  green: { from: "#22c55e", to: "#15803d" },
+  purple: { from: "#a855f7", to: "#7e22ce" },
+  orange: { from: "#f97316", to: "#c2410c" },
   emerald: { from: "#10b981", to: "#047857" },
-  slate:   { from: "#64748b", to: "#475569" },
+  slate: { from: "#64748b", to: "#475569" },
 };
 
-const PIE_COLORS = ["#3b82f6", "#22c55e", "#a855f7", "#f97316", "#10b981", "#64748b"];
+const PIE_COLORS = [
+  "#3b82f6",
+  "#22c55e",
+  "#a855f7",
+  "#f97316",
+  "#10b981",
+  "#64748b",
+];
 const fallbackGradients = Object.values(colorGradients);
 
 function mapAccount(acc, index) {
@@ -107,7 +115,11 @@ function CopyButton({ text }) {
     });
   };
   return (
-    <button onClick={handleCopy} className="p-1 rounded hover:bg-white/20 transition-colors" title="Sao chép">
+    <button
+      onClick={handleCopy}
+      className="p-1 rounded hover:bg-white/20 transition-colors"
+      title="Sao chép"
+    >
       {copied ? <Check size={13} /> : <Copy size={13} />}
     </button>
   );
@@ -168,13 +180,29 @@ export function AssetAccounts() {
   }, [fetchWallets]);
 
   function buildBalanceHistory(accs) {
-    const months = ["Th1","Th2","Th3","Th4","Th5","Th6","Th7","Th8","Th9","Th10","Th11","Th12"];
+    const months = [
+      "Th1",
+      "Th2",
+      "Th3",
+      "Th4",
+      "Th5",
+      "Th6",
+      "Th7",
+      "Th8",
+      "Th9",
+      "Th10",
+      "Th11",
+      "Th12",
+    ];
     const now = new Date();
     const total = accs.reduce((s, a) => s + Math.max(0, a.balance), 0);
     return Array.from({ length: 6 }, (_, i) => {
       const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
       const ratio = (i + 1) / 6;
-      return { month: months[d.getMonth()], balance: Math.round(total * ratio) };
+      return {
+        month: months[d.getMonth()],
+        balance: Math.round(total * ratio),
+      };
     });
   }
 
@@ -215,7 +243,12 @@ export function AssetAccounts() {
   };
 
   const handleDeleteWallet = async (id, name) => {
-    if (!window.confirm(`Xóa tài khoản "${name}"? Hành động này không thể hoàn tác.`)) return;
+    if (
+      !window.confirm(
+        `Xóa tài khoản "${name}"? Hành động này không thể hoàn tác.`,
+      )
+    )
+      return;
     try {
       await walletApi.delete(id);
       await fetchWallets();
@@ -265,7 +298,10 @@ export function AssetAccounts() {
             className="p-2.5 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 text-slate-600 transition-colors"
             title="Làm mới"
           >
-            <RefreshCw size={18} className={isRefreshing ? "animate-spin" : ""} />
+            <RefreshCw
+              size={18}
+              className={isRefreshing ? "animate-spin" : ""}
+            />
           </button>
           {accounts.length >= 2 && (
             <button
@@ -291,7 +327,9 @@ export function AssetAccounts() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl p-6 text-white">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-purple-100 text-sm font-medium">Giá trị ròng</span>
+            <span className="text-purple-100 text-sm font-medium">
+              Giá trị ròng
+            </span>
             <TrendingUp size={20} className="text-purple-200" />
           </div>
           <p className="text-4xl font-bold mb-1">{fmt(summary.netWorth)}</p>
@@ -300,13 +338,19 @@ export function AssetAccounts() {
 
         <div className="bg-white rounded-2xl p-6 border border-slate-200">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-slate-600 text-sm font-medium">Tổng tài sản</span>
+            <span className="text-slate-600 text-sm font-medium">
+              Tổng tài sản
+            </span>
             <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
               <ArrowUpRight size={20} className="text-green-600" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-slate-900 mb-1">{fmt(totalAssets)}</p>
-          <p className="text-green-600 text-sm">{accounts.filter((a) => a.balance >= 0).length} tài khoản dương</p>
+          <p className="text-3xl font-bold text-slate-900 mb-1">
+            {fmt(totalAssets)}
+          </p>
+          <p className="text-green-600 text-sm">
+            {accounts.filter((a) => a.balance >= 0).length} tài khoản dương
+          </p>
         </div>
 
         <div className="bg-white rounded-2xl p-6 border border-slate-200">
@@ -316,15 +360,21 @@ export function AssetAccounts() {
               <ArrowDownRight size={20} className="text-red-600" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-slate-900 mb-1">{fmt(summary.totalLiabilities)}</p>
-          <p className="text-red-600 text-sm">{accounts.filter((a) => a.balance < 0).length} tài khoản nợ</p>
+          <p className="text-3xl font-bold text-slate-900 mb-1">
+            {fmt(summary.totalLiabilities)}
+          </p>
+          <p className="text-red-600 text-sm">
+            {accounts.filter((a) => a.balance < 0).length} tài khoản nợ
+          </p>
         </div>
       </div>
 
       {/* Balance distribution bar */}
       {accounts.length > 1 && totalAssets > 0 && (
         <div className="bg-white rounded-2xl p-6 border border-slate-200 mb-6">
-          <h2 className="text-sm font-semibold text-slate-600 mb-3 uppercase tracking-wide">Phân bổ số dư</h2>
+          <h2 className="text-sm font-semibold text-slate-600 mb-3 uppercase tracking-wide">
+            Phân bổ số dư
+          </h2>
           <div className="flex h-3 rounded-full overflow-hidden gap-0.5 mb-3">
             {accounts
               .filter((a) => a.balance > 0)
@@ -345,7 +395,10 @@ export function AssetAccounts() {
             {accounts
               .filter((a) => a.balance > 0)
               .map((a) => (
-                <div key={a.id} className="flex items-center gap-1.5 text-xs text-slate-600">
+                <div
+                  key={a.id}
+                  className="flex items-center gap-1.5 text-xs text-slate-600"
+                >
                   <div
                     className="w-2.5 h-2.5 rounded-full"
                     style={{ background: a.gradientFrom }}
@@ -364,7 +417,10 @@ export function AssetAccounts() {
       {accounts.length > 0 && (
         <div className="flex gap-3 mb-5">
           <div className="relative flex-1 max-w-xs">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            />
             <input
               type="text"
               value={search}
@@ -393,7 +449,10 @@ export function AssetAccounts() {
       {isLoading ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {[1, 2].map((i) => (
-            <div key={i} className="h-48 rounded-2xl bg-slate-200 animate-pulse" />
+            <div
+              key={i}
+              className="h-48 rounded-2xl bg-slate-200 animate-pulse"
+            />
           ))}
         </div>
       ) : filteredAccounts.length === 0 ? (
@@ -403,7 +462,9 @@ export function AssetAccounts() {
             {search ? "Không tìm thấy tài khoản phù hợp" : "Chưa có tài khoản"}
           </p>
           {!search && (
-            <p className="text-slate-400 text-sm mt-1">Nhấn "Thêm tài khoản" để bắt đầu</p>
+            <p className="text-slate-400 text-sm mt-1">
+              Nhấn "Thêm tài khoản" để bắt đầu
+            </p>
           )}
         </div>
       ) : (
@@ -431,7 +492,9 @@ export function AssetAccounts() {
                       <p className="text-white/70 text-xs font-medium uppercase tracking-wider mb-1">
                         {account.type}
                       </p>
-                      <h3 className="text-xl font-bold leading-tight">{account.name}</h3>
+                      <h3 className="text-xl font-bold leading-tight">
+                        {account.name}
+                      </h3>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <button
@@ -442,7 +505,9 @@ export function AssetAccounts() {
                         <Pencil size={14} />
                       </button>
                       <button
-                        onClick={() => handleDeleteWallet(account.id, account.name)}
+                        onClick={() =>
+                          handleDeleteWallet(account.id, account.name)
+                        }
                         className="p-1.5 rounded-full hover:bg-white/20 transition-colors opacity-0 group-hover:opacity-100"
                         title="Delete"
                       >
@@ -456,15 +521,24 @@ export function AssetAccounts() {
                   <div className="mb-5">
                     <p className="text-white/70 text-xs mb-1">Số dư hiện tại</p>
                     <p className="text-4xl font-bold tracking-tight">
-                      {isPositive ? "" : "-"}{fmt(Math.abs(account.balance))}
+                      {isPositive ? "" : "-"}
+                      {fmt(Math.abs(account.balance))}
                     </p>
                     {account.initialBalance !== undefined && (
                       <p className="text-white/60 text-xs mt-1">
                         Số dư ban đầu: {fmt(account.initialBalance)}
                         {account.balance !== account.initialBalance && (
-                          <span className={`ml-2 font-semibold ${account.balance >= account.initialBalance ? "text-green-300" : "text-red-300"}`}>
-                            {account.balance >= account.initialBalance ? "+" : "-"}
-                            {fmt(Math.abs(account.balance - account.initialBalance))}
+                          <span
+                            className={`ml-2 font-semibold ${account.balance >= account.initialBalance ? "text-green-300" : "text-red-300"}`}
+                          >
+                            {account.balance >= account.initialBalance
+                              ? "+"
+                              : "-"}
+                            {fmt(
+                              Math.abs(
+                                account.balance - account.initialBalance,
+                              ),
+                            )}
                           </span>
                         )}
                       </p>
@@ -477,14 +551,20 @@ export function AssetAccounts() {
                       <span className="text-base tracking-widest text-white/75 font-mono">
                         {account.cardNumber || "—"}
                       </span>
-                      {account.cardNumber && <CopyButton text={account.cardNumber} />}
+                      {account.cardNumber && (
+                        <CopyButton text={account.cardNumber} />
+                      )}
                     </div>
                     <div
                       className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${
                         isPositive ? "bg-white/20" : "bg-black/20"
                       }`}
                     >
-                      {isPositive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                      {isPositive ? (
+                        <ArrowUpRight size={12} />
+                      ) : (
+                        <ArrowDownRight size={12} />
+                      )}
                       {isPositive ? "Tài sản" : "Nợ"}
                     </div>
                   </div>
@@ -499,7 +579,9 @@ export function AssetAccounts() {
       {accounts.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-6">
           <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
-            <h2 className="text-base font-bold text-slate-900">Chi tiết tài khoản</h2>
+            <h2 className="text-base font-bold text-slate-900">
+              Chi tiết tài khoản
+            </h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
@@ -507,28 +589,42 @@ export function AssetAccounts() {
                 <tr className="text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50">
                   <th className="px-6 py-3 font-semibold">Tên tài khoản</th>
                   <th className="px-6 py-3 font-semibold">Loại</th>
-                  <th className="px-6 py-3 font-semibold text-right">Số dư ban đầu</th>
-                  <th className="px-6 py-3 font-semibold text-right">Số dư hiện tại</th>
-                  <th className="px-6 py-3 font-semibold text-right">Thay đổi</th>
+                  <th className="px-6 py-3 font-semibold text-right">
+                    Số dư ban đầu
+                  </th>
+                  <th className="px-6 py-3 font-semibold text-right">
+                    Số dư hiện tại
+                  </th>
+                  <th className="px-6 py-3 font-semibold text-right">
+                    Thay đổi
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredAccounts.map((acc) => {
                   const diff = acc.balance - acc.initialBalance;
-                  const diffPct = acc.initialBalance !== 0
-                    ? ((diff / acc.initialBalance) * 100).toFixed(1)
-                    : null;
+                  const diffPct =
+                    acc.initialBalance !== 0
+                      ? ((diff / acc.initialBalance) * 100).toFixed(1)
+                      : null;
                   return (
-                    <tr key={acc.id} className="hover:bg-slate-50 transition-colors">
+                    <tr
+                      key={acc.id}
+                      className="hover:bg-slate-50 transition-colors"
+                    >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div
                             className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs"
-                            style={{ background: `linear-gradient(135deg, ${acc.gradientFrom}, ${acc.gradientTo})` }}
+                            style={{
+                              background: `linear-gradient(135deg, ${acc.gradientFrom}, ${acc.gradientTo})`,
+                            }}
                           >
                             <acc.icon size={14} />
                           </div>
-                          <span className="font-semibold text-slate-900">{acc.name}</span>
+                          <span className="font-semibold text-slate-900">
+                            {acc.name}
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -543,10 +639,15 @@ export function AssetAccounts() {
                         {fmt(acc.balance)}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <span className={`font-semibold text-sm ${diff >= 0 ? "text-green-600" : "text-red-500"}`}>
-                          {diff >= 0 ? "+" : "-"}{fmt(Math.abs(diff))}
+                        <span
+                          className={`font-semibold text-sm ${diff >= 0 ? "text-green-600" : "text-red-500"}`}
+                        >
+                          {diff >= 0 ? "+" : "-"}
+                          {fmt(Math.abs(diff))}
                           {diffPct !== null && (
-                            <span className="text-xs font-normal ml-1 opacity-70">({diffPct}%)</span>
+                            <span className="text-xs font-normal ml-1 opacity-70">
+                              ({diffPct}%)
+                            </span>
                           )}
                         </span>
                       </td>
@@ -562,7 +663,9 @@ export function AssetAccounts() {
       {/* Recent Transactions */}
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-6">
         <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between flex-wrap gap-3">
-          <h2 className="text-base font-bold text-slate-900">Lịch sử giao dịch gần nhất</h2>
+          <h2 className="text-base font-bold text-slate-900">
+            Lịch sử giao dịch gần nhất
+          </h2>
           <select
             value={txWalletFilter}
             onChange={(e) => setTxWalletFilter(e.target.value)}
@@ -570,7 +673,9 @@ export function AssetAccounts() {
           >
             <option value="all">Tất cả ví</option>
             {accounts.map((a) => (
-              <option key={a.id} value={String(a.id)}>{a.name}</option>
+              <option key={a.id} value={String(a.id)}>
+                {a.name}
+              </option>
             ))}
           </select>
         </div>
@@ -589,24 +694,47 @@ export function AssetAccounts() {
                 .filter((t) => {
                   if (txWalletFilter === "all") return true;
                   return (t.details || []).some(
-                    (d) => String(d.accountId) === txWalletFilter
+                    (d) => String(d.accountId) === txWalletFilter,
                   );
                 })
                 .slice(0, 10)
                 .map((t) => {
-                  const iconBg   = t.isTransfer ? "bg-blue-50"    : t.isIncome ? "bg-green-100" : "bg-red-50";
-                  const TxIcon   = t.isTransfer ? ArrowLeftRight   : t.isIncome ? ArrowUpRight   : ArrowDownRight;
-                  const iconCls  = t.isTransfer ? "text-blue-500"  : t.isIncome ? "text-green-600" : "text-red-500";
-                  const amtCls   = t.isTransfer ? "text-blue-600"  : t.isIncome ? "text-green-600" : "text-slate-900";
-                  const prefix   = t.isIncome ? "+" : t.isTransfer ? "" : "-";
+                  const iconBg = t.isTransfer
+                    ? "bg-blue-50"
+                    : t.isIncome
+                      ? "bg-green-100"
+                      : "bg-red-50";
+                  const TxIcon = t.isTransfer
+                    ? ArrowLeftRight
+                    : t.isIncome
+                      ? ArrowUpRight
+                      : ArrowDownRight;
+                  const iconCls = t.isTransfer
+                    ? "text-blue-500"
+                    : t.isIncome
+                      ? "text-green-600"
+                      : "text-red-500";
+                  const amtCls = t.isTransfer
+                    ? "text-blue-600"
+                    : t.isIncome
+                      ? "text-green-600"
+                      : "text-slate-900";
+                  const prefix = t.isIncome ? "+" : t.isTransfer ? "" : "-";
                   return (
-                    <tr key={t.journalId} className="hover:bg-slate-50 transition-colors">
+                    <tr
+                      key={t.journalId}
+                      className="hover:bg-slate-50 transition-colors"
+                    >
                       <td className="px-6 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}>
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}
+                          >
                             <TxIcon size={14} className={iconCls} />
                           </div>
-                          <span className="font-medium text-slate-900 text-sm">{t.description || "—"}</span>
+                          <span className="font-medium text-slate-900 text-sm">
+                            {t.description || "—"}
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-3.5">
@@ -615,20 +743,31 @@ export function AssetAccounts() {
                         </span>
                       </td>
                       <td className="px-6 py-3.5 text-slate-500 text-sm">
-                        {t.transactionDate ? format(new Date(t.transactionDate), "dd/MM/yyyy") : "—"}
+                        {t.transactionDate
+                          ? format(new Date(t.transactionDate), "dd/MM/yyyy")
+                          : "—"}
                       </td>
-                      <td className={`px-6 py-3.5 text-right font-bold text-sm ${amtCls}`}>
-                        {prefix}{fmt(Math.abs(t.totalAmount))}
+                      <td
+                        className={`px-6 py-3.5 text-right font-bold text-sm ${amtCls}`}
+                      >
+                        {prefix}
+                        {fmt(Math.abs(t.totalAmount))}
                       </td>
                     </tr>
                   );
                 })}
-              {recentTxs.filter((t) =>
-                txWalletFilter === "all" ||
-                (t.details || []).some((d) => String(d.accountId) === txWalletFilter)
+              {recentTxs.filter(
+                (t) =>
+                  txWalletFilter === "all" ||
+                  (t.details || []).some(
+                    (d) => String(d.accountId) === txWalletFilter,
+                  ),
               ).length === 0 && (
                 <tr>
-                  <td colSpan="4" className="px-6 py-10 text-center text-slate-400 text-sm">
+                  <td
+                    colSpan="4"
+                    className="px-6 py-10 text-center text-slate-400 text-sm"
+                  >
                     Không có giao dịch nào
                   </td>
                 </tr>
@@ -642,7 +781,9 @@ export function AssetAccounts() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Balance Trend */}
         <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200">
-          <h2 className="text-lg font-bold text-slate-900 mb-6">Xu hướng số dư</h2>
+          <h2 className="text-lg font-bold text-slate-900 mb-6">
+            Xu hướng số dư
+          </h2>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={balanceHistory}>
               <defs>
@@ -653,12 +794,28 @@ export function AssetAccounts() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="month" stroke="#94a3b8" tick={{ fontSize: 12 }} />
-              <YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} tickFormatter={fmtShort} />
+              <YAxis
+                stroke="#94a3b8"
+                tick={{ fontSize: 12 }}
+                tickFormatter={fmtShort}
+              />
               <Tooltip
-                contentStyle={{ backgroundColor: "#fff", border: "1px solid #e2e8f0", borderRadius: "10px" }}
+                contentStyle={{
+                  backgroundColor: "#fff",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "10px",
+                }}
                 formatter={(val) => [fmt(val), "Số dư"]}
               />
-              <Area type="monotone" dataKey="balance" stroke="#9333ea" strokeWidth={2.5} fillOpacity={1} fill="url(#colorBalance)" dot={{ r: 4, fill: "#9333ea" }} />
+              <Area
+                type="monotone"
+                dataKey="balance"
+                stroke="#9333ea"
+                strokeWidth={2.5}
+                fillOpacity={1}
+                fill="url(#colorBalance)"
+                dot={{ r: 4, fill: "#9333ea" }}
+              />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -666,7 +823,9 @@ export function AssetAccounts() {
         {/* Asset breakdown pie */}
         {pieData.length > 0 ? (
           <div className="bg-white rounded-2xl p-6 border border-slate-200">
-            <h2 className="text-lg font-bold text-slate-900 mb-4">Cơ cấu tài sản</h2>
+            <h2 className="text-lg font-bold text-slate-900 mb-4">
+              Cơ cấu tài sản
+            </h2>
             <ResponsiveContainer width="100%" height={160}>
               <PieChart>
                 <Pie
@@ -683,19 +842,35 @@ export function AssetAccounts() {
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#fff", border: "1px solid #e2e8f0", borderRadius: "10px" }}
+                  contentStyle={{
+                    backgroundColor: "#fff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "10px",
+                  }}
                   formatter={(val) => [fmt(val), ""]}
                 />
               </PieChart>
             </ResponsiveContainer>
             <div className="mt-3 space-y-2">
               {pieData.slice(0, 4).map((d, i) => (
-                <div key={d.name} className="flex items-center justify-between text-xs">
+                <div
+                  key={d.name}
+                  className="flex items-center justify-between text-xs"
+                >
                   <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                    <span className="text-slate-600 truncate max-w-[90px]">{d.name}</span>
+                    <div
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{
+                        backgroundColor: PIE_COLORS[i % PIE_COLORS.length],
+                      }}
+                    />
+                    <span className="text-slate-600 truncate max-w-[90px]">
+                      {d.name}
+                    </span>
                   </div>
-                  <span className="font-semibold text-slate-700">{fmt(d.value)}</span>
+                  <span className="font-semibold text-slate-700">
+                    {fmt(d.value)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -709,10 +884,18 @@ export function AssetAccounts() {
 
       <AddWalletModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={handleAddWallet} />
       {editingWallet && (
-        <EditWalletModal wallet={editingWallet} onClose={() => setEditingWallet(null)} onSave={handleEditWallet} />
+        <EditWalletModal
+          wallet={editingWallet}
+          onClose={() => setEditingWallet(null)}
+          onSave={handleEditWallet}
+        />
       )}
       {isTransferOpen && (
-        <QuickTransferModal accounts={accounts} onClose={() => setIsTransferOpen(false)} onTransfer={handleTransfer} />
+        <QuickTransferModal
+          accounts={accounts}
+          onClose={() => setIsTransferOpen(false)}
+          onTransfer={handleTransfer}
+        />
       )}
     </PageLayout>
   );
