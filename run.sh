@@ -83,35 +83,6 @@ print_hyperlink() {
   printf '\e]8;;%s\e\\%s\e]8;;\e\\' "$url" "$text"
 }
 
-# ─── Helper: đợi cổng sẵn sàng ──────────────────────────────────────────────
-wait_for_port() {
-  local port="$1"
-  local service="$2"
-  local max_attempts=30
-  local attempt=0
-  echo -n "   Waiting for $service on port $port..."
-  while [ $attempt -lt $max_attempts ]; do
-    if timeout 1 bash -c "echo > /dev/tcp/localhost/$port" 2>/dev/null; then
-      echo -e " ${GREEN}ready${NC}"
-      return 0
-    fi
-    sleep 1
-    attempt=$((attempt + 1))
-  done
-  echo -e " ${YELLOW}timeout (port $port not responding)${NC}"
-}
-
-# ─── Helper: add timestamp prefix to log lines ────────────────────────────────
-timestamp_pipe() {
-  if command -v awk &>/dev/null; then
-    awk '{ print strftime("[%Y-%m-%d %H:%M:%S]"), $0 }'
-  else
-    while IFS= read -r line; do
-      echo "$(date '+[%Y-%m-%d %H:%M:%S]') $line"
-    done
-  fi
-}
-
 # ─── Helper: start a dotnet service in background ────────────────────────────
 start_dotnet_service() {
   local name="$1"
@@ -126,7 +97,15 @@ start_dotnet_service() {
 
   (
     cd "$dir"
-    dotnet run --launch-profile "$launch_profile" 2>&1 | timestamp_pipe >> "$log_file"
+    # stdbuf -oL  → line-buffer every stage so output reaches
+    #                the log file immediately (no 4KB pipe buffer)
+    # sed         → prefix each line with [ServiceName]
+    # timestamp   → add timestamp to each line
+    # tee -a      → write to BOTH terminal AND log file in real-time
+    stdbuf -oL dotnet run --launch-profile "$launch_profile" 2>&1 \
+      | stdbuf -oL sed "s/^/[${name}] /" \
+      | stdbuf -oL awk '{ print strftime("[%Y-%m-%d %H:%M:%S]"), $0; fflush() }' \
+      | stdbuf -oL tee -a "$log_file"
   ) &
   local pid=$!
   echo "$pid" >> "$PID_FILE"
@@ -139,7 +118,7 @@ echo -e "${CYAN}╚════════════════════�
 echo ""
 
 # ─── 1. API Service (Business Logic) ─────────────────────────────────────────
-start_dotnet_service "API Service" \
+start_dotnet_service "API" \
   "BudgetManagement/BudgetManagement.APIService" \
   "http" \
   "$API_PORT" \
@@ -147,7 +126,7 @@ start_dotnet_service "API Service" \
   "$GREEN"
 
 # ─── 2. Auth Service (Authentication) ────────────────────────────────────────
-start_dotnet_service "Auth Service" \
+start_dotnet_service "Auth" \
   "BudgetManagement/BudgetManagement.AuthService" \
   "http" \
   "$AUTH_PORT" \
@@ -155,7 +134,7 @@ start_dotnet_service "Auth Service" \
   "$CYAN"
 
 # ─── 3. API Gateway (Ocelot Router) ──────────────────────────────────────────
-start_dotnet_service "API Gateway" \
+start_dotnet_service "Gateway" \
   "BudgetManagement/BudgetManagement.APIGateway" \
   "http" \
   "$GATEWAY_PORT" \
@@ -167,18 +146,35 @@ echo -e "${BLUE}[+] Starting Frontend...${NC}"
 echo -e "      Port: ${CYAN}$FRONTEND_PORT${NC}"
 
 (
-  npm run dev 2>&1 | timestamp_pipe >> "$FRONTEND_LOG"
+  stdbuf -oL npm run dev 2>&1 \
+    | stdbuf -oL sed "s/^/[Frontend] /" \
+    | stdbuf -oL awk '{ print strftime("[%Y-%m-%d %H:%M:%S]"), $0; fflush() }' \
+    | stdbuf -oL tee -a "$FRONTEND_LOG"
 ) &
 FPID=$!
 echo "$FPID" >> "$PID_FILE"
 
-# ─── Wait for backend services to be ready ────────────────────────────────────
+# ─── Cleanup: kill all background processes on Ctrl+C ─────────────────────────
+cleanup() {
+  echo ""
+  echo -e "${YELLOW}⏹  Stopping services...${NC}"
+  if [[ -f "$PID_FILE" ]]; then
+    while IFS= read -r pid; do
+      kill "$pid" 2>/dev/null || true
+    done < "$PID_FILE"
+  fi
+  # Also kill any dotnet/npm processes from the project
+  pgrep -f "dotnet.*BudgetManagement" 2>/dev/null | xargs kill 2>/dev/null || true
+  pgrep -f "npm run dev" 2>/dev/null | xargs kill 2>/dev/null || true
+  echo -e "${GREEN}✓ All services stopped.${NC}"
+  exit 0
+}
+trap cleanup SIGINT SIGTERM
+
+# ─── Wait for services to start ──────────────────────────────────────────────
 echo ""
-echo -e "${YELLOW}⏳  Waiting for backend services to start...${NC}"
-wait_for_port "$API_PORT"    "API Service" &
-wait_for_port "$AUTH_PORT"   "Auth Service" &
-wait_for_port "$GATEWAY_PORT" "API Gateway" &
-wait
+echo -e "${YELLOW}⏳  Allowing 10 seconds for services to start...${NC}"
+sleep 10
 
 # ─── Summary (với hyperlink bấm được) ────────────────────────────────────────
 echo ""
