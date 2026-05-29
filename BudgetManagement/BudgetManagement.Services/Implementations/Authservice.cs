@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using BudgetManagement.Common;
 using BudgetManagement.Dto;
 using BudgetManagement.Entities;
 using BudgetManagement.Repository.Interfaces;
@@ -27,6 +28,11 @@ public class AuthService : IAuthService
     {
         if (await _userRepo.ExistsAsync(request.Account))
             throw new InvalidOperationException("Username already exists.");
+
+        // Validate password strength
+        var passwordCheck = PasswordStrengthValidator.Validate(request.Password);
+        if (!passwordCheck.IsValid)
+            throw new ArgumentException(string.Join(" ", passwordCheck.Errors));
 
         var user = new User
         {
@@ -137,6 +143,11 @@ public class AuthService : IAuthService
 
         if (!BCrypt.Net.BCrypt.Verify(request.OldPassword, user.PasswordHash))
             throw new UnauthorizedAccessException("Current password is incorrect.");
+
+        // Validate new password strength
+        var passwordCheck = PasswordStrengthValidator.Validate(request.NewPassword);
+        if (!passwordCheck.IsValid)
+            throw new ArgumentException(string.Join(" ", passwordCheck.Errors));
 
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
         await _userRepo.UpdateAsync(user);

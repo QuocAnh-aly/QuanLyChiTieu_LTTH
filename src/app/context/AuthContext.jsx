@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi } from '../api/authApi';
 
 const AuthContext = createContext(null);
@@ -7,21 +7,57 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const logout = useCallback(() => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user_id');
+    setUser(null);
+  }, []);
+
+  // Listen for forced logout from axios 401 interceptor
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      authApi.getProfile()
-        .then(data => setUser(data))
-        .catch(() => {
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('user_id');
-        })
-        .finally(() => setLoading(false));
-    } else {
+    const handleForceLogout = () => logout();
+    window.addEventListener('auth:logout', handleForceLogout);
+    return () => window.removeEventListener('auth:logout', handleForceLogout);
+  }, [logout]);
+
+  const restoreSession = useCallback(async () => {
+    const accessToken = localStorage.getItem('access_token');
+    const refreshToken = localStorage.getItem('refresh_token');
+
+    if (!accessToken) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const profile = await authApi.getProfile();
+      setUser(profile);
+    } catch {
+      // Access token expired — try refreshing
+      if (refreshToken) {
+        try {
+          const data = await authApi.refresh(refreshToken);
+          if (data?.access_token) {
+            localStorage.setItem('access_token', data.access_token);
+            localStorage.setItem('refresh_token', data.refresh_token);
+            const profile = await authApi.getProfile();
+            setUser(profile);
+          }
+        } catch {
+          logout();
+        }
+      } else {
+        logout();
+      }
+    } finally {
       setLoading(false);
     }
-  }, []);
+  }, [logout]);
+
+  useEffect(() => {
+    restoreSession();
+  }, [restoreSession]);
 
   const login = async (credentials) => {
     const data = await authApi.login(credentials);
@@ -43,13 +79,6 @@ export function AuthProvider({ children }) {
     const profile = await authApi.getProfile();
     setUser(profile);
     return profile;
-  };
-
-  const logout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user_id');
-    setUser(null);
   };
 
   return (
