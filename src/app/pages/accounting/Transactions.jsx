@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { AddTransactionModal } from "../../components/modals/AddTransactionModal";
 import { EditTransactionModal } from "../../components/modals/EditTransactionModal";
 import { useSettings } from "../../context/SettingsContext";
+import { useNotifications } from "../../context/NotificationContext";
 
 // typeId: 1=Assets, 4=Revenue, 5=Expense
 // Source = credit side, Destination = debit side (Firefly III model)
@@ -65,6 +66,7 @@ import { PageLayout } from "../../components/layout/PageLayout";
 
 export function Transactions() {
   const { fmt } = useSettings();
+  const { addNotification } = useNotifications();
 
   const [transactions,    setTransactions]    = useState([]);
   const [isLoading,       setIsLoading]       = useState(true);
@@ -151,8 +153,10 @@ export function Transactions() {
       await loadData(true);
       setPage(1);
       toast.success("Đã thêm giao dịch!");
+      addNotification({ type: 'success', title: 'Giao dịch mới', message: 'Đã thêm giao dịch thành công', link: '/transactions/all' });
     } catch {
       toast.error("Không thể thêm giao dịch");
+      addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể thêm giao dịch' });
     }
   };
 
@@ -163,8 +167,10 @@ export function Transactions() {
       setEditTarget(null);
       await loadData(true);
       toast.success("Đã cập nhật giao dịch!");
+      addNotification({ type: 'success', title: 'Đã cập nhật', message: 'Giao dịch đã được cập nhật' });
     } catch {
       toast.error("Không thể cập nhật giao dịch");
+      addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể cập nhật giao dịch' });
     }
   };
 
@@ -174,8 +180,10 @@ export function Transactions() {
       await transactionApi.delete(id);
       await loadData(true);
       toast.success("Đã xóa giao dịch.");
+      addNotification({ type: 'warning', title: 'Đã xóa', message: `Giao dịch "${description || ''}" đã được xóa` });
     } catch {
       toast.error("Không thể xóa giao dịch");
+      addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể xóa giao dịch' });
     }
   };
 

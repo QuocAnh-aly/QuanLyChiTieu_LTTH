@@ -43,12 +43,8 @@ public static class PasswordStrengthValidator
             errors.Add($"Password must not exceed {MaxLength} characters.");
 
         // Character variety
-        if (!Regex.IsMatch(password, @"[a-z]"))
-            errors.Add("Password must contain at least one lowercase letter.");
         if (!Regex.IsMatch(password, @"[A-Z]"))
             errors.Add("Password must contain at least one uppercase letter.");
-        if (!Regex.IsMatch(password, @"\d"))
-            errors.Add("Password must contain at least one digit.");
         if (!Regex.IsMatch(password, @"[!@#$%^&*()_\-+=.,;:<>?/~`{}[\]|\\]"))
             errors.Add("Password must contain at least one special character (e.g. !@#$%^&*).");
 

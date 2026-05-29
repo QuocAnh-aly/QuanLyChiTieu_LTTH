@@ -47,6 +47,7 @@ import { ExchangeRates } from "./pages/options/ExchangeRates";
 import { Administrations } from "./pages/options/Administrations";
 import { SystemSettings } from "./pages/options/SystemSettings";
 
+import { NotificationCenter } from "./pages/notifications/NotificationCenter";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
 
 export const router = createBrowserRouter([
@@ -119,6 +120,9 @@ export const router = createBrowserRouter([
 
       { path: "reports", element: <Reports /> },
       { path: "export", element: <ExportData /> },
+
+      // ── NOTIFICATIONS ────────────────────────────────────────────────────
+      { path: "notifications", element: <NotificationCenter /> },
 
       // ── OPTIONS ───────────────────────────────────────────────────────────
       { path: "profile", element: <Profile /> },

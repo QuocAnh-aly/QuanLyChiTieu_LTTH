@@ -17,11 +17,8 @@
 set -euo pipefail
 
 # ─── Colors ─────────────────────────────────────────────────────────────────
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; PURPLE='\033[0;35m'
+NC='\033[0m'; BOLD='\033[1m'
 
 # ─── Project root ────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -74,6 +71,15 @@ if [[ "$SHOW_LOGS_ONLY" == "true" ]]; then
   exit 0
 fi
 
+# ─── Banner ──────────────────────────────────────────────────────────────────
+clear
+echo -e "${RED}${BOLD}"
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║     💰  QUẢN LÝ CHI TIÊU - STOPPING ALL SERVICES            ║"
+echo "║     📅  $(date '+%Y-%m-%d %H:%M:%S')                               ║"
+echo "╚══════════════════════════════════════════════════════════════╝"
+echo -e "${NC}"
+
 # ─── Helper: find PIDs listening on a port ────────────────────────────────────
 find_pids_by_port() {
   local port="$1"
@@ -91,7 +97,6 @@ find_pids_by_port() {
 
   # If still nothing, try ss
   if [[ -z "$pids" ]] && command -v ss &>/dev/null; then
-    # ss doesn't directly give PID, but we can use it as last resort
     local pid_line=$(ss -tlnp "sport = :$port" 2>/dev/null | grep -oP 'pid=\K[0-9]+' || true)
     if [[ -n "$pid_line" ]]; then
       pids="$pid_line"
@@ -112,31 +117,36 @@ kill_by_port() {
   local pids
   pids=$(find_pids_by_port "$port")
   if [[ -n "$pids" ]]; then
-    echo -e "   Killing ${CYAN}$name${NC} on port $port (PID: $(echo "$pids" | tr '\n' ' '))"
-    if [[ "$FORCE_KILL" == "true" ]]; then
-      kill -9 $pids 2>/dev/null || true
-    else
-      kill $pids 2>/dev/null || true
-    fi
+    echo -e "   Stopping ${CYAN}$name${NC} (Port $port)..."
+    for pid in $pids; do
+      if [[ "$FORCE_KILL" == "true" ]]; then
+        kill -9 "$pid" 2>/dev/null || true
+      else
+        kill "$pid" 2>/dev/null || true
+        sleep 0.3
+        kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null || true
+      fi
+    done
+    echo -e "     ${GREEN}✓ stopped${NC}"
+  else
+    echo -e "   ${CYAN}$name${NC} (Port $port): ${PURPLE}not running${NC}"
   fi
 }
 
-echo -e "${YELLOW}⏹  Stopping all project services...${NC}"
-echo ""
+# ════════════════════════════════════════════════════════════════════════════
 
 # Kill by port (catches processes listening on project ports)
 kill_by_port "$API_PORT"    "API Service"
 kill_by_port "$AUTH_PORT"   "Auth Service"
 kill_by_port "$GATEWAY_PORT" "API Gateway"
-
-# Kill frontend (Vite) — by dynamic port
 kill_by_port "$FRONTEND_PORT" "Frontend (Vite)"
 
 # Kill any remaining dotnet processes running from the BudgetManagement directory
 dotnet_pids=$(pgrep -f "dotnet.*BudgetManagement" 2>/dev/null || true)
 if [[ -n "$dotnet_pids" ]]; then
-  echo -e "   Killing remaining ${CYAN}dotnet${NC} processes from project"
+  echo -e "   Stopping remaining ${CYAN}dotnet${NC} processes from project..."
   kill $dotnet_pids 2>/dev/null || true
+  echo -e "     ${GREEN}✓ stopped${NC}"
 fi
 
 # Kill any remaining npm/vite processes that might have been spawned
@@ -145,8 +155,9 @@ if [[ -z "$frontend_pids" ]]; then
   frontend_pids=$(pgrep -f "vite" 2>/dev/null || true)
 fi
 if [[ -n "$frontend_pids" ]]; then
-  echo -e "   Killing remaining ${CYAN}Frontend${NC} processes (npm/vite — PID: $(echo "$frontend_pids" | tr '\n' ' '))"
+  echo -e "   Stopping remaining ${CYAN}Frontend${NC} processes (npm/vite)..."
   kill $frontend_pids 2>/dev/null || true
+  echo -e "     ${GREEN}✓ stopped${NC}"
 fi
 
 # ─── Verify nothing is left on our ports ────────────────────────────────────
@@ -164,16 +175,10 @@ done
 # ─── Log file info ────────────────────────────────────────────────────────────
 echo ""
 if [[ -d "$LOG_DIR" ]]; then
-  LATEST_LOG=$(ls -1t "$LOG_DIR" 2>/dev/null | head -3)
-  if [[ -n "$LATEST_LOG" ]]; then
-    echo -e "${CYAN}   Recent log files:${NC}"
-    echo "$LATEST_LOG" | while IFS= read -r f; do
-      echo -e "      $f"
-    done
-    echo -e "   (view: cat logs/<file>   |   tail -f logs/<file>)"
-  fi
-else
-  echo -e "${CYAN}   No log directory found (run.sh was not started).${NC}"
+  echo -e "${CYAN}   Recent log files:${NC}"
+  ls -1t "$LOG_DIR" 2>/dev/null | head -3 | while IFS= read -r f; do
+    echo -e "      $f"
+  done
 fi
 
 # ─── Clean logs (--clean flag) ────────────────────────────────────────────────
@@ -192,5 +197,7 @@ if [[ -n "$lingering" ]]; then
   echo -e "${YELLOW}⚠  Some ports may still be in use:$lingering${NC}"
   echo -e "   Try: ${GREEN}./kill.sh --force${NC}"
 else
-  echo -e "${GREEN}✓ All services stopped successfully.${NC}"
+  echo -e "${GREEN}${BOLD}╔══════════════════════════════════════════════════════════════╗"
+  echo -e "║           ✅  ALL SERVICES STOPPED SUCCESSFULLY              ║"
+  echo -e "╚══════════════════════════════════════════════════════════════╝${NC}"
 fi

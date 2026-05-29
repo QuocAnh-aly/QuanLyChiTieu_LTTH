@@ -9,6 +9,7 @@ import { walletApi } from "../../api/walletApi";
 import { toast } from "sonner";
 import { PiggyBankFormModal } from "../../components/modals/PiggyBankFormModal";
 import { useSettings } from "../../context/SettingsContext";
+import { useNotifications } from "../../context/NotificationContext";
 
 const COLOR_MAP = {
   green:   { bg: "bg-green-100",   text: "text-green-600",   hex: "#22c55e" },
@@ -67,13 +68,19 @@ export function PiggyBanks() {
 
   useEffect(() => { load(); }, [load]);
 
+  const { addNotification } = useNotifications();
+
   const handleCreate = async (data) => {
     try {
       await piggyBankApi.create(data);
       await load();
       setFormOpen(false);
       toast.success(`Đã tạo "${data.title}"!`);
-    } catch { toast.error("Không thể tạo lợn tiết kiệm"); }
+      addNotification({ type: 'success', title: 'Đã tạo lợn tiết kiệm', message: `"${data.title}" đã được tạo thành công`, link: '/piggy-banks' });
+    } catch {
+      toast.error("Không thể tạo lợn tiết kiệm");
+      addNotification({ type: 'error', title: 'Lỗi tạo lợn tiết kiệm', message: 'Không thể tạo lợn tiết kiệm mới' });
+    }
   };
 
   const handleUpdate = async (data) => {
@@ -82,7 +89,11 @@ export function PiggyBanks() {
       await load();
       setEditGoal(null);
       toast.success("Đã cập nhật!");
-    } catch { toast.error("Không thể cập nhật"); }
+      addNotification({ type: 'success', title: 'Đã cập nhật lợn tiết kiệm', message: `"${editGoal.name}" đã được cập nhật` });
+    } catch {
+      toast.error("Không thể cập nhật");
+      addNotification({ type: 'error', title: 'Lỗi cập nhật', message: 'Không thể cập nhật lợn tiết kiệm' });
+    }
   };
 
   const handleDelete = async (goal) => {
@@ -91,7 +102,11 @@ export function PiggyBanks() {
       await piggyBankApi.delete(goal.id);
       await load();
       toast.success(`Đã xóa "${goal.name}".`);
-    } catch { toast.error("Không thể xóa"); }
+      addNotification({ type: 'success', title: 'Đã xóa lợn tiết kiệm', message: `"${goal.name}" đã được xóa` });
+    } catch {
+      toast.error("Không thể xóa");
+      addNotification({ type: 'error', title: 'Lỗi xóa', message: 'Không thể xóa lợn tiết kiệm' });
+    }
   };
 
   const totalSaved   = goals.reduce((s, g) => s + g.saved, 0);

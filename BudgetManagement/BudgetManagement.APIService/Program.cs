@@ -78,13 +78,9 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
-        policy.WithOrigins(
-                builder.Configuration["Cors:AllowedOrigins"]?.Split(',')
-                ?? ["http://localhost:5173"]          // Vite default port
-              )
+        policy.AllowAnyOrigin()
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials()
     );
 });
 

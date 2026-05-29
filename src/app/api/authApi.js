@@ -26,8 +26,8 @@ export const authApi = {
     return axiosClient.put(url, data);
   },
 
-  changePassword(data) {
+  changePassword({ currentPassword, newPassword }) {
     const url = '/api/auth/password';
-    return axiosClient.put(url, data);
+    return axiosClient.put(url, { old_password: currentPassword, new_password: newPassword });
   },
 };

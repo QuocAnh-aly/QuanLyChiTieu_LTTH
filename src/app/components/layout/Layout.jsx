@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "sonner";
+import { NotificationBell } from "../notifications/NotificationBell";
 
 // ──────────────────────────────────────────────
 // Helper: NavItem (leaf node — no children)
@@ -152,12 +153,15 @@ export function Layout() {
     <div className="flex h-screen bg-slate-50">
       {/* ── Sidebar ── */}
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 shadow-sm">
-        {/* Logo */}
-        <div className="px-5 py-5 border-b border-slate-100">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent tracking-tight">
-            MoneyFlow
-          </h1>
-          <p className="text-[11px] text-slate-400 mt-0.5">Quản lý chi tiêu</p>
+        {/* Logo + Notification Bell */}
+        <div className="px-5 py-5 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent tracking-tight">
+              MoneyFlow
+            </h1>
+            <p className="text-[11px] text-slate-400 mt-0.5">Quản lý chi tiêu</p>
+          </div>
+          <NotificationBell />
         </div>
 
         {/* Navigation */}

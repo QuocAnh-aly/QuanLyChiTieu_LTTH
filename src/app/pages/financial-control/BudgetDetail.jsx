@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, TrendingUp, Wallet, Target,
@@ -14,6 +14,7 @@ import {
 import { format, parseISO, startOfDay, endOfDay } from "date-fns";
 import { vi } from "date-fns/locale";
 import { toast } from "sonner";
+import { useNotifications } from "../../context/NotificationContext";
 import { budgetApi } from "../../api/budgetApi";
 import { transactionApi } from "../../api/transactionApi";
 import { useSettings } from "../../context/SettingsContext";
@@ -197,6 +198,35 @@ export function BudgetDetail() {
       const data = await budgetApi.getExpenseBudgetById(id);
       setBudget(data);
 
+      // Show warning toast if budget is over or near limit (once per visit)
+      if (data && !warnedRef.current) {
+        warnedRef.current = true;
+        const pct = data.percentage ?? (data.targetAmount > 0 ? (data.currentAmount / data.targetAmount) * 100 : 0);
+        if (pct > 100) {
+          toast.error(`"${data.title}" đã vượt hạn mức!`, {
+            description: `Đã chi ${fmt(data.currentAmount)} trên ${fmt(data.targetAmount)}`,
+            duration: 6000,
+          });
+          addNotification({
+            type: 'error',
+            title: '⚠️ Vượt hạn mức ngân sách',
+            message: `"${data.title}" đã chi ${fmt(data.currentAmount)}/${fmt(data.targetAmount)}`,
+            link: `/budgets/${id}`,
+          });
+        } else if (pct >= 80) {
+          toast.warning(`"${data.title}" sắp đạt hạn mức`, {
+            description: `Đã dùng ${pct.toFixed(1)}% (${fmt(data.currentAmount)}/${fmt(data.targetAmount)})`,
+            duration: 5000,
+          });
+          addNotification({
+            type: 'warning',
+            title: '⚠️ Ngân sách sắp hết',
+            message: `"${data.title}" đã dùng ${pct.toFixed(1)}% (${fmt(data.currentAmount)}/${fmt(data.targetAmount)})`,
+            link: `/budgets/${id}`,
+          });
+        }
+      }
+
       if (data?.accountId) {
         try {
           const from = data.startDate ? startOfDay(parseISO(data.startDate)) : null;
@@ -225,13 +255,20 @@ export function BudgetDetail() {
 
   useEffect(() => { load(); }, [load]);
 
+  const { addNotification } = useNotifications();
+  const warnedRef = useRef(false);
+
   const handleUpdate = async (budgetId, payload) => {
     try {
       await budgetApi.updateExpenseBudget(budgetId, payload);
       await load();
       setEditOpen(false);
       toast.success("Đã cập nhật ngân sách!");
-    } catch { toast.error("Không thể cập nhật ngân sách"); }
+      addNotification({ type: 'success', title: 'Đã cập nhật ngân sách', message: `"${budget?.title}" đã được cập nhật`, link: `/budgets/${id}` });
+    } catch {
+      toast.error("Không thể cập nhật ngân sách");
+      addNotification({ type: 'error', title: 'Lỗi cập nhật ngân sách', message: 'Không thể cập nhật ngân sách' });
+    }
   };
 
   const handleDelete = async () => {
@@ -239,8 +276,12 @@ export function BudgetDetail() {
     try {
       await budgetApi.deleteBudget(id);
       toast.success(`Đã xóa "${budget?.title}".`);
+      addNotification({ type: 'success', title: 'Đã xóa ngân sách', message: `"${budget?.title}" đã được xóa` });
       navigate("/budgets");
-    } catch { toast.error("Không thể xóa ngân sách"); }
+    } catch {
+      toast.error("Không thể xóa ngân sách");
+      addNotification({ type: 'error', title: 'Lỗi xóa ngân sách', message: 'Không thể xóa ngân sách' });
+    }
   };
 
   const chartData    = useMemo(() => buildChartData(transactions), [transactions]);
