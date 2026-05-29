@@ -75,6 +75,8 @@ const TX_FILTER_TYPES = [
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 
+import { PageLayout } from "../../components/layout/PageLayout";
+
 export function Profile() {
   const { user } = useAuth();
 
@@ -160,7 +162,7 @@ export function Profile() {
       (t.isIncome ? "+" : t.isTransfer ? "" : "-") + Math.abs(t.totalAmount),
     ]);
     const csv = [headers, ...rows].map(r => r.join(",")).join("\n");
-    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a");
     a.href     = url;
@@ -228,14 +230,11 @@ export function Profile() {
     .split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Tài khoản</h1>
-          <p className="text-slate-500 mt-1">Quản lý giao dịch và cài đặt của bạn</p>
-        </div>
-        {activeTab === "transactions" && (
+    <PageLayout
+      title="Tài khoản"
+      subtitle="Quản lý giao dịch và cài đặt của bạn"
+      actions={
+        activeTab === "transactions" && (
           <button
             onClick={exportCSV}
             disabled={filtered.length === 0}
@@ -244,8 +243,9 @@ export function Profile() {
             <Download size={18} />
             Xuất CSV
           </button>
-        )}
-      </div>
+        )
+      }
+    >
 
       {/* Tabs */}
       <div className="flex gap-2 mb-8 border-b border-slate-200">
@@ -676,6 +676,6 @@ export function Profile() {
 
         </div>
       )}
-    </div>
+    </PageLayout>
   );
 }

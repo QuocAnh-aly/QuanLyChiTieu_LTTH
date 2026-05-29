@@ -1,86 +1,126 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { currencyApi } from '../api/currencyApi';
+import { exchangeRateApi } from '../api/exchangeRateApi';
+
+// Fallback used while the API call is still in flight on first mount,
+// or when the user is not yet authenticated.
+const FALLBACK_CURRENCIES = [
+  { code: 'VND', name: 'Vietnamese Dong', symbol: '₫', isDefault: true  },
+  { code: 'USD', name: 'US Dollar',        symbol: '$', isDefault: false },
+];
 
 const SettingsContext = createContext(null);
 
-const DEFAULT_CURRENCIES = [
-  { code: 'VND', name: 'Vietnamese Dong', symbol: '₫', isDefault: true },
-  { code: 'USD', name: 'US Dollar',        symbol: '$', isDefault: false },
-  { code: 'EUR', name: 'Euro',             symbol: '€', isDefault: false },
-  { code: 'JPY', name: 'Japanese Yen',     symbol: '¥', isDefault: false },
-];
-
-// rates[code] = "1 unit of code = X units of default currency"
-// e.g. rates.USD = 25450 means 1 USD = 25,450 VND (when VND is default)
-const DEFAULT_RATES = { USD: 25450, EUR: 27500, JPY: 162.5 };
-
-function load(key, fallback) {
-  try {
-    const saved = localStorage.getItem(key);
-    return saved ? JSON.parse(saved) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
 export function SettingsProvider({ children }) {
-  const [currency, setCurrencyCode] = useState(
-    () => localStorage.getItem('app_currency') || 'VND'
-  );
-  const [currencies, setCurrenciesState] = useState(() => load('app_currencies', DEFAULT_CURRENCIES));
-  const [rates,      setRatesState]      = useState(() => load('app_rates',      DEFAULT_RATES));
-  const [lastRateSync, setLastRateSync]  = useState(() => localStorage.getItem('app_rate_sync') || null);
+  // ── State ─────────────────────────────────────────────
+  const [currencies,   setCurrencies]   = useState(FALLBACK_CURRENCIES);
+  const [currency,     setCurrencyCode] = useState('VND'); // primary code
+  const [rates,        setRates]        = useState({});    // { code → rate vs primary }
+  const [lastRateSync, setLastRateSync] = useState(() => localStorage.getItem('app_rate_sync') || null);
+  const [isLoading,    setIsLoading]    = useState(false);
 
-  // ── Currencies ────────────────────────────────────────────────
-  const persistCurrencies = (list) => {
-    setCurrenciesState(list);
-    localStorage.setItem('app_currencies', JSON.stringify(list));
+  // ── Mapping ───────────────────────────────────────────
+  // Backend dto → frontend shape used by pages.
+  const dtoToCurrency = (c) => ({
+    code:      c.code,
+    name:      c.name,
+    symbol:    c.symbol,
+    isDefault: !!c.is_primary,
+    isEnabled: c.is_enabled !== false,
+  });
+
+  // ── Load from server ──────────────────────────────────
+  const refreshCurrencies = useCallback(async () => {
+    try {
+      const list = await currencyApi.getAll();
+      const mapped = (list || []).map(dtoToCurrency);
+      setCurrencies(mapped);
+      const primary = mapped.find(c => c.isDefault);
+      if (primary) setCurrencyCode(primary.code);
+    } catch (err) {
+      // Stay on fallback when unauthenticated or offline
+      console.warn('Could not load currencies:', err?.message);
+    }
+  }, []);
+
+  const refreshRates = useCallback(async () => {
+    try {
+      const list = await exchangeRateApi.getAll();
+      // Build {fromCode: rateVsPrimary}. The bulk endpoint stores from=code, to=primary.
+      const map = {};
+      for (const r of list || []) {
+        if (!(r.from_currency in map)) {
+          map[r.from_currency] = Number(r.rate);
+        }
+      }
+      setRates(map);
+    } catch (err) {
+      console.warn('Could not load exchange rates:', err?.message);
+    }
+  }, []);
+
+  // First mount + every time the token changes (storage event from login/logout)
+  useEffect(() => {
+    const isLoggedIn = !!localStorage.getItem('access_token');
+    if (!isLoggedIn) return;
+    setIsLoading(true);
+    Promise.all([refreshCurrencies(), refreshRates()]).finally(() => setIsLoading(false));
+
+    const onStorage = (e) => {
+      if (e.key === 'access_token') {
+        refreshCurrencies();
+        refreshRates();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [refreshCurrencies, refreshRates]);
+
+  // ── Currencies API ────────────────────────────────────
+  const setCurrency = (code) => setCurrencyCode(code);
+
+  const setDefaultCurrency = async (code) => {
+    await currencyApi.setPrimary(code);
+    await refreshCurrencies();
   };
 
-  const setCurrency = (code) => {
-    setCurrencyCode(code);
-    localStorage.setItem('app_currency', code);
-  };
-
-  const setDefaultCurrency = (code) => {
-    persistCurrencies(currencies.map(c => ({ ...c, isDefault: c.code === code })));
-    setCurrency(code);
-  };
-
-  const addCurrency = (newCurr) => {
+  const addCurrency = async (newCurr) => {
     if (currencies.find(c => c.code === newCurr.code)) {
       throw new Error('Mã tiền tệ đã tồn tại');
     }
-    persistCurrencies([...currencies, { ...newCurr, isDefault: false }]);
-    // Init rate = 1 if not already set
-    if (rates[newCurr.code] == null) {
-      const updated = { ...rates, [newCurr.code]: 1 };
-      setRatesState(updated);
-      localStorage.setItem('app_rates', JSON.stringify(updated));
-    }
+    await currencyApi.create({
+      code:   newCurr.code,
+      name:   newCurr.name,
+      symbol: newCurr.symbol,
+    });
+    await refreshCurrencies();
   };
 
-  const removeCurrency = (code) => {
+  const removeCurrency = async (code) => {
     const curr = currencies.find(c => c.code === code);
     if (!curr) return;
     if (curr.isDefault) throw new Error('Không thể xóa tiền tệ mặc định');
-    persistCurrencies(currencies.filter(c => c.code !== code));
-    const { [code]: _, ...rest } = rates;
-    setRatesState(rest);
-    localStorage.setItem('app_rates', JSON.stringify(rest));
+    await currencyApi.delete(code);
+    await refreshCurrencies();
+    await refreshRates();
   };
 
-  // ── Exchange rates ─────────────────────────────────────────────
-  const setRate = (code, value) => {
-    const updated = { ...rates, [code]: Number(value) };
-    setRatesState(updated);
-    localStorage.setItem('app_rates', JSON.stringify(updated));
+  // ── Exchange rates ────────────────────────────────────
+  const setRate = async (code, value) => {
+    await exchangeRateApi.bulk({
+      rates: { [code]: Number(value) },
+      rate_date: new Date().toISOString().slice(0, 10),
+    });
+    setRates(prev => ({ ...prev, [code]: Number(value) }));
   };
 
-  // Merge a batch of { code: rate } into existing rates (used after API sync)
-  const bulkUpdateRates = (batch) => {
-    const updated = { ...rates, ...batch };
-    setRatesState(updated);
-    localStorage.setItem('app_rates', JSON.stringify(updated));
+  const bulkUpdateRates = async (batch) => {
+    if (!batch || Object.keys(batch).length === 0) return;
+    await exchangeRateApi.bulk({
+      rates: batch,
+      rate_date: new Date().toISOString().slice(0, 10),
+    });
+    setRates(prev => ({ ...prev, ...batch }));
   };
 
   const syncRates = () => {
@@ -89,8 +129,8 @@ export function SettingsProvider({ children }) {
     localStorage.setItem('app_rate_sync', now);
   };
 
-  // Convert `amount` from currency `from` to currency `to`
-  // Uses: rates[X] = "1 X = rates[X] base"
+  // Convert `amount` from currency `from` to currency `to`.
+  // rates[X] = "1 X = rates[X] primaryCurrency".
   const convert = (amount, from, to) => {
     if (from === to) return amount;
     const rateFrom = from === currency ? 1 : (rates[from] ?? 1);
@@ -98,11 +138,9 @@ export function SettingsProvider({ children }) {
     return (amount * rateFrom) / rateTo;
   };
 
-  // ── Formatting ─────────────────────────────────────────────────
+  // ── Formatting ─────────────────────────────────────────
   const currencySymbol = currencies.find(c => c.code === currency)?.symbol ?? currency;
-
-  const fmt = (n) => `${Number(n ?? 0).toLocaleString()} ${currencySymbol}`;
-
+  const fmt      = (n) => `${Number(n ?? 0).toLocaleString()} ${currencySymbol}`;
   const fmtShort = (n) => {
     const num = Number(n ?? 0);
     if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(1)}B`;
@@ -113,10 +151,12 @@ export function SettingsProvider({ children }) {
 
   return (
     <SettingsContext.Provider value={{
+      isLoading,
       currency, setCurrency,
       currencies, setDefaultCurrency, addCurrency, removeCurrency,
       rates, setRate, bulkUpdateRates, syncRates, lastRateSync, convert,
       currencySymbol, fmt, fmtShort,
+      refreshCurrencies, refreshRates,
     }}>
       {children}
     </SettingsContext.Provider>

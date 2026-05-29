@@ -61,6 +61,8 @@ function getPresetRange(key) {
   }
 }
 
+import { PageLayout } from "../../components/layout/PageLayout";
+
 export function Transactions() {
   const { fmt } = useSettings();
 
@@ -218,18 +220,15 @@ export function Transactions() {
   const netPositive = cashFlow.netCashFlow >= 0;
 
   return (
-    <div className="p-8">
-      {/* ── Header ────────────────────────────────────────────── */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Giao dịch</h1>
-          <p className="text-slate-500 mt-1">Lịch sử tất cả hoạt động tài chính</p>
-        </div>
-        <div className="flex items-center gap-2">
+    <PageLayout
+      title="Giao dịch"
+      subtitle="Lịch sử tất cả hoạt động tài chính"
+      actions={
+        <>
           <button
             onClick={() => loadData(true)}
             disabled={isRefreshing}
-            className="p-2.5 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition-colors"
+            className="p-2.5 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 text-slate-600 transition-colors"
             title="Làm mới"
           >
             <RefreshCw size={18} className={isRefreshing ? "animate-spin" : ""} />
@@ -241,8 +240,9 @@ export function Transactions() {
             <Plus size={18} />
             <span className="font-medium">Thêm giao dịch</span>
           </button>
-        </div>
-      </div>
+        </>
+      }
+    >
 
       {/* ── Date range presets ────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2 mb-5">
@@ -561,6 +561,6 @@ export function Transactions() {
         onSave={handleSaveEdit}
         transaction={editTarget}
       />
-    </div>
+    </PageLayout>
   );
 }

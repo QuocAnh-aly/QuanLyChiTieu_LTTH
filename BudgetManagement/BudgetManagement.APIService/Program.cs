@@ -24,6 +24,11 @@ builder.Services.AddScoped<IJournalRepository, JournalRepository>();
 builder.Services.AddScoped<IBudgetRepository, BudgetRepository>();
 builder.Services.AddScoped<IRecurringRepository, RecurringRepository>();
 builder.Services.AddScoped<IBillRepository, BillRepository>();
+builder.Services.AddScoped<ICurrencyRepository, CurrencyRepository>();
+builder.Services.AddScoped<IExchangeRateRepository, ExchangeRateRepository>();
+builder.Services.AddScoped<IRuleRepository, RuleRepository>();
+builder.Services.AddScoped<IWebhookRepository, WebhookRepository>();
+builder.Services.AddScoped<IAttachmentRepository, AttachmentRepository>();
 
 // ─── Services ────────────────────────────────────────────────────────────────
 builder.Services.AddScoped<IAccountService, AccountService>();
@@ -32,6 +37,15 @@ builder.Services.AddScoped<IBudgetService, BudgetService>();
 builder.Services.AddScoped<IRecurringService, RecurringService>();
 builder.Services.AddScoped<IBillService, BillService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<ICurrencyService, CurrencyService>();
+builder.Services.AddScoped<IExchangeRateService, ExchangeRateService>();
+builder.Services.AddScoped<IRuleService, RuleService>();
+builder.Services.AddScoped<IWebhookService, WebhookService>();
+builder.Services.AddScoped<IAttachmentService, AttachmentService>();
+builder.Services.AddScoped<ISearchService, SearchService>();
+builder.Services.AddScoped<IInsightService, InsightService>();
+builder.Services.AddScoped<IExportService, ExportService>();
+builder.Services.AddHttpClient();
 
 // ─── JWT Authentication ──────────────────────────────────────────────────────
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

@@ -1,9 +1,16 @@
-﻿export function SystemSettings() {
+import { PageLayout } from "../../components/layout/PageLayout";
+
+export function SystemSettings() {
   return (
-    <div className="flex flex-col items-center justify-center h-full min-h-[60vh] gap-4 text-slate-400">
-      <span className="text-5xl">🚧</span>
-      <h2 className="text-xl font-semibold text-slate-600">SystemSettings</h2>
-      <p className="text-sm">Tính năng đang được phát triển</p>
-    </div>
+    <PageLayout
+      title="Cài đặt hệ thống"
+      subtitle="Tính năng đang được phát triển"
+    >
+      <div className="flex flex-col items-center justify-center h-full min-h-[40vh] gap-4 text-slate-400">
+        <span className="text-5xl">🚧</span>
+        <h2 className="text-xl font-semibold text-slate-600">Cài đặt hệ thống</h2>
+        <p className="text-sm">Tính năng đang được phát triển</p>
+      </div>
+    </PageLayout>
   );
 }

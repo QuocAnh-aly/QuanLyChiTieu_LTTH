@@ -59,8 +59,7 @@ const iconMap = {
   TrendingUp,
   Users,
   PiggyBank,
-  Wallet:    WalletIcon,
-  WalletIcon,
+  Wallet: WalletIcon,
 };
 
 const colorGradients = {
@@ -113,6 +112,8 @@ function CopyButton({ text }) {
     </button>
   );
 }
+
+import { PageLayout } from "../../../components/layout/PageLayout";
 
 export function AssetAccounts() {
   const { fmt, fmtShort } = useSettings();
@@ -253,18 +254,15 @@ export function AssetAccounts() {
     .map((a) => ({ name: a.name, value: a.balance }));
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Ví</h1>
-          <p className="text-slate-500 mt-1">Quản lý tài khoản và thẻ của bạn</p>
-        </div>
-        <div className="flex items-center gap-2">
+    <PageLayout
+      title="Ví"
+      subtitle="Quản lý tài khoản và thẻ của bạn"
+      actions={
+        <>
           <button
             onClick={() => fetchWallets(true)}
             disabled={isRefreshing}
-            className="p-2.5 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition-colors"
+            className="p-2.5 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 text-slate-600 transition-colors"
             title="Làm mới"
           >
             <RefreshCw size={18} className={isRefreshing ? "animate-spin" : ""} />
@@ -285,8 +283,9 @@ export function AssetAccounts() {
             <Plus size={18} />
             <span>Thêm tài khoản</span>
           </button>
-        </div>
-      </div>
+        </>
+      }
+    >
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -708,7 +707,6 @@ export function AssetAccounts() {
         )}
       </div>
 
-      {/* Modals */}
       <AddWalletModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={handleAddWallet} />
       {editingWallet && (
         <EditWalletModal wallet={editingWallet} onClose={() => setEditingWallet(null)} onSave={handleEditWallet} />
@@ -716,6 +714,6 @@ export function AssetAccounts() {
       {isTransferOpen && (
         <QuickTransferModal accounts={accounts} onClose={() => setIsTransferOpen(false)} onTransfer={handleTransfer} />
       )}
-    </div>
+    </PageLayout>
   );
 }

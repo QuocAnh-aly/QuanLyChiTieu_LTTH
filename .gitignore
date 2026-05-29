@@ -11,6 +11,7 @@ dist-ssr/
 .env.local
 .env.*.local
 
+
 # Editor / IDE
 .vscode/
 .idea/

@@ -3,7 +3,10 @@ import { useState, useEffect, useCallback } from "react";
 import { walletApi } from "../../../api/walletApi";
 import { useSettings } from "../../../context/SettingsContext";
 import { AccountFormModal } from "../../../components/modals/AccountFormModal";
+import { AccountCharts } from "../../../components/dashboard/AccountCharts";
 import { toast } from "sonner";
+
+import { PageLayout } from "../../../components/layout/PageLayout";
 
 export function RevenueAccounts() {
   const { fmt } = useSettings();
@@ -69,13 +72,10 @@ export function RevenueAccounts() {
   const filtered = accounts.filter(a => a.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Tài khoản thu</h1>
-          <p className="text-slate-500 mt-1">Quản lý các nguồn thu nhập của bạn</p>
-        </div>
+    <PageLayout
+      title="Tài khoản thu"
+      subtitle="Quản lý các nguồn thu nhập của bạn"
+      actions={
         <button
           onClick={() => setShowModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
@@ -83,24 +83,11 @@ export function RevenueAccounts() {
           <Plus size={18} />
           <span className="font-medium">Thêm nguồn thu</span>
         </button>
-      </div>
+      }
+    >
 
-      {/* Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="md:col-span-2 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl p-6 text-white shadow-sm relative overflow-hidden flex items-center">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-white opacity-10 rounded-full -mr-16 -mt-16 pointer-events-none" />
-          <Briefcase size={48} className="opacity-80 mr-6 flex-shrink-0" />
-          <div>
-            <h3 className="text-xl font-bold mb-1">Đa dạng hóa thu nhập</h3>
-            <p className="text-emerald-100 text-sm max-w-md">Theo dõi các nguồn thu từ lương, kinh doanh, và đầu tư để đánh giá hiệu quả tài chính.</p>
-          </div>
-        </div>
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-center">
-          <p className="text-slate-500 text-sm font-medium mb-1">Tổng thu nhập (đã ghi nhận)</p>
-          <p className="text-3xl font-bold text-emerald-600">+{fmt(totalRevenue)}</p>
-          <p className="text-slate-400 text-xs mt-1">{accounts.length} nguồn thu</p>
-        </div>
-      </div>
+      {/* Summary (Replaced by new AccountCharts dashboard) */}
+      <AccountCharts />
 
       {/* Search */}
       <div className="flex gap-3 mb-6">
@@ -195,6 +182,6 @@ export function RevenueAccounts() {
           typeId={4}
         />
       )}
-    </div>
+    </PageLayout>
   );
 }

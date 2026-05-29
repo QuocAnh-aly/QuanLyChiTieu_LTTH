@@ -18,6 +18,8 @@ const POPULAR_CURRENCIES = [
 
 const EMPTY_FORM = { code: '', name: '', symbol: '' };
 
+import { PageLayout } from '../../components/layout/PageLayout';
+
 export function Currencies() {
   const { currencies, setDefaultCurrency, addCurrency, removeCurrency } = useSettings();
 
@@ -43,34 +45,40 @@ export function Currencies() {
     return e;
   };
 
-  const handleAddCustom = () => {
+  const errMsg = (err) => err?.response?.data?.message || err?.message || 'Lỗi không xác định';
+
+  const handleAddCustom = async () => {
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
     try {
-      addCurrency({ code: form.code, name: form.name.trim(), symbol: form.symbol.trim() });
+      await addCurrency({ code: form.code, name: form.name.trim(), symbol: form.symbol.trim() });
       toast.success(`Đã thêm tiền tệ ${form.code}`);
       closeModal();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(errMsg(err));
     }
   };
 
-  const handleAddPopular = (curr) => {
+  const handleAddPopular = async (curr) => {
     try {
-      addCurrency(curr);
+      await addCurrency(curr);
       toast.success(`Đã thêm ${curr.code} – ${curr.name}`);
       closeModal();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(errMsg(err));
     }
   };
 
-  const handleSetDefault = (code) => {
-    setDefaultCurrency(code);
-    toast.success(`Đã đặt ${code} làm tiền tệ mặc định`);
+  const handleSetDefault = async (code) => {
+    try {
+      await setDefaultCurrency(code);
+      toast.success(`Đã đặt ${code} làm tiền tệ mặc định`);
+    } catch (err) {
+      toast.error(errMsg(err));
+    }
   };
 
-  const handleRemove = (code) => {
+  const handleRemove = async (code) => {
     const curr = currencies.find(c => c.code === code);
     if (curr?.isDefault) {
       toast.error('Không thể xóa tiền tệ mặc định. Vui lòng chọn mặc định khác trước.');
@@ -78,10 +86,10 @@ export function Currencies() {
     }
     if (!window.confirm(`Xóa tiền tệ ${code}?`)) return;
     try {
-      removeCurrency(code);
+      await removeCurrency(code);
       toast.success(`Đã xóa ${code}`);
     } catch (err) {
-      toast.error(err.message);
+      toast.error(errMsg(err));
     }
   };
 
@@ -94,14 +102,10 @@ export function Currencies() {
   const availablePopular = POPULAR_CURRENCIES.filter(c => !existingCodes.has(c.code));
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-
-      {/* ── Header ─────────────────────────────────── */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Tiền tệ</h1>
-          <p className="text-slate-500 mt-1">Quản lý các loại tiền tệ được sử dụng trong hệ thống</p>
-        </div>
+    <PageLayout
+      title="Tiền tệ"
+      subtitle="Quản lý các loại tiền tệ được sử dụng trong hệ thống"
+      actions={
         <button
           onClick={() => setShowAdd(true)}
           className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm font-medium"
@@ -109,7 +113,8 @@ export function Currencies() {
           <Plus size={18} />
           Thêm tiền tệ
         </button>
-      </div>
+      }
+    >
 
       {/* ── Table card ─────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
@@ -363,6 +368,6 @@ export function Currencies() {
           </div>
         </div>
       )}
-    </div>
+    </PageLayout>
   );
 }

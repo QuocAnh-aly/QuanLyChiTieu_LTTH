@@ -12,25 +12,30 @@ const FREQ_OPTIONS = [
 ];
 
 export function SubscriptionFormModal({ isOpen, onClose, onSave, bill = null }) {
-  const { currencySymbol } = useSettings();
+  const { currencies, currency } = useSettings();
   const isEdit = !!bill;
 
   const [name,          setName]          = useState("");
+  const [selectedCurrency, setSelectedCurrency] = useState("");
   const [amountMin,     setAmountMin]     = useState("");
   const [amountMax,     setAmountMax]     = useState("");
   const [date,          setDate]          = useState("");
   const [repeatFreq,    setRepeatFreq]    = useState("monthly");
   const [skip,          setSkip]          = useState("0");
+  
   const [endDate,       setEndDate]       = useState("");
   const [extensionDate, setExtensionDate] = useState("");
   const [notes,         setNotes]         = useState("");
   const [objectGroup,   setObjectGroup]   = useState("");
   const [active,        setActive]        = useState(true);
 
+  const [returnHere,    setReturnHere]    = useState(false);
+
   useEffect(() => {
     if (!isOpen) return;
     if (bill) {
       setName(bill.name ?? "");
+      setSelectedCurrency(bill.currency ?? currency);
       setAmountMin(String(bill.amountMin ?? ""));
       setAmountMax(String(bill.amountMax ?? ""));
       setDate(bill.date ? bill.date.split("T")[0] : "");
@@ -42,12 +47,13 @@ export function SubscriptionFormModal({ isOpen, onClose, onSave, bill = null }) 
       setObjectGroup(bill.objectGroup ?? "");
       setActive(bill.active ?? true);
     } else {
-      setName(""); setAmountMin(""); setAmountMax("");
+      setName(""); setSelectedCurrency(currency); setAmountMin(""); setAmountMax("");
       setDate(new Date().toISOString().split("T")[0]);
       setRepeatFreq("monthly"); setSkip("0");
       setEndDate(""); setExtensionDate(""); setNotes(""); setObjectGroup(""); setActive(true);
+      setReturnHere(false);
     }
-  }, [isOpen, bill]);
+  }, [isOpen, bill, currency]);
 
   if (!isOpen) return null;
 
@@ -58,6 +64,7 @@ export function SubscriptionFormModal({ isOpen, onClose, onSave, bill = null }) 
     if (!canSubmit) return;
     onSave({
       name:          name.trim(),
+      currency:      selectedCurrency,
       amountMin:     parseFloat(amountMin),
       amountMax:     parseFloat(amountMax),
       date:          date,
@@ -68,161 +75,178 @@ export function SubscriptionFormModal({ isOpen, onClose, onSave, bill = null }) 
       notes:         notes.trim() || null,
       objectGroup:   objectGroup.trim() || null,
       active,
+      returnHere,
     });
+    if (returnHere && !isEdit) {
+      // Clear fields to let user add another
+      setName(""); setAmountMin(""); setAmountMax(""); setNotes("");
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
-      onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto shadow-2xl"
-        onClick={e => e.stopPropagation()}>
-
-        {/* Header stripe */}
-        <div className="h-1.5 rounded-t-2xl bg-gradient-to-r from-violet-500 to-purple-600" />
-
-        <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-[#2c323c] rounded-lg w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl border border-slate-700" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-slate-700 flex justify-between items-center bg-[#2c323c]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center">
-              <Receipt size={18} className="text-purple-600" />
-            </div>
-            <h2 className="text-base font-bold text-slate-900">
-              {isEdit ? "Sửa hóa đơn" : "Thêm hóa đơn định kỳ"}
+            <h2 className="text-xl font-semibold text-slate-200 flex items-center gap-2">
+              <Receipt className="text-slate-400" size={24} />
+              Subscriptions <span className="text-sm font-normal text-slate-400 ml-2">{isEdit ? "Edit subscription" : "Create new subscription"}</span>
             </h2>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
-            <X size={18} />
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-200">
+            <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="px-6 py-4 space-y-4">
-
-            {/* Name */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                Tên hóa đơn <span className="text-red-500">*</span>
-              </label>
-              <input type="text" value={name} onChange={e => setName(e.target.value)} required
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="Ví dụ: Netflix, Tiền thuê nhà..." />
-            </div>
-
-            {/* Amount range */}
-            <div className="grid grid-cols-2 gap-3">
+        <div className="flex-1 overflow-y-auto bg-[#2c323c] p-6 text-sm text-slate-300">
+          <form id="subscription-form" onSubmit={handleSubmit}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Mandatory Fields */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                  Tối thiểu <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">{currencySymbol}</span>
-                  <input type="number" value={amountMin} onChange={e => setAmountMin(e.target.value)}
-                    required min="0" step="1000"
-                    className="w-full pl-8 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="0" />
+                <h3 className="font-semibold text-slate-200 mb-6 border-b border-[#315c81] pb-2 text-base">Mandatory fields</h3>
+                
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <label className="sm:w-36 font-medium text-slate-300 text-right shrink-0">Name</label>
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} required
+                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" placeholder="Name" />
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <label className="sm:w-36 font-medium text-slate-300 text-right shrink-0">Currency</label>
+                    <select value={selectedCurrency} onChange={e => setSelectedCurrency(e.target.value)}
+                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200">
+                      {currencies?.map(c => (
+                        <option key={c.code} value={c.code}>{c.name} ({c.symbol})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <label className="sm:w-36 font-medium text-slate-300 text-right shrink-0">Minimum amount</label>
+                    <input type="number" value={amountMin} onChange={e => setAmountMin(e.target.value)} required min="0" step="1000"
+                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" />
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <label className="sm:w-36 font-medium text-slate-300 text-right shrink-0">Maximum amount</label>
+                    <input type="number" value={amountMax} onChange={e => setAmountMax(e.target.value)} required min="0" step="1000"
+                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" />
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <label className="sm:w-36 font-medium text-slate-300 text-right shrink-0">Date</label>
+                    <input type="date" value={date} onChange={e => setDate(e.target.value)} required
+                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200 [color-scheme:dark]" />
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <label className="sm:w-36 font-medium text-slate-300 text-right shrink-0">Repeats</label>
+                    <select value={repeatFreq} onChange={e => setRepeatFreq(e.target.value)} required
+                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200">
+                      {FREQ_OPTIONS.map(o => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
+                    <label className="sm:w-36 font-medium text-slate-300 text-right shrink-0 mt-2">Skip</label>
+                    <div className="flex-1">
+                      <input type="number" value={skip} onChange={e => setSkip(e.target.value)} min="0"
+                        className="w-full bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" />
+                      <p className="text-xs text-slate-500 mt-1">Use the skip field to create bi-monthly (skip = 1) or other custom intervals.</p>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                  Tối đa <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">{currencySymbol}</span>
-                  <input type="number" value={amountMax} onChange={e => setAmountMax(e.target.value)}
-                    required min="0" step="1000"
-                    className="w-full pl-8 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="0" />
+
+              {/* Optional Fields */}
+              <div className="bg-[#22272e] p-6 rounded-lg border border-slate-700">
+                <h3 className="font-semibold text-slate-200 mb-6 border-b border-slate-600 pb-2 text-base">Optional fields</h3>
+                
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
+                    <label className="sm:w-32 font-medium text-slate-300 text-right shrink-0 mt-2">End date</label>
+                    <div className="flex-1">
+                      <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+                        className="w-full bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200 [color-scheme:dark]" />
+                      <p className="text-xs text-slate-500 mt-1">Optional field. The subscription is expected to end on this date.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
+                    <label className="sm:w-32 font-medium text-slate-300 text-right shrink-0 mt-2">Extension date</label>
+                    <div className="flex-1">
+                      <input type="date" value={extensionDate} onChange={e => setExtensionDate(e.target.value)}
+                        className="w-full bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200 [color-scheme:dark]" />
+                      <p className="text-xs text-slate-500 mt-1">Optional field. The subscription must be extended (or cancelled) on or before this date.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
+                    <label className="sm:w-32 font-medium text-slate-300 text-right shrink-0 mt-2">Notes</label>
+                    <div className="flex-1">
+                      <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
+                        className="w-full bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200 resize-y" placeholder="Notes"></textarea>
+                      <p className="text-xs text-slate-500 mt-1">This field supports <a href="#" className="text-[#60a5fa] hover:underline">Markdown</a>.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
+                    <label className="sm:w-32 font-medium text-slate-300 text-right shrink-0 mt-2">Attachments</label>
+                    <div className="flex-1">
+                      <input type="file" className="text-slate-400 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-[#3e4551] file:text-slate-200 hover:file:bg-[#4b5563] text-sm" />
+                      <p className="text-xs text-slate-500 mt-1">Maximum file size: 2 MB</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <label className="sm:w-32 font-medium text-slate-300 text-right shrink-0">Group</label>
+                    <input type="text" value={objectGroup} onChange={e => setObjectGroup(e.target.value)}
+                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" placeholder="Group" />
+                  </div>
+                  
+                  {isEdit && (
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                      <label className="sm:w-32 font-medium text-slate-300 text-right shrink-0">Active</label>
+                      <label className="flex items-center gap-2 cursor-pointer flex-1">
+                        <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} className="rounded border-slate-600 bg-[#1e2329] text-[#315c81] focus:ring-[#315c81]" />
+                        <span className="text-slate-300">Active</span>
+                      </label>
+                    </div>
+                  )}
+
                 </div>
               </div>
             </div>
 
-            {/* Date + Freq row */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                  Ngày bắt đầu chu kỳ <span className="text-red-500">*</span>
+            {/* Options */}
+            <div className="mt-8 bg-[#22272e] p-6 rounded-lg border border-slate-700">
+              <h3 className="font-semibold text-slate-200 mb-4 border-b border-slate-600 pb-2 text-base">Options</h3>
+              <div className="flex items-center gap-4">
+                <label className="sm:w-36 font-medium text-slate-300 text-right shrink-0">Return here</label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={returnHere} onChange={e => setReturnHere(e.target.checked)} className="rounded border-slate-600 bg-[#1e2329] text-[#315c81] focus:ring-[#315c81]" />
+                  <span className="text-slate-300">After storing, return here to create another one.</span>
                 </label>
-                <input type="date" value={date} onChange={e => setDate(e.target.value)} required
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                  Tần suất <span className="text-red-500">*</span>
-                </label>
-                <select value={repeatFreq} onChange={e => setRepeatFreq(e.target.value)} required
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
-                  {FREQ_OPTIONS.map(o => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
+              <div className="mt-6 flex justify-end gap-3 pb-2">
+                <button type="button" onClick={onClose}
+                  className="px-5 py-2.5 border border-slate-600 text-slate-300 rounded hover:bg-slate-700 transition-colors">
+                  Cancel
+                </button>
+                <button type="submit" disabled={!canSubmit} form="subscription-form"
+                  className="px-5 py-2.5 bg-[#2ea043] text-white rounded hover:bg-[#3fb950] disabled:opacity-50 transition-colors">
+                  {isEdit ? "Update subscription" : "Store new subscription"}
+                </button>
               </div>
             </div>
 
-            {/* Skip */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                Bỏ qua chu kỳ
-                <span className="ml-1.5 text-xs font-normal text-slate-400">(0 = mỗi chu kỳ, 1 = cách 1, ...)</span>
-              </label>
-              <input type="number" value={skip} onChange={e => setSkip(e.target.value)}
-                min="0" max="31" step="1"
-                className="w-32 px-3 py-2.5 border border-slate-200 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="0" />
-            </div>
+          </form>
+        </div>
 
-            {/* EndDate + ExtensionDate */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Ngày kết thúc</label>
-                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Ngày gia hạn</label>
-                <input type="date" value={extensionDate} onChange={e => setExtensionDate(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
-              </div>
-            </div>
-
-            {/* Object Group */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Nhóm</label>
-              <input type="text" value={objectGroup} onChange={e => setObjectGroup(e.target.value)}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="Ví dụ: Streaming, Nhà ở..." />
-            </div>
-
-            {/* Notes */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Ghi chú</label>
-              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                placeholder="Thông tin thêm..." />
-            </div>
-
-            {/* Active (edit only) */}
-            {isEdit && (
-              <label className="flex items-center gap-3 cursor-pointer">
-                <div className="relative">
-                  <input type="checkbox" className="sr-only" checked={active} onChange={e => setActive(e.target.checked)} />
-                  <div className={`w-10 h-5 rounded-full transition-colors ${active ? "bg-purple-500" : "bg-slate-200"}`} />
-                  <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${active ? "translate-x-5" : "translate-x-0"}`} />
-                </div>
-                <span className="text-sm font-semibold text-slate-700">Đang hoạt động</span>
-              </label>
-            )}
-          </div>
-
-          <div className="flex gap-3 px-6 py-4 border-t border-slate-200">
-            <button type="button" onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 font-semibold text-sm">
-              Hủy
-            </button>
-            <button type="submit" disabled={!canSubmit}
-              className="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-              {isEdit ? "Lưu thay đổi" : "Tạo hóa đơn"}
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   );

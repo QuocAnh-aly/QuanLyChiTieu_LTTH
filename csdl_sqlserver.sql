@@ -77,6 +77,7 @@ CREATE TABLE Accounts (
 	balance DECIMAL(18,2) DEFAULT 0,
 	initial_balance DECIMAL(18,2) DEFAULT 0,
 	card_number NVARCHAR(20) DEFAULT '•••• ••••',
+	currency_code NVARCHAR(10) NOT NULL DEFAULT 'USD',
 	is_active BIT DEFAULT 1,
 	created_at DATETIME2 DEFAULT GETDATE(),
 	FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
@@ -141,6 +142,8 @@ CREATE TABLE Journal_Entries (
 	notes NVARCHAR(MAX) NULL,
 	tags NVARCHAR(1000) NULL,
 	bill_id INT NULL,                    -- liên kết subscription (Bills)
+	foreign_amount DECIMAL(18,2) NULL,           -- amount in original currency (when different from primary)
+	foreign_currency_code NVARCHAR(10) NULL,     -- original currency code (e.g. 'USD' for "85.50 USD ≈ 2,176,000 VND")
 	created_at DATETIME2 DEFAULT GETDATE(),
 	FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
 	-- FK bill_id → Bills được thêm ở section 9 (sau khi tạo bảng Bills)
@@ -298,3 +301,207 @@ CREATE INDEX idx_bill_user ON Bills (user_id);
 -- Service sẽ tự unlink journal_entries.bill_id = NULL trước khi xóa Bill
 ALTER TABLE Journal_Entries ADD CONSTRAINT FK_JournalEntries_Bills
 	FOREIGN KEY (bill_id) REFERENCES Bills(bill_id) ON DELETE NO ACTION;
+
+-- =============================================
+-- 10. TIỀN TỆ (Currencies)
+-- Frontend Currencies.jsx : danh sách tiền tệ của user
+--          ExchangeRates.jsx : tỷ giá so với tiền tệ chính
+-- is_primary = 1 → tiền tệ mặc định khi báo cáo / dashboard.
+-- =============================================
+CREATE TABLE Currencies (
+	currency_id    INT IDENTITY(1,1) PRIMARY KEY,
+	user_id        INT NOT NULL,
+	code           NVARCHAR(10) NOT NULL,
+	name           NVARCHAR(100) NOT NULL,
+	symbol         NVARCHAR(10) NOT NULL,
+	decimal_places INT DEFAULT 2,
+	is_enabled     BIT DEFAULT 1,
+	is_primary     BIT DEFAULT 0,
+	created_at     DATETIME2 DEFAULT GETDATE(),
+	CONSTRAINT FK_Currencies_Users FOREIGN KEY (user_id)
+		REFERENCES Users(user_id) ON DELETE CASCADE,
+	CONSTRAINT UX_Currencies_User_Code UNIQUE (user_id, code)
+);
+
+CREATE INDEX idx_currencies_user ON Currencies (user_id);
+
+-- =============================================
+-- 11. TỶ GIÁ HỐI ĐOÁI (Exchange_Rates)
+-- rate = "1 from_currency = rate * to_currency"
+-- rate_date = ngày hiệu lực (bản ghi mới nhất thắng khi convert).
+-- =============================================
+CREATE TABLE Exchange_Rates (
+	rate_id       INT IDENTITY(1,1) PRIMARY KEY,
+	user_id       INT NOT NULL,
+	from_currency NVARCHAR(10) NOT NULL,
+	to_currency   NVARCHAR(10) NOT NULL,
+	rate          DECIMAL(18,8) NOT NULL,
+	rate_date     DATE NOT NULL DEFAULT CAST(GETDATE() AS DATE),
+	created_at    DATETIME2 DEFAULT GETDATE(),
+	CONSTRAINT FK_ExchangeRates_Users FOREIGN KEY (user_id)
+		REFERENCES Users(user_id) ON DELETE CASCADE,
+	CONSTRAINT UX_ExchangeRates_Pair_Date UNIQUE (user_id, from_currency, to_currency, rate_date)
+);
+
+CREATE INDEX idx_xrates_user_pair ON Exchange_Rates (user_id, from_currency, to_currency);
+CREATE INDEX idx_xrates_user_date ON Exchange_Rates (user_id, rate_date);
+
+-- =============================================
+-- 12. QUY TẮC TỰ ĐỘNG — Rule_Groups + Rules + Rule_Triggers + Rule_Actions
+-- Frontend Rules.jsx : tạo / sửa / chạy thử / áp dụng quy tắc.
+-- strict          = ALL triggers phải khớp (vs ANY).
+-- stop_processing = dừng các rule kế tiếp khi rule này match.
+-- =============================================
+CREATE TABLE Rule_Groups (
+	group_id    INT IDENTITY(1,1) PRIMARY KEY,
+	user_id     INT NOT NULL,
+	title       NVARCHAR(255) NOT NULL,
+	description NVARCHAR(1000) NULL,
+	[order]     INT DEFAULT 0,
+	is_active   BIT DEFAULT 1,
+	created_at  DATETIME2 DEFAULT GETDATE(),
+	CONSTRAINT FK_RuleGroups_Users FOREIGN KEY (user_id)
+		REFERENCES Users(user_id) ON DELETE CASCADE
+);
+CREATE INDEX idx_rule_groups_user ON Rule_Groups (user_id);
+
+CREATE TABLE Rules (
+	rule_id         INT IDENTITY(1,1) PRIMARY KEY,
+	user_id         INT NOT NULL,
+	group_id        INT NULL,
+	title           NVARCHAR(255) NOT NULL,
+	description     NVARCHAR(1000) NULL,
+	[order]         INT DEFAULT 0,
+	is_active       BIT DEFAULT 1,
+	strict          BIT DEFAULT 1,
+	stop_processing BIT DEFAULT 0,
+	runs            INT DEFAULT 0,
+	last_run_at     DATETIME2 NULL,
+	created_at      DATETIME2 DEFAULT GETDATE(),
+	CONSTRAINT FK_Rules_Users FOREIGN KEY (user_id)
+		REFERENCES Users(user_id) ON DELETE CASCADE,
+	CONSTRAINT FK_Rules_Groups FOREIGN KEY (group_id)
+		REFERENCES Rule_Groups(group_id) ON DELETE NO ACTION
+);
+CREATE INDEX idx_rules_user  ON Rules (user_id);
+CREATE INDEX idx_rules_group ON Rules (group_id);
+
+-- trigger_type values: description_contains | description_is
+--                     | amount_more | amount_less | amount_exactly
+--                     | source_account_is | destination_account_is
+--                     | transaction_type ('withdrawal'/'deposit'/'transfer')
+--                     | tag_is | date_after | date_before
+--                     | has_no_category | category_is
+CREATE TABLE Rule_Triggers (
+	trigger_id      INT IDENTITY(1,1) PRIMARY KEY,
+	rule_id         INT NOT NULL,
+	trigger_type    NVARCHAR(50) NOT NULL,
+	trigger_value   NVARCHAR(500) NULL,
+	[order]         INT DEFAULT 0,
+	is_active       BIT DEFAULT 1,
+	stop_processing BIT DEFAULT 0,
+	CONSTRAINT FK_RuleTriggers_Rules FOREIGN KEY (rule_id)
+		REFERENCES Rules(rule_id) ON DELETE CASCADE
+);
+CREATE INDEX idx_rule_triggers_rule ON Rule_Triggers (rule_id);
+
+-- action_type values: set_description | append_description
+--                    | set_notes | append_notes
+--                    | add_tag | remove_tag | clear_tags
+--                    | link_to_bill (value = bill_id)
+--                    | set_category | delete_transaction
+CREATE TABLE Rule_Actions (
+	action_id       INT IDENTITY(1,1) PRIMARY KEY,
+	rule_id         INT NOT NULL,
+	action_type     NVARCHAR(50) NOT NULL,
+	action_value    NVARCHAR(1000) NULL,
+	[order]         INT DEFAULT 0,
+	is_active       BIT DEFAULT 1,
+	stop_processing BIT DEFAULT 0,
+	CONSTRAINT FK_RuleActions_Rules FOREIGN KEY (rule_id)
+		REFERENCES Rules(rule_id) ON DELETE CASCADE
+);
+CREATE INDEX idx_rule_actions_rule ON Rule_Actions (rule_id);
+
+-- =============================================
+-- 13. WEBHOOKS — gửi sự kiện ra hệ thống ngoài
+-- Frontend Webhooks.jsx
+-- trigger:  STORE_TRANSACTION | UPDATE_TRANSACTION | DESTROY_TRANSACTION
+-- response: TRANSACTIONS | ACCOUNTS | NONE
+-- secret:   HMAC-SHA256 secret ký payload khi gửi.
+-- =============================================
+CREATE TABLE Webhooks (
+	webhook_id   INT IDENTITY(1,1) PRIMARY KEY,
+	user_id      INT NOT NULL,
+	title        NVARCHAR(255) NOT NULL,
+	url          NVARCHAR(1000) NOT NULL,
+	trigger_type NVARCHAR(50) NOT NULL DEFAULT 'STORE_TRANSACTION',
+	response     NVARCHAR(50) NOT NULL DEFAULT 'TRANSACTIONS',
+	secret       NVARCHAR(255) NULL,
+	is_active    BIT DEFAULT 1,
+	created_at   DATETIME2 DEFAULT GETDATE(),
+	CONSTRAINT FK_Webhooks_Users FOREIGN KEY (user_id)
+		REFERENCES Users(user_id) ON DELETE CASCADE
+);
+CREATE INDEX idx_webhooks_user ON Webhooks (user_id);
+
+CREATE TABLE Webhook_Messages (
+	message_id    INT IDENTITY(1,1) PRIMARY KEY,
+	webhook_id    INT NOT NULL,
+	journal_id    INT NULL,
+	payload       NVARCHAR(MAX) NULL,
+	status_code   INT NOT NULL DEFAULT 0,    -- 0 = lỗi mạng
+	success       BIT NOT NULL DEFAULT 0,
+	response_body NVARCHAR(MAX) NULL,
+	error_message NVARCHAR(MAX) NULL,
+	sent_at       DATETIME2 DEFAULT GETDATE(),
+	CONSTRAINT FK_WhMessages_Webhooks FOREIGN KEY (webhook_id)
+		REFERENCES Webhooks(webhook_id) ON DELETE CASCADE
+);
+CREATE INDEX idx_whmessages_webhook ON Webhook_Messages (webhook_id, sent_at DESC);
+
+-- =============================================
+-- 14. ATTACHMENTS — file đính kèm (polymorphic)
+-- attachable_type: 'transaction' | 'bill' | 'budget' | 'account' | 'piggy' | 'tag'
+-- attachable_id:   FK trong bảng đích (không có constraint do polymorphic)
+-- file_path:       đường dẫn tương đối dưới AttachmentsRoot trong appsettings.
+-- =============================================
+CREATE TABLE Attachments (
+	attachment_id   INT IDENTITY(1,1) PRIMARY KEY,
+	user_id         INT NOT NULL,
+	attachable_type NVARCHAR(20) NOT NULL,
+	attachable_id   INT NOT NULL,
+	title           NVARCHAR(255) NULL,
+	notes           NVARCHAR(1000) NULL,
+	filename        NVARCHAR(255) NOT NULL,
+	mime            NVARCHAR(100) NULL,
+	size            BIGINT NOT NULL DEFAULT 0,
+	file_path       NVARCHAR(500) NOT NULL,
+	uploaded_at     DATETIME2 DEFAULT GETDATE(),
+	CONSTRAINT FK_Attachments_Users FOREIGN KEY (user_id)
+		REFERENCES Users(user_id) ON DELETE CASCADE,
+	CONSTRAINT CHK_Attachable_Type CHECK (
+		attachable_type IN ('transaction','bill','budget','account','piggy','tag')
+	)
+);
+CREATE INDEX idx_attachments_user       ON Attachments (user_id);
+CREATE INDEX idx_attachments_attachable ON Attachments (attachable_type, attachable_id);
+
+-- =============================================
+-- 15. SEED — 4 tiền tệ mặc định cho mỗi user (chạy lại an toàn)
+-- Khớp với FALLBACK_CURRENCIES trong SettingsContext của frontend.
+-- VND là tiền chính (is_primary=1).
+-- =============================================
+INSERT INTO Currencies (user_id, code, name, symbol, decimal_places, is_enabled, is_primary)
+SELECT u.user_id, v.code, v.name, v.symbol, v.dp, 1, v.is_primary
+FROM Users u
+CROSS JOIN (VALUES
+	(N'VND', N'Vietnamese Dong', N'₫', 0, CAST(1 AS BIT)),
+	(N'USD', N'US Dollar',       N'$', 2, CAST(0 AS BIT)),
+	(N'EUR', N'Euro',             N'€', 2, CAST(0 AS BIT)),
+	(N'JPY', N'Japanese Yen',     N'¥', 0, CAST(0 AS BIT))
+) AS v(code, name, symbol, dp, is_primary)
+WHERE NOT EXISTS (
+	SELECT 1 FROM Currencies c
+	WHERE c.user_id = u.user_id AND c.code = v.code
+);

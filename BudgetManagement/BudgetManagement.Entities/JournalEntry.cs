@@ -11,6 +11,8 @@ public class JournalEntry
     public string? Description { get; set; }
     public string? Notes { get; set; }
     public string? Tags  { get; set; }   // comma-separated tag names
+    public decimal? ForeignAmount { get; set; }
+    public string? ForeignCurrencyCode { get; set; }
     public DateTime? CreatedAt { get; set; }
 
     public int? BillId { get; set; }

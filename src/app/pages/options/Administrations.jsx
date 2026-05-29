@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Database, AlertTriangle, Shield, HardDrive, Download, UploadCloud, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
+import { PageLayout } from "../../components/layout/PageLayout";
+
 export function Administrations() {
   const [isBackingUp, setIsBackingUp] = useState(false);
 
@@ -21,11 +23,10 @@ export function Administrations() {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Quản trị hệ thống</h1>
-        <p className="text-slate-500 mt-1">Quản lý cơ sở dữ liệu, sao lưu, và các cấu hình cấp cao của ứng dụng</p>
-      </div>
+    <PageLayout
+      title="Quản trị hệ thống"
+      subtitle="Quản lý cơ sở dữ liệu, sao lưu, và các cấu hình cấp cao của ứng dụng"
+    >
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left Column */}
@@ -136,6 +137,6 @@ export function Administrations() {
           </div>
         </div>
       </div>
-    </div>
+    </PageLayout>
   );
 }

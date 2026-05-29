@@ -17,6 +17,15 @@ public class BudgetManagementDbContext : DbContext
     public DbSet<RecurringInstance> RecurringInstances { get; set; } = null!;
     public DbSet<PiggyBankEvent> PiggyBankEvents { get; set; } = null!;
     public DbSet<Bill> Bills { get; set; } = null!;
+    public DbSet<Currency> Currencies { get; set; } = null!;
+    public DbSet<ExchangeRate> ExchangeRates { get; set; } = null!;
+    public DbSet<RuleGroup> RuleGroups { get; set; } = null!;
+    public DbSet<Rule> Rules { get; set; } = null!;
+    public DbSet<RuleTrigger> RuleTriggers { get; set; } = null!;
+    public DbSet<RuleAction> RuleActions { get; set; } = null!;
+    public DbSet<Webhook> Webhooks { get; set; } = null!;
+    public DbSet<WebhookMessage> WebhookMessages { get; set; } = null!;
+    public DbSet<Attachment> Attachments { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -31,6 +40,15 @@ public class BudgetManagementDbContext : DbContext
         modelBuilder.Entity<RecurringInstance>().HasKey(ri => ri.InstanceId);
         modelBuilder.Entity<PiggyBankEvent>().HasKey(pe => pe.EventId);
         modelBuilder.Entity<Bill>().HasKey(b => b.BillId);
+        modelBuilder.Entity<Currency>().HasKey(c => c.CurrencyId);
+        modelBuilder.Entity<ExchangeRate>().HasKey(r => r.RateId);
+        modelBuilder.Entity<RuleGroup>().HasKey(g => g.GroupId);
+        modelBuilder.Entity<Rule>().HasKey(r => r.RuleId);
+        modelBuilder.Entity<RuleTrigger>().HasKey(t => t.TriggerId);
+        modelBuilder.Entity<RuleAction>().HasKey(a => a.ActionId);
+        modelBuilder.Entity<Webhook>().HasKey(w => w.WebhookId);
+        modelBuilder.Entity<WebhookMessage>().HasKey(m => m.MessageId);
+        modelBuilder.Entity<Attachment>().HasKey(a => a.AttachmentId);
 
         // ─── Snake Case Mapping ───────────────────────────────────────────────────
         foreach (var entity in modelBuilder.Model.GetEntityTypes())
@@ -50,6 +68,11 @@ public class BudgetManagementDbContext : DbContext
         modelBuilder.Entity<JournalDetail>().ToTable("Journal_Details");
         modelBuilder.Entity<RecurringJournal>().ToTable("Recurring_Journals");
         modelBuilder.Entity<RecurringInstance>().ToTable("Recurring_Instances");
+        modelBuilder.Entity<ExchangeRate>().ToTable("Exchange_Rates");
+        modelBuilder.Entity<RuleGroup>().ToTable("Rule_Groups");
+        modelBuilder.Entity<RuleTrigger>().ToTable("Rule_Triggers");
+        modelBuilder.Entity<RuleAction>().ToTable("Rule_Actions");
+        modelBuilder.Entity<WebhookMessage>().ToTable("Webhook_Messages");
 
 
         // ─── Relationships ────────────────────────────────────────────────────────
@@ -104,6 +127,66 @@ public class BudgetManagementDbContext : DbContext
             .WithMany(b => b.JournalEntries)
             .HasForeignKey(j => j.BillId)
             .OnDelete(DeleteBehavior.ClientSetNull);
+
+        modelBuilder.Entity<Currency>()
+            .HasOne(c => c.User)
+            .WithMany()
+            .HasForeignKey(c => c.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ExchangeRate>()
+            .HasOne(r => r.User)
+            .WithMany()
+            .HasForeignKey(r => r.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<RuleGroup>()
+            .HasOne(g => g.User)
+            .WithMany()
+            .HasForeignKey(g => g.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Rule>()
+            .HasOne(r => r.User)
+            .WithMany()
+            .HasForeignKey(r => r.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Rule>()
+            .HasOne(r => r.Group)
+            .WithMany(g => g.Rules)
+            .HasForeignKey(r => r.GroupId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<RuleTrigger>()
+            .HasOne(t => t.Rule)
+            .WithMany(r => r.Triggers)
+            .HasForeignKey(t => t.RuleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<RuleAction>()
+            .HasOne(a => a.Rule)
+            .WithMany(r => r.Actions)
+            .HasForeignKey(a => a.RuleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Webhook>()
+            .HasOne(w => w.User)
+            .WithMany()
+            .HasForeignKey(w => w.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<WebhookMessage>()
+            .HasOne(m => m.Webhook)
+            .WithMany(w => w.Messages)
+            .HasForeignKey(m => m.WebhookId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Attachment>()
+            .HasOne(a => a.User)
+            .WithMany()
+            .HasForeignKey(a => a.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 
     private string ToSnakeCase(string input)

@@ -99,6 +99,8 @@ function StatusBadge({ percentage }) {
   );
 }
 
+import { PageLayout } from "../../components/layout/PageLayout";
+
 export function Budgets() {
   const { fmt } = useSettings();
   const [budgets, setBudgets] = useState([]);
@@ -164,16 +166,15 @@ export function Budgets() {
   };
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Ngân sách</h1>
-          <p className="text-slate-500 mt-1">Theo dõi chi tiêu của bạn theo từng danh mục</p>
-        </div>
+    <PageLayout
+      title="Ngân sách"
+      subtitle="Theo dõi chi tiêu của bạn theo từng danh mục"
+      actions={
         <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
           <Plus size={18} /><span>Thêm ngân sách</span>
         </button>
-      </div>
+      }
+    >
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -347,32 +348,38 @@ export function Budgets() {
 
       <AddBudgetModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={handleAddBudget} />
       {editingBudget && <EditBudgetModal budget={editingBudget} onClose={() => setEditingBudget(null)} onSave={handleEditBudget} />}
-    </div>
+    </PageLayout>
   );
 }
 
+import { useNavigate } from "react-router-dom";
+
 function BudgetCard({ b, onEdit, onDelete }) {
   const { fmt } = useSettings();
+  const navigate = useNavigate();
   const Icon = b.icon;
   const pct = Math.min(b.percentage, 100);
   const isOver = b.percentage > 100;
   const isWarning = b.percentage >= 80 && !isOver;
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-slate-200 hover:shadow-md transition-shadow group">
+    <div 
+      className="bg-white rounded-2xl p-5 border border-slate-200 hover:shadow-md transition-shadow group cursor-pointer"
+      onClick={() => navigate(`/budgets/${b.id}`)}
+    >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className={`w-11 h-11 rounded-xl ${b.bgColor} flex items-center justify-center`}>
             <Icon size={22} className={b.textColor} />
           </div>
           <div>
-            <h3 className="font-semibold text-slate-900 leading-tight">{b.name}</h3>
+            <h3 className="font-semibold text-slate-900 leading-tight hover:text-purple-600 transition-colors">{b.name}</h3>
             <p className="text-xs text-slate-400 mt-0.5">{fmt(b.spent)} / {fmt(b.budget)}</p>
           </div>
         </div>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => onEdit(b)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700" title="Sửa"><Pencil size={13} /></button>
-          <button onClick={() => onDelete(b.id, b.name)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500" title="Xóa"><Trash2 size={13} /></button>
+          <button onClick={(e) => { e.stopPropagation(); onEdit(b); }} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700" title="Sửa"><Pencil size={13} /></button>
+          <button onClick={(e) => { e.stopPropagation(); onDelete(b.id, b.name); }} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500" title="Xóa"><Trash2 size={13} /></button>
         </div>
       </div>
 
@@ -400,19 +407,23 @@ function BudgetCard({ b, onEdit, onDelete }) {
 
 function BudgetListRow({ b, onEdit, onDelete }) {
   const { fmt } = useSettings();
+  const navigate = useNavigate();
   const Icon = b.icon;
   const pct = Math.min(b.percentage, 100);
   const isOver = b.percentage > 100;
   const isWarning = b.percentage >= 80 && !isOver;
 
   return (
-    <div className="bg-white rounded-xl px-5 py-4 border border-slate-200 hover:shadow-sm transition-shadow group flex items-center gap-4">
+    <div 
+      className="bg-white rounded-xl px-5 py-4 border border-slate-200 hover:shadow-sm transition-shadow group flex items-center gap-4 cursor-pointer"
+      onClick={() => navigate(`/budgets/${b.id}`)}
+    >
       <div className={`w-10 h-10 rounded-xl ${b.bgColor} flex items-center justify-center shrink-0`}>
         <Icon size={20} className={b.textColor} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1.5">
-          <span className="font-semibold text-slate-900 text-sm">{b.name}</span>
+          <span className="font-semibold text-slate-900 text-sm hover:text-purple-600 transition-colors">{b.name}</span>
           <StatusBadge percentage={b.percentage} />
           {b.periodType && <span className="text-xs text-slate-400">{b.periodType === "monthly" ? "Hàng tháng" : b.periodType === "weekly" ? "Hàng tuần" : b.periodType === "yearly" ? "Hàng năm" : b.periodType}</span>}
         </div>
@@ -429,8 +440,8 @@ function BudgetListRow({ b, onEdit, onDelete }) {
         <p className="text-xs text-slate-400">trên {fmt(b.budget)}</p>
       </div>
       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button onClick={() => onEdit(b)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700"><Pencil size={13} /></button>
-        <button onClick={() => onDelete(b.id, b.name)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500"><Trash2 size={13} /></button>
+        <button onClick={(e) => { e.stopPropagation(); onEdit(b); }} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700"><Pencil size={13} /></button>
+        <button onClick={(e) => { e.stopPropagation(); onDelete(b.id, b.name); }} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500"><Trash2 size={13} /></button>
       </div>
     </div>
   );

@@ -45,6 +45,8 @@ function getRange(key) {
   }
 }
 
+import { PageLayout } from "../../components/layout/PageLayout";
+
 export function Transfers() {
   const { fmt } = useSettings();
 
@@ -121,29 +123,29 @@ export function Transfers() {
   };
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-              <ArrowLeftRight size={20} className="text-blue-600" />
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900">Chuyển khoản</h1>
+    <PageLayout
+      title={
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+            <ArrowLeftRight size={20} className="text-blue-600" />
           </div>
-          <p className="text-slate-500 text-sm ml-[52px]">Các giao dịch chuyển tiền giữa các ví</p>
+          <span>Chuyển khoản</span>
         </div>
-        <div className="flex items-center gap-2">
+      }
+      subtitle={<span className="ml-[52px]">Các giao dịch chuyển tiền giữa các ví</span>}
+      actions={
+        <>
           <button onClick={() => loadData(true)} disabled={isRefresh}
-            className="p-2.5 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition-colors">
+            className="p-2.5 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 text-slate-600 transition-colors">
             <RefreshCw size={18} className={isRefresh ? "animate-spin" : ""} />
           </button>
           <button onClick={() => setIsAddOpen(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium">
             <Plus size={18} /> Chuyển tiền
           </button>
-        </div>
-      </div>
+        </>
+      }
+    >
 
       {/* Preset buttons */}
       <div className="flex flex-wrap items-center gap-2 mb-5">
@@ -301,6 +303,6 @@ export function Transfers() {
 
       <AddTransactionModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onAdd={handleAdd} initialType="transfer" />
       <EditTransactionModal isOpen={!!editTarget} onClose={() => setEditTarget(null)} onSave={handleSaveEdit} transaction={editTarget} />
-    </div>
+    </PageLayout>
   );
 }

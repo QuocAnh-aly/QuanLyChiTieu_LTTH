@@ -1,7 +1,7 @@
 import { ArrowUpRight, ArrowDownRight, ArrowLeftRight, TrendingUp, RefreshCw, ExternalLink } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { dashboardApi } from "../../api/dashboardApi";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "sonner";

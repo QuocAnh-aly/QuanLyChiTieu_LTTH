@@ -150,6 +150,8 @@ const FILTER_OPTIONS = [
   { value: 'expired', label: 'Hết hạn' },
 ];
 
+import { PageLayout } from '../../components/layout/PageLayout';
+
 export function OAuthTokens() {
   const [tokens, setTokens] = useState(loadTokens);
   const [filter, setFilter] = useState('all');
@@ -245,14 +247,10 @@ export function OAuthTokens() {
   }), [tokens]);
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-
-      {/* ── Header ──────────────────────────────────────────────── */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Kết nối ứng dụng</h1>
-          <p className="text-slate-500 mt-1">Quản lý phân quyền OAuth 2.0 cho các dịch vụ và ứng dụng bên thứ ba</p>
-        </div>
+    <PageLayout
+      title="Kết nối ứng dụng"
+      subtitle="Quản lý phân quyền OAuth 2.0 cho các dịch vụ và ứng dụng bên thứ ba"
+      actions={
         <button
           onClick={() => setShowAdd(true)}
           className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors shadow-sm font-medium"
@@ -260,7 +258,8 @@ export function OAuthTokens() {
           <Plus size={18} />
           Thêm kết nối mới
         </button>
-      </div>
+      }
+    >
 
       {/* ── Security banner ─────────────────────────────────────── */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-sm relative overflow-hidden mb-8 flex items-center gap-6">
@@ -508,6 +507,6 @@ export function OAuthTokens() {
           </div>
         </div>
       )}
-    </div>
+    </PageLayout>
   );
 }

@@ -3,6 +3,8 @@ import { Monitor, Moon, Sun, Globe, Hash, Clock, CheckCircle2, Save } from "luci
 import { toast } from "sonner";
 import { useSettings } from "../../context/SettingsContext";
 
+import { PageLayout } from "../../components/layout/PageLayout";
+
 export function Preferences() {
   const { settings, updateSettings } = useSettings();
   const [isSaving, setIsSaving] = useState(false);
@@ -26,12 +28,10 @@ export function Preferences() {
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Tùy chọn hiển thị</h1>
-          <p className="text-slate-500 mt-1">Cá nhân hóa giao diện và định dạng dữ liệu cho ứng dụng</p>
-        </div>
+    <PageLayout
+      title="Tùy chọn hiển thị"
+      subtitle="Cá nhân hóa giao diện và định dạng dữ liệu cho ứng dụng"
+      actions={
         <button 
           onClick={handleSave}
           disabled={isSaving}
@@ -40,7 +40,8 @@ export function Preferences() {
           {isSaving ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <Save size={18} />}
           <span>{isSaving ? "Đang lưu..." : "Lưu thay đổi"}</span>
         </button>
-      </div>
+      }
+    >
 
       <div className="space-y-8">
         
@@ -143,6 +144,6 @@ export function Preferences() {
         </div>
 
       </div>
-    </div>
+    </PageLayout>
   );
 }

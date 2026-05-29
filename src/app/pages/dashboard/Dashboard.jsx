@@ -1,7 +1,7 @@
 import { ArrowUpRight, ArrowDownRight, ArrowLeftRight, TrendingUp, RefreshCw, ExternalLink } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { dashboardApi } from "../../api/dashboardApi";
 import { useAuth } from "../../context/AuthContext";
 import { useSettings } from "../../context/SettingsContext";
@@ -24,6 +24,8 @@ function SkeletonCard({ gradient }) {
 function SkeletonChart() {
   return <div className="h-[300px] bg-slate-100 rounded-xl animate-pulse" />;
 }
+
+import { PageLayout } from "../../components/layout/PageLayout";
 
 export function Dashboard() {
   const { user } = useAuth();
@@ -114,13 +116,7 @@ export function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="p-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <div className="h-8 bg-slate-200 rounded w-40 mb-2 animate-pulse" />
-            <div className="h-4 bg-slate-100 rounded w-64 animate-pulse" />
-          </div>
-        </div>
+      <PageLayout title="Tổng quan" subtitle="Đang tải dữ liệu...">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <SkeletonCard gradient />
           <SkeletonCard />
@@ -143,35 +139,32 @@ export function Dashboard() {
             </div>
           ))}
         </div>
-      </div>
+      </PageLayout>
     );
   }
 
   if (hasError) {
     return (
-      <div className="p-8 flex flex-col items-center justify-center min-h-[400px]">
-        <p className="text-slate-500 mb-4">Không thể tải dữ liệu tổng quan.</p>
-        <button
-          onClick={() => fetchDashboardData()}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-        >
-          <RefreshCw size={16} />
-          Thử lại
-        </button>
-      </div>
+      <PageLayout title="Tổng quan" subtitle="Không thể tải dữ liệu">
+        <div className="flex flex-col items-center justify-center min-h-[400px]">
+          <p className="text-slate-500 mb-4">Không thể tải dữ liệu tổng quan.</p>
+          <button
+            onClick={() => fetchDashboardData()}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            <RefreshCw size={16} />
+            Thử lại
+          </button>
+        </div>
+      </PageLayout>
     );
   }
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Tổng quan</h1>
-          <p className="text-slate-500 mt-1">
-            Chào mừng trở lại{user?.userName ? `, ${user.userName}` : ""}! Đây là tổng quan tài chính tháng {currentMonthLabel}
-          </p>
-        </div>
+    <PageLayout
+      title="Tổng quan"
+      subtitle={`Chào mừng trở lại${user?.userName ? `, ${user.userName}` : ""}! Đây là tổng quan tài chính tháng ${currentMonthLabel}`}
+      actions={
         <button
           onClick={() => fetchDashboardData(true)}
           disabled={isRefreshing}
@@ -181,7 +174,8 @@ export function Dashboard() {
           <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
           <span className="capitalize">{currentMonthLabel}</span>
         </button>
-      </div>
+      }
+    >
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -337,6 +331,6 @@ export function Dashboard() {
           </div>
         )}
       </div>
-    </div>
+    </PageLayout>
   );
 }

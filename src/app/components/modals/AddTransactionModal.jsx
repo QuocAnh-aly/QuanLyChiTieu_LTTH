@@ -1,41 +1,12 @@
-import { X, ShoppingCart, TrendingUp, ArrowLeftRight, AlertCircle, Tag } from "lucide-react";
+import { X, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { walletApi } from "../../api/walletApi";
 import { useCategories } from "../../context/CategoriesContext";
 import { useSettings } from "../../context/SettingsContext";
 
-const TX_TYPES = [
-  { key: "expense",  label: "Chi tiêu",     Icon: ShoppingCart,   activeCls: "bg-red-500 text-white"   },
-  { key: "income",   label: "Thu nhập",     Icon: TrendingUp,     activeCls: "bg-green-500 text-white" },
-  { key: "transfer", label: "Chuyển khoản", Icon: ArrowLeftRight, activeCls: "bg-blue-500 text-white"  },
-];
-
-const SUBMIT_CLS = {
-  expense:  "bg-red-500   hover:bg-red-600",
-  income:   "bg-green-500 hover:bg-green-600",
-  transfer: "bg-blue-500  hover:bg-blue-600",
-};
-
-const SUBMIT_LABEL = {
-  expense:  "Ghi chi tiêu",
-  income:   "Ghi thu nhập",
-  transfer: "Chuyển tiền",
-};
-
-const TAG_COLORS = {
-  blue:    "bg-blue-100    text-blue-700    border-blue-300",
-  emerald: "bg-emerald-100 text-emerald-700 border-emerald-300",
-  orange:  "bg-orange-100  text-orange-700  border-orange-300",
-  purple:  "bg-purple-100  text-purple-700  border-purple-300",
-  pink:    "bg-pink-100    text-pink-700    border-pink-300",
-  red:     "bg-red-100     text-red-700     border-red-300",
-  green:   "bg-green-100   text-green-700   border-green-300",
-  slate:   "bg-slate-100   text-slate-700   border-slate-300",
-};
-
 export function AddTransactionModal({ isOpen, onClose, onAdd, initialType = "expense" }) {
-  const { expenseCategories, incomeSources, tags } = useCategories();
-  const { fmt, currencySymbol }                    = useSettings();
+  const { expenseCategories, incomeSources } = useCategories();
+  const { fmt, currencySymbol }              = useSettings();
 
   const [txType,          setTxType]          = useState(initialType);
   const [assetAccounts,   setAssetAccounts]   = useState([]);
@@ -46,8 +17,16 @@ export function AddTransactionModal({ isOpen, onClose, onAdd, initialType = "exp
   const [amount,          setAmount]          = useState("");
   const [description,     setDescription]     = useState("");
   const [notes,           setNotes]           = useState("");
-  const [selectedTags,    setSelectedTags]    = useState([]);
   const [date,            setDate]            = useState(() => new Date().toISOString().slice(0, 10));
+  
+  // Extra fields for the new UI
+  const [foreignAmount, setForeignAmount] = useState("");
+  const [budget, setBudget] = useState("");
+  const [piggyBank, setPiggyBank] = useState("");
+  const [tagsText, setTagsText] = useState("");
+  const [subscription, setSubscription] = useState("");
+  const [interestDate, setInterestDate] = useState("");
+
   const [createAnother,   setCreateAnother]   = useState(false);
 
   useEffect(() => {
@@ -65,20 +44,9 @@ export function AddTransactionModal({ isOpen, onClose, onAdd, initialType = "exp
     setWalletId(""); setToWalletId("");
     setExpenseCategory(""); setIncomeCategory("");
     setAmount(""); setDescription(""); setNotes("");
-    setSelectedTags([]);
     setDate(new Date().toISOString().slice(0, 10));
-  };
-
-  const handleTypeChange = (key) => {
-    setTxType(key);
-    setWalletId(""); setToWalletId("");
-    setExpenseCategory(""); setIncomeCategory("");
-  };
-
-  const toggleTag = (name) => {
-    setSelectedTags(prev =>
-      prev.includes(name) ? prev.filter(t => t !== name) : [...prev, name]
-    );
+    setForeignAmount(""); setBudget(""); setPiggyBank("");
+    setTagsText(""); setSubscription(""); setInterestDate("");
   };
 
   const sameWalletError = txType === "transfer" && walletId && toWalletId && walletId === toWalletId;
@@ -96,11 +64,11 @@ export function AddTransactionModal({ isOpen, onClose, onAdd, initialType = "exp
       amount:          parseFloat(amount),
       description:     description || null,
       notes:           notes       || null,
-      tags:            selectedTags.length > 0 ? selectedTags.join(",") : null,
+      tags:            tagsText    || null,
       transactionDate: new Date(date).toISOString(),
     };
-    if (txType === "expense") return { ...base, debitAccountId: 0,               creditAccountId: parseInt(walletId), expenseCategoryName: expenseCategory };
-    if (txType === "income")  return { ...base, debitAccountId: parseInt(walletId), creditAccountId: 0,               incomeCategoryName:  incomeCategory };
+    if (txType === "expense") return { ...base, debitAccountId: 0,               creditAccountId: parseInt(walletId), expenseCategoryName: expenseCategory || "Chưa phân loại" };
+    if (txType === "income")  return { ...base, debitAccountId: parseInt(walletId), creditAccountId: 0,               incomeCategoryName:  incomeCategory || "Khác" };
     return { ...base, debitAccountId: parseInt(toWalletId), creditAccountId: parseInt(walletId) };
   };
 
@@ -109,7 +77,8 @@ export function AddTransactionModal({ isOpen, onClose, onAdd, initialType = "exp
     if (!canSubmit) return;
     onAdd(buildPayload());
     if (createAnother) {
-      setAmount(""); setDescription(""); setNotes(""); setSelectedTags([]);
+      setAmount(""); setDescription(""); setNotes("");
+      setForeignAmount(""); setTagsText("");
     } else {
       reset();
       onClose();
@@ -118,302 +87,320 @@ export function AddTransactionModal({ isOpen, onClose, onAdd, initialType = "exp
 
   const walletLabel = (a) => `${a.name} — ${fmt(a.balance ?? 0)}`;
 
-  return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+  const headerTitle = txType === "expense" ? "Tạo rút tiền mới" : txType === "income" ? "Tạo tiền gửi mới" : "Tạo chuyển khoản mới";
 
+  return (
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={onClose}>
+      <div className="bg-slate-50 w-full max-w-[1200px] min-h-[80vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+        
         {/* Header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200 sticky top-0 bg-white rounded-t-2xl z-10">
-          <h2 className="text-lg font-bold text-slate-900">Thêm giao dịch</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
-            <X size={18} />
+        <div className="bg-white px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <span className="text-slate-500">⇄</span> Giao dịch
+            </h2>
+            <span className="text-slate-300">|</span>
+            <span className="text-slate-500 text-sm">
+              <span className="font-bold text-lg mr-1">+</span> {headerTitle}
+            </span>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500">
+            <X size={20} />
           </button>
         </div>
 
-        {/* Type tabs */}
-        <div className="px-6 pt-4">
-          <div className="flex gap-1 bg-slate-100 rounded-xl p-1">
-            {TX_TYPES.map(({ key, label, Icon, activeCls }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => handleTypeChange(key)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-sm font-semibold transition-all ${
-                  txType === key ? activeCls : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                <Icon size={14} />
-                <span>{label}</span>
-              </button>
-            ))}
-          </div>
+        {/* Info bar */}
+        <div className="bg-slate-100 px-6 py-3 border-b border-slate-200 text-sm text-slate-600 flex items-center gap-2">
+          Xin lỗi, không có văn bản giải thích bổ sung cho trang này. Tuy nhiên, biểu tượng ở góc trên bên phải có thể cho bạn biết nhiều hơn. <AlertCircle size={14} className="inline"/>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="px-6 py-4 space-y-4">
-
-            {/* Amount */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                Số tiền <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">
-                  {currencySymbol}
-                </span>
-                <input
-                  autoFocus
-                  type="number"
-                  value={amount}
-                  onChange={e => setAmount(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-lg font-semibold"
-                  placeholder="0"
-                  step="1000"
-                  min="1"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Mô tả</label>
-              <input
-                type="text"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder={
-                  txType === "expense"  ? "VD: Mua đồ ăn tối, cà phê sáng..." :
-                  txType === "income"   ? "VD: Lương tháng 5, tiền thưởng..."  :
-                                          "VD: Chuyển sang ví tiết kiệm..."
-                }
-              />
-            </div>
-
-            {/* ── EXPENSE ── */}
-            {txType === "expense" && (
-              <>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                    Thanh toán từ ví <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={walletId}
-                    onChange={e => setWalletId(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                    required
-                  >
-                    <option value="">Chọn ví thanh toán</option>
-                    {assetAccounts.map(a => (
-                      <option key={a.accountId} value={a.accountId}>{walletLabel(a)}</option>
-                    ))}
-                  </select>
-                  {assetAccounts.length === 0 && (
-                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-                      <AlertCircle size={12} /> Chưa có ví. Hãy tạo ví trước.
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                    Danh mục chi tiêu <span className="text-red-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {expenseCategories.map(cat => (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => setExpenseCategory(cat.label)}
-                        className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
-                          expenseCategory === cat.label
-                            ? 'border-red-400 bg-red-50 text-red-700'
-                            : 'border-slate-200 hover:border-slate-300 text-slate-700'
-                        }`}
-                      >
-                        {cat.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* ── INCOME ── */}
-            {txType === "income" && (
-              <>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                    Nhận vào ví <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={walletId}
-                    onChange={e => setWalletId(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                    required
-                  >
-                    <option value="">Chọn ví nhận</option>
-                    {assetAccounts.map(a => (
-                      <option key={a.accountId} value={a.accountId}>{walletLabel(a)}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                    Nguồn thu nhập <span className="text-red-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {incomeSources.map(src => (
-                      <button
-                        key={src.id}
-                        type="button"
-                        onClick={() => setIncomeCategory(src.label)}
-                        className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
-                          incomeCategory === src.label
-                            ? 'border-green-400 bg-green-50 text-green-700'
-                            : 'border-slate-200 hover:border-slate-300 text-slate-700'
-                        }`}
-                      >
-                        {src.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* ── TRANSFER ── */}
-            {txType === "transfer" && (
-              <>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                    Từ ví <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={walletId}
-                    onChange={e => setWalletId(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                    required
-                  >
-                    <option value="">Chọn ví nguồn</option>
-                    {assetAccounts.map(a => (
-                      <option key={a.accountId} value={a.accountId}>{walletLabel(a)}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                    Sang ví <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={toWalletId}
-                    onChange={e => setToWalletId(e.target.value)}
-                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm ${
-                      sameWalletError ? "border-red-400 bg-red-50" : "border-slate-200"
-                    }`}
-                    required
-                  >
-                    <option value="">Chọn ví đích</option>
-                    {assetAccounts
-                      .filter(a => String(a.accountId) !== walletId)
-                      .map(a => (
-                        <option key={a.accountId} value={a.accountId}>{walletLabel(a)}</option>
-                      ))}
-                  </select>
-                  {sameWalletError && (
-                    <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
-                      <AlertCircle size={12} /> Ví nguồn và ví đích phải khác nhau.
-                    </p>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* Date */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Ngày giao dịch</label>
-              <input
-                type="date"
-                value={date}
-                onChange={e => setDate(e.target.value)}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-              />
-            </div>
-
-            {/* Tags */}
-            {tags && tags.length > 0 && (
-              <div>
-                <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-2">
-                  <Tag size={14} className="text-slate-400" /> Nhãn
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {tags.map(tag => {
-                    const active   = selectedTags.includes(tag.name);
-                    const colorCls = TAG_COLORS[tag.color] || TAG_COLORS.slate;
-                    return (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => toggleTag(tag.name)}
-                        className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${
-                          active
-                            ? colorCls
-                            : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
-                        }`}
-                      >
-                        {tag.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Notes */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Ghi chú</label>
-              <textarea
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                rows={2}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm resize-none"
-                placeholder="Thêm ghi chú chi tiết..."
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col bg-white m-6 border border-slate-200 shadow-sm">
+          
+          <div className="px-6 py-4 border-b border-slate-100">
+            <h3 className="text-lg text-slate-700">Transaction information</h3>
           </div>
 
-          {/* Footer */}
-          <div className="px-6 pb-4 border-t border-slate-200 pt-4 space-y-3">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={createAnother}
-                onChange={e => setCreateAnother(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 accent-purple-600"
-              />
-              <span className="text-sm text-slate-600">Thêm giao dịch tiếp theo</span>
-            </label>
+          <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-6">
+            
+            {/* Left Column */}
+            <div className="space-y-6">
+              
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Description</label>
+                <div className="flex">
+                  <input
+                    type="text"
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-l focus:outline-none focus:border-blue-500 text-sm"
+                    placeholder="Description"
+                  />
+                  <button type="button" className="px-3 py-2 border border-l-0 border-slate-300 bg-slate-50 rounded-r text-slate-500 hover:bg-slate-100">
+                    <span className="text-xs">🗑</span>
+                  </button>
+                </div>
+              </div>
 
-            <div className="flex gap-3">
+              {/* Source account */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Source account</label>
+                <div className="flex">
+                  <select
+                    value={walletId}
+                    onChange={e => setWalletId(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-l focus:outline-none focus:border-blue-500 text-sm bg-white"
+                  >
+                    <option value="">Source account</option>
+                    {assetAccounts.map(a => <option key={a.accountId} value={a.accountId}>{walletLabel(a)}</option>)}
+                  </select>
+                  <button type="button" className="px-3 py-2 border border-l-0 border-slate-300 bg-slate-50 rounded-r text-slate-500 hover:bg-slate-100">
+                    <span className="text-xs">🗑</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Destination account */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Destination account</label>
+                <div className="flex">
+                  <select
+                    value={toWalletId}
+                    onChange={e => {
+                      setToWalletId(e.target.value);
+                      if (e.target.value) setTxType("transfer");
+                    }}
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-l focus:outline-none focus:border-blue-500 text-sm bg-white"
+                  >
+                    <option value="">Destination account</option>
+                    {assetAccounts.filter(a => String(a.accountId) !== walletId).map(a => <option key={a.accountId} value={a.accountId}>{walletLabel(a)}</option>)}
+                  </select>
+                  <button type="button" className="px-3 py-2 border border-l-0 border-slate-300 bg-slate-50 rounded-r text-slate-500 hover:bg-slate-100">
+                    <span className="text-xs">🗑</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Date */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Date</label>
+                <div className="flex">
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={e => setDate(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-l focus:outline-none focus:border-blue-500 text-sm"
+                  />
+                  <button type="button" className="px-3 py-2 border border-l-0 border-slate-300 bg-slate-50 rounded-r text-slate-500 hover:bg-slate-100">
+                    <span className="text-xs">🗑</span>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-6">
+              
+              {/* Amount */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Amount</label>
+                <div className="flex">
+                  <input
+                    type="number"
+                    value={amount}
+                    onChange={e => setAmount(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-l focus:outline-none focus:border-blue-500 text-sm"
+                    placeholder="Amount"
+                    step="1000"
+                    min="1"
+                    required
+                  />
+                  <button type="button" className="px-3 py-2 border border-l-0 border-slate-300 bg-slate-50 rounded-r text-slate-500 hover:bg-slate-100">
+                    <span className="text-xs">🗑</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Foreign amount */}
+              <div className="flex gap-2">
+                <div className="w-1/4 pt-5">
+                   <select className="w-full px-2 py-2 border border-slate-300 rounded focus:outline-none focus:border-blue-500 text-sm bg-white">
+                     <option value=""></option>
+                     <option value="USD">USD</option>
+                     <option value="EUR">EUR</option>
+                   </select>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Foreign amount</label>
+                  <div className="flex">
+                    <input
+                      type="number"
+                      value={foreignAmount}
+                      onChange={e => setForeignAmount(e.target.value)}
+                      className="flex-1 px-3 py-2 border border-slate-300 rounded-l focus:outline-none focus:border-blue-500 text-sm"
+                      placeholder="Foreign amount"
+                    />
+                    <button type="button" className="px-3 py-2 border border-l-0 border-slate-300 bg-slate-50 rounded-r text-slate-500 hover:bg-slate-100">
+                      <span className="text-xs">🗑</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Budget */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Budget</label>
+                <select
+                  value={budget}
+                  onChange={e => setBudget(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:border-blue-500 text-sm bg-white"
+                >
+                  <option value="">(none)</option>
+                  <option value="1">Family budget</option>
+                </select>
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Category</label>
+                <div className="flex">
+                  <select
+                    value={expenseCategory || incomeCategory}
+                    onChange={e => {
+                      setExpenseCategory(e.target.value);
+                      setIncomeCategory(e.target.value);
+                    }}
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-l focus:outline-none focus:border-blue-500 text-sm bg-white"
+                  >
+                    <option value="">Category</option>
+                    {txType === 'expense' 
+                      ? expenseCategories.map(c => <option key={c.id} value={c.label}>{c.label}</option>)
+                      : incomeSources.map(c => <option key={c.id} value={c.label}>{c.label}</option>)
+                    }
+                  </select>
+                  <button type="button" className="px-3 py-2 border border-l-0 border-slate-300 bg-slate-50 rounded-r text-slate-500 hover:bg-slate-100">
+                    <span className="text-xs">🗑</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Piggy bank */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Piggy bank</label>
+                <select
+                  value={piggyBank}
+                  onChange={e => setPiggyBank(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:border-blue-500 text-sm bg-white"
+                >
+                  <option value="">(no piggy bank)</option>
+                  <option value="1">Car savings</option>
+                </select>
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Tags</label>
+                <div className="flex">
+                  <input
+                    type="text"
+                    value={tagsText}
+                    onChange={e => setTagsText(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-l focus:outline-none focus:border-blue-500 text-sm"
+                    placeholder="Tags"
+                  />
+                  <button type="button" className="px-3 py-2 border border-l-0 border-slate-300 bg-slate-50 rounded-r text-slate-500 hover:bg-slate-100">
+                    <span className="text-xs">🗑</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Subscription */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Subscription</label>
+                <select
+                  value={subscription}
+                  onChange={e => setSubscription(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:border-blue-500 text-sm bg-white"
+                >
+                  <option value="">(none)</option>
+                  <option value="1">Monthly Electricity</option>
+                </select>
+                <p className="text-xs text-slate-500 mt-1">You can enable more transaction options in your <a href="#" className="text-blue-500">preferences</a>.</p>
+              </div>
+
+              {/* Interest date */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Interest date</label>
+                <div className="flex">
+                  <input
+                    type="date"
+                    value={interestDate}
+                    onChange={e => setInterestDate(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-l focus:outline-none focus:border-blue-500 text-sm"
+                  />
+                  <button type="button" className="px-3 py-2 border border-l-0 border-slate-300 bg-slate-50 rounded-r text-slate-500 hover:bg-slate-100">
+                    <span className="text-xs">🗑</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Attachments */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Attachments</label>
+                <div className="flex">
+                  <input
+                    type="file"
+                    className="flex-1 px-2 py-1.5 border border-slate-300 rounded-l focus:outline-none focus:border-blue-500 text-sm bg-white"
+                  />
+                  <button type="button" className="px-3 py-2 border border-l-0 border-slate-300 bg-slate-50 rounded-r text-slate-500 hover:bg-slate-100">
+                    <span className="text-xs">🗑</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Notes</label>
+                <textarea
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:border-blue-500 text-sm resize-none"
+                  placeholder="Notes"
+                />
+              </div>
+
+            </div>
+          </div>
+          
+          {/* Footer Actions */}
+          <div className="mt-auto p-4 border-t border-slate-200 flex justify-between items-center bg-slate-50">
+            <button
+              type="button"
+              onClick={() => setCreateAnother(true)}
+              className="px-4 py-2 border border-slate-300 bg-white text-slate-700 rounded shadow-sm hover:bg-slate-50 text-sm font-medium"
+            >
+              Add another
+            </button>
+            <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => { reset(); onClose(); }}
-                className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-semibold text-sm"
+                onClick={onClose}
+                className="px-4 py-2 bg-slate-200 text-slate-800 rounded hover:bg-slate-300 text-sm font-medium"
               >
-                Hủy
+                Cancel
               </button>
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className={`flex-1 px-4 py-2.5 text-white rounded-lg transition-colors font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed ${SUBMIT_CLS[txType]}`}
+                className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium disabled:opacity-50"
               >
-                {SUBMIT_LABEL[txType]}
+                Save
               </button>
             </div>
           </div>
+
         </form>
       </div>
     </div>

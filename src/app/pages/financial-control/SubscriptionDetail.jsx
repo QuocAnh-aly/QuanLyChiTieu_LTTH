@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Receipt, CheckCircle2, AlertCircle, Clock,
   MinusCircle, Pencil, Trash2, RefreshCw,

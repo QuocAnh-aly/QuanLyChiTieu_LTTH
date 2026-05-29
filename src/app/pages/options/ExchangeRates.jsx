@@ -14,6 +14,8 @@ import { useSettings } from '../../context/SettingsContext';
 const CURRENCY_API = (base) =>
   `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${base.toLowerCase()}.json`;
 
+import { PageLayout } from '../../components/layout/PageLayout';
+
 export function ExchangeRates() {
   const {
     currencies, currency: defaultCode,
@@ -75,7 +77,7 @@ export function ExchangeRates() {
         }
       }
 
-      bulkUpdateRates(batch);
+      await bulkUpdateRates(batch);
       syncRates();
 
       const updated = Object.keys(batch).length;
@@ -110,15 +112,19 @@ export function ExchangeRates() {
     setEditValue('');
   };
 
-  const commitEdit = (code) => {
+  const commitEdit = async (code) => {
     const val = parseFloat(editValue.replace(/,/g, ''));
     if (isNaN(val) || val <= 0) {
       toast.error('Tỷ giá phải là số dương');
       return;
     }
-    setRate(code, val);
-    toast.success(`Đã cập nhật tỷ giá ${code}/${defaultCode}`);
-    cancelEdit();
+    try {
+      await setRate(code, val);
+      toast.success(`Đã cập nhật tỷ giá ${code}/${defaultCode}`);
+      cancelEdit();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.message || 'Không lưu được tỷ giá');
+    }
   };
 
   // ── Converter ─────────────────────────────────────────────────
@@ -136,19 +142,17 @@ export function ExchangeRates() {
   const symbolOf = (code) => currencies.find(c => c.code === code)?.symbol ?? code;
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8">
-
-      {/* ── Header ──────────────────────────────────────────────── */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Tỷ giá hối đoái</h1>
-          <p className="text-slate-500 mt-1">
-            Tỷ giá quy đổi so với tiền tệ mặc định&nbsp;
-            <span className="font-semibold text-slate-700">
-              {defaultCurrency?.name ?? defaultCode} ({symbolOf(defaultCode)})
-            </span>
-          </p>
-        </div>
+    <PageLayout
+      title="Tỷ giá hối đoái"
+      subtitle={
+        <>
+          Tỷ giá quy đổi so với tiền tệ mặc định&nbsp;
+          <span className="font-semibold text-slate-700">
+            {defaultCurrency?.name ?? defaultCode} ({symbolOf(defaultCode)})
+          </span>
+        </>
+      }
+      actions={
         <button
           onClick={handleSync}
           disabled={isSyncing}
@@ -157,7 +161,8 @@ export function ExchangeRates() {
           <RefreshCw size={18} className={isSyncing ? 'animate-spin' : ''} />
           {isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ tỷ giá'}
         </button>
-      </div>
+      }
+    >
 
       {/* ── Last sync banner ────────────────────────────────────── */}
       <div className={`border rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${syncError ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-100'}`}>
@@ -386,6 +391,6 @@ export function ExchangeRates() {
           </table>
         )}
       </div>
-    </div>
+    </PageLayout>
   );
 }

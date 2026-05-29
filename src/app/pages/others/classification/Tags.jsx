@@ -18,6 +18,8 @@ const COLOR_MAP = Object.fromEntries(COLOR_OPTIONS.map(c => [c.value, c]));
 
 const EMPTY_FORM = { name: '', color: 'blue' };
 
+import { PageLayout } from '../../../components/layout/PageLayout';
+
 export function Tags() {
   const { tags, addTag, updateTag, deleteTag } = useCategories();
 
@@ -69,13 +71,10 @@ export function Tags() {
   const filtered = tags.filter(t => t.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Thẻ phân loại</h1>
-          <p className="text-slate-500 mt-1">Dùng thẻ (Tag) để gắn nhãn và nhóm các giao dịch độc lập với danh mục</p>
-        </div>
+    <PageLayout
+      title="Thẻ phân loại"
+      subtitle="Dùng thẻ (Tag) để gắn nhãn và nhóm các giao dịch độc lập với danh mục"
+      actions={
         <button
           onClick={openCreate}
           className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
@@ -83,7 +82,8 @@ export function Tags() {
           <Plus size={18} />
           <span className="font-medium">Tạo thẻ mới</span>
         </button>
-      </div>
+      }
+    >
 
       {/* Search */}
       <div className="flex gap-3 mb-6">
@@ -230,6 +230,6 @@ export function Tags() {
           </div>
         </div>
       )}
-    </div>
+    </PageLayout>
   );
 }

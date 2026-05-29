@@ -1,156 +1,396 @@
-import { Plus, Link2, Copy, Check, CheckCircle2, XCircle, Search, RefreshCw, Key } from "lucide-react";
-import { useState } from "react";
+import {
+  Plus, Link2, Copy, Check, CheckCircle2, XCircle, Search,
+  RefreshCw, Key, Trash2, Pencil, Send, X, Eye,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
+import { webhookApi } from "../../../api/webhookApi";
+
+const TRIGGER_OPTIONS = [
+  { value: 'STORE_TRANSACTION',   label: 'Khi tạo giao dịch' },
+  { value: 'UPDATE_TRANSACTION',  label: 'Khi cập nhật giao dịch' },
+  { value: 'DESTROY_TRANSACTION', label: 'Khi xóa giao dịch' },
+];
+
+const RESPONSE_OPTIONS = [
+  { value: 'TRANSACTIONS', label: 'Gửi giao dịch' },
+  { value: 'ACCOUNTS',     label: 'Gửi tài khoản' },
+  { value: 'NONE',         label: 'Không gửi payload' },
+];
+
+const EMPTY_FORM = {
+  title: '',
+  url:   '',
+  trigger_type: 'STORE_TRANSACTION',
+  response:     'TRANSACTIONS',
+  secret:       '',
+};
 
 export function Webhooks() {
-  const [copiedKey, setCopiedKey] = useState(false);
-  const [copiedUrl, setCopiedUrl] = useState(false);
-  const [search, setSearch] = useState("");
+  const [webhooks,  setWebhooks]  = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [search,    setSearch]    = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [editing,   setEditing]   = useState(null);
+  const [form,      setForm]      = useState(EMPTY_FORM);
+  const [copiedId,  setCopiedId]  = useState(null);
+  const [logModal,  setLogModal]  = useState(null); // { webhook, messages }
 
-  const webhookUrl = "https://moneyflow.app/api/webhooks/incoming/v1";
-  const secretKey = "whsec_abcd1234efgh5678ijkl9012mnop3456";
+  const errMsg = (e) => e?.response?.data?.message || e?.message || 'Lỗi không xác định';
 
-  const [logs] = useState([
-    { id: "evt_1", source: "Vietcombank SMS", status: "success", time: "2026-05-27T10:15:22", payload: '{"amount": -50000, "desc": "Thanh toan Highlands Coffee"}' },
-    { id: "evt_2", source: "Zapier", status: "success", time: "2026-05-26T14:20:00", payload: '{"source": "Google Sheets", "action": "sync_row"}' },
-    { id: "evt_3", source: "Momo App", status: "failed", time: "2026-05-25T09:05:11", payload: '{"error": "Invalid signature"}' },
-  ]);
+  // ── Load ─────────────────────────────────────────────
+  const refresh = async () => {
+    try {
+      setLoading(true);
+      const data = await webhookApi.getAll();
+      setWebhooks(data || []);
+    } catch (e) {
+      toast.error(errMsg(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { refresh(); }, []);
 
-  const handleCopy = (text, type) => {
-    navigator.clipboard.writeText(text).then(() => {
-      if (type === 'url') {
-        setCopiedUrl(true);
-        setTimeout(() => setCopiedUrl(false), 2000);
+  // ── Modal ────────────────────────────────────────────
+  const openCreate = () => {
+    setEditing(null);
+    setForm(EMPTY_FORM);
+    setShowModal(true);
+  };
+  const openEdit = (w) => {
+    setEditing(w);
+    setForm({
+      title:        w.title,
+      url:          w.url,
+      trigger_type: w.trigger_type,
+      response:     w.response,
+      secret:       w.secret || '',
+    });
+    setShowModal(true);
+  };
+  const closeModal = () => { setShowModal(false); setEditing(null); };
+
+  const submitForm = async () => {
+    if (!form.title.trim()) { toast.error('Tên webhook bắt buộc'); return; }
+    try { new URL(form.url); } catch { toast.error('URL không hợp lệ'); return; }
+
+    try {
+      const payload = {
+        title:        form.title.trim(),
+        url:          form.url.trim(),
+        trigger_type: form.trigger_type,
+        response:     form.response,
+      };
+      if (form.secret.trim()) payload.secret = form.secret.trim();
+
+      if (editing) {
+        await webhookApi.update(editing.webhook_id, payload);
+        toast.success('Đã cập nhật webhook');
       } else {
-        setCopiedKey(true);
-        setTimeout(() => setCopiedKey(false), 2000);
+        await webhookApi.create(payload);
+        toast.success('Đã tạo webhook mới');
       }
-      toast.success("Đã sao chép vào bộ nhớ tạm");
+      closeModal();
+      refresh();
+    } catch (e) { toast.error(errMsg(e)); }
+  };
+
+  // ── Per-row actions ──────────────────────────────────
+  const toggleStatus = async (w) => {
+    try {
+      await webhookApi.update(w.webhook_id, { is_active: !w.is_active });
+      toast.success(w.is_active ? 'Đã tắt webhook' : 'Đã bật webhook');
+      refresh();
+    } catch (e) { toast.error(errMsg(e)); }
+  };
+
+  const deleteWebhook = async (w) => {
+    if (!window.confirm(`Xóa webhook "${w.title}"?`)) return;
+    try { await webhookApi.delete(w.webhook_id); toast.success('Đã xóa'); refresh(); }
+    catch (e) { toast.error(errMsg(e)); }
+  };
+
+  const submitTest = async (w) => {
+    try {
+      const m = await webhookApi.submit(w.webhook_id, { ping: 'test', from: 'UI', at: new Date().toISOString() });
+      toast[m.success ? 'success' : 'error'](
+        m.success ? `Gửi thành công (HTTP ${m.status_code})` : `Thất bại: ${m.error_message || m.status_code}`
+      );
+    } catch (e) { toast.error(errMsg(e)); }
+  };
+
+  const openLogs = async (w) => {
+    try {
+      const messages = await webhookApi.messages(w.webhook_id, 50);
+      setLogModal({ webhook: w, messages });
+    } catch (e) { toast.error(errMsg(e)); }
+  };
+
+  const handleCopy = (text, id) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 1500);
+      toast.success('Đã sao chép');
     });
   };
 
-  const filtered = logs.filter(l => l.source.toLowerCase().includes(search.toLowerCase()) || l.payload.toLowerCase().includes(search.toLowerCase()));
+  const filtered = webhooks.filter(w =>
+    w.title.toLowerCase().includes(search.toLowerCase()) ||
+    w.url.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const triggerLabel = (val) => TRIGGER_OPTIONS.find(o => o.value === val)?.label ?? val;
 
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Webhooks</h1>
-          <p className="text-slate-500 mt-1">Kết nối và nhận dữ liệu tự động từ các ứng dụng bên thứ 3 (ZaloPay, Momo, SMS...)</p>
+          <p className="text-slate-500 mt-1">
+            Gửi sự kiện giao dịch tới hệ thống bên ngoài (Zapier, n8n, IFTTT, server riêng…)
+          </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm">
+        <button onClick={openCreate}
+          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm">
           <Plus size={18} />
           <span className="font-medium">Tạo Webhook mới</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-           <div className="flex items-center gap-3 mb-4 text-slate-800">
-             <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600">
-               <Link2 size={20} />
-             </div>
-             <h3 className="font-bold text-lg">Endpoint URL</h3>
-           </div>
-           <p className="text-sm text-slate-500 mb-3">Gửi các HTTP POST request đến địa chỉ này để ghi nhận giao dịch tự động.</p>
-           <div className="flex items-center gap-2">
-             <div className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 font-mono text-sm text-slate-600 overflow-x-auto whitespace-nowrap">
-               {webhookUrl}
-             </div>
-             <button onClick={() => handleCopy(webhookUrl, 'url')} className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors flex items-center gap-2 font-medium">
-               {copiedUrl ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
-               {copiedUrl ? "Đã chép" : "Copy"}
-             </button>
-           </div>
+      <div className="flex gap-3 mb-6">
+        <div className="relative flex-1 max-w-sm">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Tìm webhook..."
+            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
         </div>
-
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-           <div className="flex items-center gap-3 mb-4 text-slate-800">
-             <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600">
-               <Key size={20} />
-             </div>
-             <h3 className="font-bold text-lg">Secret Key</h3>
-           </div>
-           <p className="text-sm text-slate-500 mb-3">Sử dụng mã bí mật này để xác thực các request gửi đến Webhook (Signature header).</p>
-           <div className="flex items-center gap-2">
-             <div className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2.5 font-mono text-sm text-green-400 overflow-x-auto whitespace-nowrap select-all">
-               {secretKey}
-             </div>
-             <button onClick={() => handleCopy(secretKey, 'key')} className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors flex items-center gap-2 font-medium">
-               {copiedKey ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
-               {copiedKey ? "Đã chép" : "Copy"}
-             </button>
-           </div>
-        </div>
+        <button onClick={refresh}
+          className="p-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50" title="Làm mới">
+          <RefreshCw size={18} />
+        </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <h3 className="font-bold text-slate-900 text-lg">Lịch sử nhận Webhook</h3>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-             <div className="relative flex-1 sm:w-64">
-               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-               <input
-                 type="text"
-                 value={search}
-                 onChange={(e) => setSearch(e.target.value)}
-                 placeholder="Tìm kiếm log..."
-                 className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-               />
-             </div>
-             <button className="p-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50" title="Làm mới">
-               <RefreshCw size={18} />
-             </button>
+      {loading ? (
+        <div className="py-16 text-center text-slate-500">Đang tải...</div>
+      ) : filtered.length === 0 ? (
+        <div className="py-16 text-center bg-white rounded-2xl border border-slate-200 shadow-sm">
+          <Link2 size={48} className="mx-auto text-slate-300 mb-4" />
+          <p className="text-slate-900 font-bold text-lg mb-1">Chưa có webhook nào</p>
+          <p className="text-slate-500 font-medium">Nhấn "Tạo Webhook mới" để bắt đầu</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {filtered.map(w => (
+            <div key={w.webhook_id}
+              className={`bg-white rounded-2xl border ${w.is_active ? 'border-slate-200 shadow-sm' : 'border-slate-200/60 opacity-70'} p-5`}>
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${w.is_active ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
+                    <Link2 size={20} />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-slate-900 truncate">{w.title}</h3>
+                    <p className="text-xs text-slate-500 font-medium">{triggerLabel(w.trigger_type)} → {w.response}</p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 font-mono text-xs text-slate-600 truncate max-w-md">
+                        {w.url}
+                      </span>
+                      <button onClick={() => handleCopy(w.url, `url-${w.webhook_id}`)}
+                        className="p-1 text-slate-400 hover:text-purple-600" title="Sao chép URL">
+                        {copiedId === `url-${w.webhook_id}` ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+                      </button>
+                    </div>
+                    {w.secret && (
+                      <div className="mt-1 flex items-center gap-2">
+                        <Key size={12} className="text-slate-400" />
+                        <span className="font-mono text-xs text-slate-500">
+                          {w.secret.slice(0, 10)}…{w.secret.slice(-4)}
+                        </span>
+                        <button onClick={() => handleCopy(w.secret, `secret-${w.webhook_id}`)}
+                          className="p-1 text-slate-400 hover:text-purple-600" title="Sao chép Secret">
+                          {copiedId === `secret-${w.webhook_id}` ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${w.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
+                    {w.is_active ? 'Đang hoạt động' : 'Đã tắt'}
+                  </span>
+                  <button onClick={() => submitTest(w)} title="Gửi test"
+                    className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors">
+                    <Send size={16} />
+                  </button>
+                  <button onClick={() => openLogs(w)} title="Xem log"
+                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+                    <Eye size={16} />
+                  </button>
+                  <button onClick={() => toggleStatus(w)} title={w.is_active ? "Tắt" : "Bật"}
+                    className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors">
+                    {w.is_active ? <XCircle size={16} /> : <CheckCircle2 size={16} />}
+                  </button>
+                  <button onClick={() => openEdit(w)} title="Sửa"
+                    className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors">
+                    <Pencil size={16} />
+                  </button>
+                  <button onClick={() => deleteWebhook(w)} title="Xóa"
+                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Edit/Create Modal ───────────────────────────────────────────── */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <h2 className="text-xl font-bold text-slate-900">{editing ? 'Sửa webhook' : 'Tạo webhook mới'}</h2>
+              <button onClick={closeModal} className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-500">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Tên *</label>
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="VD: Notify Slack" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">URL *</label>
+                <input
+                  type="url"
+                  value={form.url}
+                  onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  placeholder="https://hooks.slack.com/services/..." />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Sự kiện kích hoạt</label>
+                <select
+                  value={form.trigger_type}
+                  onChange={e => setForm(f => ({ ...f, trigger_type: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white">
+                  {TRIGGER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Loại payload</label>
+                <select
+                  value={form.response}
+                  onChange={e => setForm(f => ({ ...f, response: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white">
+                  {RESPONSE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Secret (HMAC-SHA256, để trống = tự sinh)
+                </label>
+                <input
+                  type="text"
+                  value={form.secret}
+                  onChange={e => setForm(f => ({ ...f, secret: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  placeholder="whsec_..." />
+              </div>
+            </div>
+
+            <div className="flex gap-3 p-6 border-t border-slate-100">
+              <button onClick={closeModal}
+                className="flex-1 px-4 py-2.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
+                Hủy
+              </button>
+              <button onClick={submitForm}
+                className="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700">
+                {editing ? 'Cập nhật' : 'Tạo webhook'}
+              </button>
+            </div>
           </div>
         </div>
+      )}
 
-        <table className="w-full text-left">
-          <thead>
-            <tr className="text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50">
-              <th className="px-6 py-4 font-semibold">Trạng thái</th>
-              <th className="px-6 py-4 font-semibold">Nguồn (Source)</th>
-              <th className="px-6 py-4 font-semibold">Thời gian</th>
-              <th className="px-6 py-4 font-semibold w-1/2">Payload / Chi tiết</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan="4" className="py-12 text-center text-slate-500">
-                  Không có dữ liệu log webhook.
-                </td>
-              </tr>
-            ) : filtered.map(log => (
-              <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-4">
-                  {log.status === 'success' ? (
-                    <div className="flex items-center gap-1.5 text-green-600 font-medium text-sm">
-                      <CheckCircle2 size={18} /> <span className="hidden sm:inline">Thành công</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 text-red-500 font-medium text-sm">
-                      <XCircle size={18} /> <span className="hidden sm:inline">Thất bại</span>
-                    </div>
-                  )}
-                </td>
-                <td className="px-6 py-4 font-semibold text-slate-800">
-                  {log.source}
-                </td>
-                <td className="px-6 py-4 text-sm text-slate-600 font-medium">
-                  {format(new Date(log.time), "HH:mm:ss dd/MM", { locale: vi })}
-                </td>
-                <td className="px-6 py-4">
-                  <div className="bg-slate-900 text-green-400 font-mono text-xs p-2.5 rounded-lg overflow-x-auto">
-                    {log.payload}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* ── Log viewer Modal ────────────────────────────────────────────── */}
+      {logModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <div className="min-w-0">
+                <h2 className="text-xl font-bold text-slate-900 truncate">Log webhook</h2>
+                <p className="text-sm text-slate-500 truncate">{logModal.webhook.title} — {logModal.webhook.url}</p>
+              </div>
+              <button onClick={() => setLogModal(null)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {logModal.messages.length === 0 ? (
+                <div className="py-12 text-center text-slate-500">Chưa có log nào.</div>
+              ) : (
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50 sticky top-0">
+                      <th className="px-4 py-3 font-semibold">Trạng thái</th>
+                      <th className="px-4 py-3 font-semibold">Thời gian</th>
+                      <th className="px-4 py-3 font-semibold w-1/2">Payload</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {logModal.messages.map(m => (
+                      <tr key={m.message_id} className="hover:bg-slate-50">
+                        <td className="px-4 py-3">
+                          {m.success ? (
+                            <div className="flex items-center gap-1.5 text-green-600 font-medium text-sm">
+                              <CheckCircle2 size={16} /> {m.status_code}
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 text-red-500 font-medium text-sm">
+                              <XCircle size={16} /> {m.status_code || 'NET'}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-600">
+                          {m.sent_at ? format(new Date(m.sent_at), "HH:mm:ss dd/MM", { locale: vi }) : '—'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="bg-slate-900 text-green-400 font-mono text-xs p-2.5 rounded-lg overflow-x-auto max-h-24">
+                            {m.payload}
+                          </div>
+                          {m.error_message && (
+                            <div className="mt-1 text-xs text-red-500 font-medium">⚠ {m.error_message}</div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

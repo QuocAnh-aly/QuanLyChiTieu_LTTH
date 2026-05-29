@@ -173,6 +173,8 @@ function IncomeSourceForm({ initial, onSave, onCancel }) {
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
 
+import { PageLayout } from '../../../components/layout/PageLayout';
+
 export function Categories() {
   const {
     expenseCategories, addExpenseCategory, updateExpenseCategory, deleteExpenseCategory,
@@ -221,12 +223,10 @@ export function Categories() {
   };
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Danh mục & Nguồn thu</h1>
-        <p className="text-slate-500 mt-1">Quản lý các danh mục chi tiêu và nguồn thu nhập của bạn</p>
-      </div>
+    <PageLayout
+      title="Danh mục & Nguồn thu"
+      subtitle="Quản lý các danh mục chi tiêu và nguồn thu nhập của bạn"
+    >
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
@@ -394,6 +394,6 @@ export function Categories() {
         </div>
 
       </div>
-    </div>
+    </PageLayout>
   );
 }

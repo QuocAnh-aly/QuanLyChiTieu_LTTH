@@ -7,6 +7,7 @@ import { Dashboard } from "./pages/dashboard/Dashboard";
 
 // Financial Control
 import { Budgets } from "./pages/financial-control/Budgets";
+import { BudgetDetail } from "./pages/financial-control/BudgetDetail";
 import { Subscriptions } from "./pages/financial-control/Subscriptions";
 import { PiggyBanks } from "./pages/financial-control/PiggyBanks";
 import { PiggyBankDetail } from "./pages/financial-control/PiggyBankDetail";
@@ -35,6 +36,7 @@ import { ObjectGroups } from "./pages/others/classification/ObjectGroups";
 // Others - Misc
 import { Reports } from "./pages/others/Reports";
 import { ExportData } from "./pages/others/ExportData";
+import { ErrorPage } from "./pages/others/ErrorPage";
 
 // Options
 import { Profile } from "./pages/options/Profile";
@@ -54,6 +56,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/",
+    errorElement: <ErrorPage />,
     element: (
       <ProtectedRoute>
         <Layout />
@@ -65,6 +68,7 @@ export const router = createBrowserRouter([
 
       // ── FINANCIAL CONTROL ─────────────────────────────────────────────────
       { path: "budgets", element: <Budgets /> },
+      { path: "budgets/:id", element: <BudgetDetail /> },
       // Legacy redirect
       { path: "budget", element: <Navigate to="/budgets" replace /> },
 

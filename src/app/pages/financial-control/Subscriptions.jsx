@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import {
   Receipt, Plus, Pencil, Trash2, GripVertical,
   CheckCircle2, AlertCircle, MinusCircle, Clock,
@@ -47,6 +47,8 @@ function PaidBadge({ status }) {
     </span>
   );
 }
+
+import { PageLayout } from "../../components/layout/PageLayout";
 
 export function Subscriptions() {
   const { fmt } = useSettings();
@@ -131,23 +133,23 @@ export function Subscriptions() {
   });
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
-              <Receipt size={20} className="text-purple-600" />
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900">Hóa đơn định kỳ</h1>
+    <PageLayout
+      title={
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+            <Receipt size={20} className="text-purple-600" />
           </div>
-          <p className="text-slate-500 text-sm ml-[52px]">Theo dõi và khớp các khoản chi tự động</p>
+          <span>Hóa đơn định kỳ</span>
         </div>
+      }
+      subtitle={<span className="ml-[52px]">Theo dõi và khớp các khoản chi tự động</span>}
+      actions={
         <button onClick={() => setFormOpen(true)}
           className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
           <Plus size={18} /> Thêm hóa đơn
         </button>
-      </div>
+      }
+    >
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -309,6 +311,6 @@ export function Subscriptions() {
       {/* Modals */}
       <SubscriptionFormModal isOpen={formOpen}    onClose={() => setFormOpen(false)} onSave={handleCreate} />
       <SubscriptionFormModal isOpen={!!editBill}  onClose={() => setEditBill(null)}  onSave={handleUpdate} bill={editBill} />
-    </div>
+    </PageLayout>
   );
 }

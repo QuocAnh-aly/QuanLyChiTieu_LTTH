@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, PiggyBank, Target, TrendingUp, Calendar,
   Plus, Minus, RotateCcw, Pencil, Trash2,
