@@ -25,12 +25,13 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { AddBudgetModal } from "../../components/modals/AddBudgetModal";
 import { EditBudgetModal } from "../../components/modals/EditBudgetModal";
 import { toast } from "sonner";
 import { budgetApi } from "../../api/budgetApi";
 import { useSettings } from "../../context/SettingsContext";
+import { useNotifications } from "../../context/NotificationContext";
 
 export const iconMap = {
   Coffee, ShoppingBag, Car, Heart, Zap, Home, Wallet, TrendingUp,
@@ -103,6 +104,7 @@ import { PageLayout } from "../../components/layout/PageLayout";
 
 export function Budgets() {
   const { fmt } = useSettings();
+  const { addNotification } = useNotifications();
   const [budgets, setBudgets] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState(null);
@@ -114,11 +116,45 @@ export function Budgets() {
 
   useEffect(() => { fetchBudgets(); }, []);
 
+  // Track previously notified budget IDs so we don't spam
+  const notifiedOverRef = useRef(new Set());
+  const notifiedWarningRef = useRef(new Set());
+
   const fetchBudgets = async () => {
     try {
       setIsLoading(true);
       const data = await budgetApi.getExpenseBudgets();
-      setBudgets((data || []).map(mapBudget));
+      const mapped = (data || []).map(mapBudget);
+      setBudgets(mapped);
+
+      // Check for budget warnings and send notifications
+      mapped.forEach(b => {
+        if (b.percentage > 100 && !notifiedOverRef.current.has(b.id)) {
+          notifiedOverRef.current.add(b.id);
+          toast.error(`"${b.name}" đã vượt hạn mức!`, {
+            description: `Đã chi ${fmt(b.spent)} trên ${fmt(b.budget)} (${b.percentage.toFixed(1)}%)`,
+            duration: 6000,
+          });
+          addNotification({
+            type: 'error',
+            title: '⚠️ Vượt hạn mức ngân sách',
+            message: `"${b.name}" đã chi ${fmt(b.spent)}/${fmt(b.budget)} (${b.percentage.toFixed(1)}%)`,
+            link: `/budgets/${b.id}`,
+          });
+        } else if (b.percentage >= 80 && b.percentage <= 100 && !notifiedWarningRef.current.has(b.id)) {
+          notifiedWarningRef.current.add(b.id);
+          toast.warning(`"${b.name}" sắp đạt hạn mức`, {
+            description: `Đã dùng ${b.percentage.toFixed(1)}% (${fmt(b.spent)}/${fmt(b.budget)})`,
+            duration: 5000,
+          });
+          addNotification({
+            type: 'warning',
+            title: '⚠️ Ngân sách sắp hết',
+            message: `"${b.name}" đã dùng ${b.percentage.toFixed(1)}% (${fmt(b.spent)}/${fmt(b.budget)})`,
+            link: `/budgets/${b.id}`,
+          });
+        }
+      });
     } catch {
       toast.error("Không thể tải danh sách ngân sách");
     } finally {
@@ -150,19 +186,19 @@ export function Budgets() {
   const pieData = budgets.filter(b => b.spent > 0).map(b => ({ name: b.name, value: b.spent, color: b.pieColor }));
 
   const handleAddBudget = async (data) => {
-    try { await budgetApi.createExpenseBudget(data); await fetchBudgets(); toast.success("Đã thêm ngân sách!"); }
-    catch { toast.error("Không thể thêm ngân sách"); }
+    try { await budgetApi.createExpenseBudget(data); await fetchBudgets(); toast.success("Đã thêm ngân sách!"); addNotification({ type: 'success', title: 'Ngân sách mới', message: 'Đã tạo ngân sách thành công', link: '/budgets' }); }
+    catch { toast.error("Không thể thêm ngân sách"); addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể thêm ngân sách' }); }
   };
 
   const handleEditBudget = async (id, data) => {
-    try { await budgetApi.updateExpenseBudget(id, data); await fetchBudgets(); toast.success("Đã cập nhật ngân sách!"); setEditingBudget(null); }
-    catch { toast.error("Không thể cập nhật ngân sách"); }
+    try { await budgetApi.updateExpenseBudget(id, data); await fetchBudgets(); toast.success("Đã cập nhật ngân sách!"); setEditingBudget(null); addNotification({ type: 'success', title: 'Đã cập nhật', message: 'Ngân sách đã được cập nhật' }); }
+    catch { toast.error("Không thể cập nhật ngân sách"); addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể cập nhật ngân sách' }); }
   };
 
   const handleDeleteBudget = async (id, name) => {
     if (!window.confirm(`Xóa ngân sách "${name}"?`)) return;
-    try { await budgetApi.deleteBudget(id); await fetchBudgets(); toast.success(`Đã xóa "${name}".`); }
-    catch { toast.error("Không thể xóa ngân sách"); }
+    try { await budgetApi.deleteBudget(id); await fetchBudgets(); toast.success(`Đã xóa "${name}".`); addNotification({ type: 'warning', title: 'Đã xóa', message: `Đã xóa ngân sách "${name}"` }); }
+    catch { toast.error("Không thể xóa ngân sách"); addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể xóa ngân sách' }); }
   };
 
   return (

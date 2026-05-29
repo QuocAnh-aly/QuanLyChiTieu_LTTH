@@ -99,6 +99,7 @@ function mapAccount(acc, index) {
     gradientFrom: grad.from,
     gradientTo: grad.to,
     cardNumber: acc.cardNumber || "",
+    currencyCode: acc.currencyCode || "VND",
     isActive: acc.isActive,
     createdAt: acc.createdAt,
   };
@@ -218,6 +219,7 @@ export function AssetAccounts() {
         gradientTo: grad.to,
         balance: wallet.balance,
         cardNumber: wallet.cardNumber || null,
+        currencyCode: wallet.currencyCode || "VND",
       });
       await fetchWallets();
       toast.success(`Đã thêm tài khoản "${wallet.name}"!`);
@@ -524,6 +526,11 @@ export function AssetAccounts() {
                       {isPositive ? "" : "-"}
                       {fmt(Math.abs(account.balance))}
                     </p>
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <span className="text-[10px] font-semibold bg-white/15 text-white/90 px-2 py-0.5 rounded-full">
+                        {account.currencyCode}
+                      </span>
+                    </div>
                     {account.initialBalance !== undefined && (
                       <p className="text-white/60 text-xs mt-1">
                         Số dư ban đầu: {fmt(account.initialBalance)}
@@ -589,6 +596,9 @@ export function AssetAccounts() {
                 <tr className="text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50">
                   <th className="px-6 py-3 font-semibold">Tên tài khoản</th>
                   <th className="px-6 py-3 font-semibold">Loại</th>
+                  <th className="px-6 py-3 font-semibold text-center">
+                    Tiền tệ
+                  </th>
                   <th className="px-6 py-3 font-semibold text-right">
                     Số dư ban đầu
                   </th>
@@ -630,6 +640,11 @@ export function AssetAccounts() {
                       <td className="px-6 py-4">
                         <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-medium">
                           {acc.type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="px-2.5 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-semibold">
+                          {acc.currencyCode}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right text-slate-600 font-medium">

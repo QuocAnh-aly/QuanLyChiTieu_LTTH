@@ -4,14 +4,17 @@ import { Toaster } from 'sonner';
 import { AuthProvider } from './context/AuthContext';
 import { CategoriesProvider } from './context/CategoriesContext';
 import { SettingsProvider } from './context/SettingsContext';
+import { NotificationProvider } from './context/NotificationContext';
 
 export default function App() {
   return (
     <AuthProvider>
       <SettingsProvider>
         <CategoriesProvider>
-          <RouterProvider router={router} />
-          <Toaster position="top-right" richColors />
+          <NotificationProvider>
+            <RouterProvider router={router} />
+            <Toaster position="top-right" richColors />
+          </NotificationProvider>
         </CategoriesProvider>
       </SettingsProvider>
     </AuthProvider>

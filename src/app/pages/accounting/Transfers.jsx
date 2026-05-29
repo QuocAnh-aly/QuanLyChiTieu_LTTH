@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { AddTransactionModal } from "../../components/modals/AddTransactionModal";
 import { EditTransactionModal } from "../../components/modals/EditTransactionModal";
 import { useSettings } from "../../context/SettingsContext";
+import { useNotifications } from "../../context/NotificationContext";
 
 function mapTx(t) {
   const details       = t.details || [];
@@ -49,6 +50,7 @@ import { PageLayout } from "../../components/layout/PageLayout";
 
 export function Transfers() {
   const { fmt } = useSettings();
+  const { addNotification } = useNotifications();
 
   const [allTx,      setAllTx]      = useState([]);
   const [isLoading,  setIsLoading]  = useState(true);
@@ -108,18 +110,18 @@ export function Transfers() {
   }, [filtered]);
 
   const handleAdd = async (data) => {
-    try { await transactionApi.create(data); await loadData(true); toast.success("Đã chuyển tiền!"); }
-    catch { toast.error("Không thể thực hiện chuyển khoản"); }
+    try { await transactionApi.create(data); await loadData(true); toast.success("Đã chuyển tiền!"); addNotification({ type: 'success', title: 'Chuyển khoản', message: 'Đã thực hiện chuyển tiền giữa các ví', link: '/transactions/transfers' }); }
+    catch { toast.error("Không thể thực hiện chuyển khoản"); addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể thực hiện chuyển khoản' }); }
   };
   const handleSaveEdit = async (data) => {
     if (!editTarget) return;
-    try { await transactionApi.update(editTarget.journalId, data); setEditTarget(null); await loadData(true); toast.success("Đã cập nhật!"); }
-    catch { toast.error("Không thể cập nhật"); }
+    try { await transactionApi.update(editTarget.journalId, data); setEditTarget(null); await loadData(true); toast.success("Đã cập nhật!"); addNotification({ type: 'success', title: 'Đã cập nhật', message: 'Chuyển khoản đã được cập nhật' }); }
+    catch { toast.error("Không thể cập nhật"); addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể cập nhật chuyển khoản' }); }
   };
   const handleDelete = async (id, desc) => {
     if (!window.confirm(`Xóa giao dịch "${desc || 'này'}"?`)) return;
-    try { await transactionApi.delete(id); await loadData(true); toast.success("Đã xóa!"); }
-    catch { toast.error("Không thể xóa"); }
+    try { await transactionApi.delete(id); await loadData(true); toast.success("Đã xóa!"); addNotification({ type: 'warning', title: 'Đã xóa', message: `Đã xóa chuyển khoản "${desc || ''}"` }); }
+    catch { toast.error("Không thể xóa"); addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể xóa chuyển khoản' }); }
   };
 
   return (

@@ -1,0 +1,223 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Bell,
+  CheckCheck,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+  Info,
+  AlertTriangle,
+  ExternalLink,
+  Filter,
+  ArrowLeft,
+} from 'lucide-react';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import { useNotifications } from '../../context/NotificationContext';
+import { PageLayout } from '../../components/layout/PageLayout';
+
+const TYPE_CONFIG = {
+  success: { icon: CheckCircle2, bg: 'bg-emerald-100', text: 'text-emerald-600', label: 'Thành công' },
+  error:   { icon: AlertCircle,  bg: 'bg-red-100',     text: 'text-red-600',   label: 'Lỗi'       },
+  warning: { icon: AlertTriangle,bg: 'bg-amber-100',   text: 'text-amber-600', label: 'Cảnh báo'  },
+  info:    { icon: Info,         bg: 'bg-blue-100',    text: 'text-blue-600',  label: 'Thông tin' },
+};
+
+const FILTER_OPTIONS = [
+  { key: 'all',      label: 'Tất cả' },
+  { key: 'unread',   label: 'Chưa đọc' },
+  { key: 'success',  label: 'Thành công' },
+  { key: 'error',    label: 'Lỗi' },
+  { key: 'warning',  label: 'Cảnh báo' },
+  { key: 'info',     label: 'Thông tin' },
+];
+
+export function NotificationCenter() {
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    clearAll,
+  } = useNotifications();
+  const navigate = useNavigate();
+
+  const [filter, setFilter] = useState('all');
+  const [showFilters, setShowFilters] = useState(false);
+
+  const filtered = notifications.filter(n => {
+    if (filter === 'all') return true;
+    if (filter === 'unread') return !n.read;
+    return n.type === filter;
+  });
+
+  return (
+    <PageLayout
+      title="Trung tâm thông báo"
+      subtitle="Xem lịch sử thông báo và hoạt động của bạn"
+      actions={
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowFilters(v => !v)}
+            className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+          >
+            <Filter size={16} />
+            {FILTER_OPTIONS.find(f => f.key === filter)?.label || 'Lọc'}
+          </button>
+          {unreadCount > 0 && (
+            <button
+              onClick={markAllAsRead}
+              className="flex items-center gap-1.5 px-3 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
+            >
+              <CheckCheck size={16} />
+              Đánh dấu đã đọc
+            </button>
+          )}
+          {notifications.length > 0 && (
+            <button
+              onClick={clearAll}
+              className="flex items-center gap-1.5 px-3 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors"
+            >
+              <Trash2 size={16} />
+              Xóa tất cả
+            </button>
+          )}
+        </div>
+      }
+    >
+      {/* Filter chips */}
+      {showFilters && (
+        <div className="mb-6 flex flex-wrap gap-2">
+          {FILTER_OPTIONS.map(opt => (
+            <button
+              key={opt.key}
+              onClick={() => { setFilter(opt.key); setShowFilters(false); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                filter === opt.key
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:border-purple-300'
+              }`}
+            >
+              {opt.label}
+              {opt.key === 'all' && ` (${notifications.length})`}
+              {opt.key === 'unread' && ` (${unreadCount})`}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Summary card */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white rounded-xl p-4 border border-slate-200 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+            <Bell size={18} className="text-purple-600" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-slate-900">{notifications.length}</p>
+            <p className="text-xs text-slate-500">Tổng số thông báo</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-slate-200 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+            <AlertCircle size={18} className="text-amber-600" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-slate-900">{unreadCount}</p>
+            <p className="text-xs text-slate-500">Chưa đọc</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-slate-200 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+            <CheckCircle2 size={18} className="text-emerald-600" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-slate-900">{notifications.filter(n => n.read).length}</p>
+            <p className="text-xs text-slate-500">Đã đọc</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Notification list */}
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        {filtered.length === 0 ? (
+          <div className="py-20 text-center">
+            <Bell size={48} className="mx-auto mb-3 text-slate-200" />
+            <p className="text-slate-500 font-medium">
+              {filter === 'all'
+                ? 'Chưa có thông báo nào'
+                : 'Không có thông báo nào khớp với bộ lọc'}
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {filtered.map(n => {
+              const cfg = TYPE_CONFIG[n.type] || TYPE_CONFIG.info;
+              const Icon = cfg.icon;
+              return (
+                <div
+                  key={n.id}
+                  className={`px-6 py-4 flex items-start gap-4 transition-colors ${
+                    !n.read ? 'bg-purple-50/40 hover:bg-purple-50/60' : 'hover:bg-slate-50'
+                  }`}
+                >
+                  {/* Icon */}
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
+                    <Icon size={18} className={cfg.text} />
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className={`text-sm ${!n.read ? 'font-semibold text-slate-900' : 'font-medium text-slate-700'}`}>
+                          {n.title}
+                        </p>
+                        {n.message && (
+                          <p className="text-sm text-slate-500 mt-1">{n.message}</p>
+                        )}
+                      </div>
+                      {!n.read && (
+                        <span className="w-2.5 h-2.5 rounded-full bg-purple-600 flex-shrink-0 mt-1.5" />
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 mt-2">
+                      <span className="text-xs text-slate-400">
+                        {format(new Date(n.time), "HH:mm:ss, dd/MM/yyyy", { locale: vi })}
+                      </span>
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${cfg.bg} ${cfg.text}`}>
+                        {cfg.label}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {n.link && (
+                      <button
+                        onClick={() => { markAsRead(n.id); navigate(n.link); }}
+                        className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors"
+                        title="Xem chi tiết"
+                      >
+                        <ExternalLink size={15} />
+                      </button>
+                    )}
+                    {!n.read && (
+                      <button
+                        onClick={() => markAsRead(n.id)}
+                        className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                        title="Đánh dấu đã đọc"
+                      >
+                        <CheckCheck size={15} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </PageLayout>
+  );
+}

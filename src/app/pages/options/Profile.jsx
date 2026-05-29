@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Calendar as CalendarIcon,
   Download,
@@ -16,6 +16,8 @@ import {
   EyeOff,
   ChevronDown,
   ChevronUp,
+  Check,
+  X,
 } from "lucide-react";
 import { format } from "date-fns";
 import { DayPicker } from "react-day-picker";
@@ -24,6 +26,7 @@ import { toast } from "sonner";
 import { authApi } from "../../api/authApi";
 import { transactionApi } from "../../api/transactionApi";
 import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationContext";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -54,6 +57,52 @@ function Toggle({ value, onChange }) {
   );
 }
 
+// ── Password Strength Indicator ───────────────────────────────────────────────
+const PASSWORD_RULES = [
+  { label: 'Ít nhất 8 ký tự',         test: (p) => p.length >= 8 },
+  { label: 'Chữ hoa (A-Z)',           test: (p) => /[A-Z]/.test(p) },
+  { label: 'Ký tự đặc biệt (!@#...)',  test: (p) => /[!@#$%^&*()_\-+=.,;:<>?/~`{}[\]|\\]/.test(p) },
+];
+
+function PasswordStrengthIndicator({ password }) {
+  const checks = useMemo(
+    () => PASSWORD_RULES.map(r => ({ ...r, passed: r.test(password) })),
+    [password]
+  );
+  const passedCount = checks.filter(c => c.passed).length;
+  if (!password) return null;
+
+  return (
+    <div className="space-y-2 mt-2">
+      <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
+        <div
+          className={`h-full transition-all duration-300 rounded-full ${
+            passedCount === 0 ? 'bg-gray-200' :
+            passedCount === 1 ? 'bg-red-500' :
+            passedCount === 2 ? 'bg-orange-500' :
+            'bg-green-500'
+          }`}
+          style={{ width: `${(passedCount / PASSWORD_RULES.length) * 100}%` }}
+        />
+      </div>
+      <ul className="space-y-1">
+        {checks.map((rule, i) => (
+          <li key={i} className="flex items-center gap-2 text-xs">
+            {rule.passed ? (
+              <Check size={12} className="text-green-500 shrink-0" />
+            ) : (
+              <X size={12} className="text-slate-300 shrink-0" />
+            )}
+            <span className={rule.passed ? 'text-green-600' : 'text-slate-400'}>
+              {rule.label}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function SkeletonRow() {
   return (
     <tr>
@@ -79,6 +128,7 @@ import { PageLayout } from "../../components/layout/PageLayout";
 
 export function Profile() {
   const { user } = useAuth();
+  const { addNotification } = useNotifications();
 
   // ── Tab state ──────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState("transactions");
@@ -176,8 +226,9 @@ export function Profile() {
   const handleSaveProfile = async () => {
     try {
       setIsSavingProfile(true);
-      await authApi.updateProfile({ fullName: profile.fullName, email: profile.email });
+      await authApi.updateProfile({ userName: profile.fullName, email: profile.email });
       toast.success("Đã cập nhật hồ sơ");
+      addNotification({ type: 'success', title: 'Đã cập nhật hồ sơ', message: 'Thông tin cá nhân đã được lưu' });
     } catch (err) {
       const msg = err?.response?.data?.message ?? err?.response?.data;
       toast.error(typeof msg === "string" ? msg : "Không thể cập nhật hồ sơ");
@@ -193,14 +244,16 @@ export function Profile() {
       toast.error("Mật khẩu mới không khớp");
       return;
     }
-    if (pwForm.next.length < 6) {
-      toast.error("Mật khẩu mới tối thiểu 6 ký tự");
+    const failedRules = PASSWORD_RULES.filter(r => !r.test(pwForm.next));
+    if (failedRules.length > 0) {
+      toast.error("Mật khẩu mới chưa đáp ứng đủ yêu cầu (8 ký tự, 1 chữ hoa, 1 ký tự đặc biệt)");
       return;
     }
     try {
       setIsSavingPw(true);
       await authApi.changePassword({ currentPassword: pwForm.current, newPassword: pwForm.next });
       toast.success("Đã đổi mật khẩu thành công");
+      addNotification({ type: 'success', title: 'Đã đổi mật khẩu', message: 'Mật khẩu của bạn đã được cập nhật' });
       setPwForm({ current: "", next: "", confirm: "" });
       setShowPwForm(false);
     } catch (err) {
@@ -526,10 +579,9 @@ export function Profile() {
                 {/* Current password */}
                 {[
                   { key: "current", label: "Mật khẩu hiện tại", placeholder: "Nhập mật khẩu hiện tại" },
-                  { key: "next",    label: "Mật khẩu mới",       placeholder: "Tối thiểu 6 ký tự" },
+                  { key: "next",    label: "Mật khẩu mới",       placeholder: "Tối thiểu 8 ký tự, 1 chữ hoa, 1 ký tự đặc biệt" },
                   { key: "confirm", label: "Xác nhận mật khẩu",  placeholder: "Nhập lại mật khẩu mới" },
-                ].map(({ key, label, placeholder }) => (
-                  <div key={key}>
+                ].map(({ key, label, placeholder }) => (                    <div key={key}>
                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">{label}</label>
                     <div className="relative">
                       <input
@@ -537,6 +589,7 @@ export function Profile() {
                         value={pwForm[key]}
                         onChange={e => setPwForm(p => ({ ...p, [key]: e.target.value }))}
                         placeholder={placeholder}
+                        maxLength={128}
                         required
                         className="w-full px-4 py-3 pr-11 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                       />
@@ -548,6 +601,7 @@ export function Profile() {
                         {showPw[key] ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
+                    {key === 'next' && <PasswordStrengthIndicator password={pwForm.next} />}
                   </div>
                 ))}
 

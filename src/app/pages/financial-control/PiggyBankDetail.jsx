@@ -12,6 +12,7 @@ import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 import { piggyBankApi } from "../../api/piggyBankApi";
 import { toast } from "sonner";
+import { useNotifications } from "../../context/NotificationContext";
 import { AddMoneyModal } from "../../components/modals/AddMoneyModal";
 import { RemoveMoneyModal } from "../../components/modals/RemoveMoneyModal";
 import { PiggyBankFormModal } from "../../components/modals/PiggyBankFormModal";
@@ -82,13 +83,19 @@ export function PiggyBankDetail() {
 
   useEffect(() => { load(); }, [load]);
 
+  const { addNotification } = useNotifications();
+
   const handleAddMoney = async ({ amount, notes }) => {
     try {
       await piggyBankApi.addMoney(id, { amount, notes });
       await load();
       setAddOpen(false);
       toast.success(`Đã nạp ${fmt(amount)}!`);
-    } catch { toast.error("Không thể nạp tiền"); }
+      addNotification({ type: 'success', title: 'Đã nạp tiền', message: `${fmt(amount)} đã được nạp vào "${goal?.title}"`, link: `/piggy-banks/${id}` });
+    } catch {
+      toast.error("Không thể nạp tiền");
+      addNotification({ type: 'error', title: 'Không thể nạp tiền', message: `Nạp tiền vào "${goal?.title}" thất bại` });
+    }
   };
 
   const handleRemoveMoney = async ({ amount, notes }) => {
@@ -97,7 +104,11 @@ export function PiggyBankDetail() {
       await load();
       setRemoveOpen(false);
       toast.success(`Đã rút ${fmt(amount)}.`);
-    } catch { toast.error("Không thể rút tiền"); }
+      addNotification({ type: 'warning', title: 'Đã rút tiền', message: `${fmt(amount)} đã được rút từ "${goal?.title}"`, link: `/piggy-banks/${id}` });
+    } catch {
+      toast.error("Không thể rút tiền");
+      addNotification({ type: 'error', title: 'Không thể rút tiền', message: `Rút tiền từ "${goal?.title}" thất bại` });
+    }
   };
 
   const handleUpdate = async (data) => {
@@ -106,7 +117,11 @@ export function PiggyBankDetail() {
       await load();
       setEditOpen(false);
       toast.success("Đã cập nhật!");
-    } catch { toast.error("Không thể cập nhật"); }
+      addNotification({ type: 'success', title: 'Đã cập nhật lợn tiết kiệm', message: `"${goal?.title}" đã được cập nhật`, link: `/piggy-banks/${id}` });
+    } catch {
+      toast.error("Không thể cập nhật");
+      addNotification({ type: 'error', title: 'Lỗi cập nhật', message: `Không thể cập nhật "${goal?.title}"` });
+    }
   };
 
   const handleReset = async () => {
@@ -115,7 +130,11 @@ export function PiggyBankDetail() {
       await piggyBankApi.resetHistory(id);
       await load();
       toast.success("Đã đặt lại lịch sử.");
-    } catch { toast.error("Không thể đặt lại lịch sử"); }
+      addNotification({ type: 'warning', title: 'Đã đặt lại lịch sử', message: `Lịch sử giao dịch của "${goal?.title}" đã được đặt lại` });
+    } catch {
+      toast.error("Không thể đặt lại lịch sử");
+      addNotification({ type: 'error', title: 'Lỗi đặt lại', message: 'Không thể đặt lại lịch sử giao dịch' });
+    }
   };
 
   const handleDelete = async () => {
@@ -123,8 +142,12 @@ export function PiggyBankDetail() {
     try {
       await piggyBankApi.delete(id);
       toast.success(`Đã xóa "${goal?.title}".`);
+      addNotification({ type: 'success', title: 'Đã xóa lợn tiết kiệm', message: `"${goal?.title}" đã được xóa` });
       navigate("/piggy-banks");
-    } catch { toast.error("Không thể xóa"); }
+    } catch {
+      toast.error("Không thể xóa");
+      addNotification({ type: 'error', title: 'Lỗi xóa', message: 'Không thể xóa lợn tiết kiệm' });
+    }
   };
 
   if (isLoading) {

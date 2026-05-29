@@ -13,6 +13,7 @@ import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 import { billApi } from "../../api/billApi";
 import { toast } from "sonner";
+import { useNotifications } from "../../context/NotificationContext";
 import { SubscriptionFormModal } from "../../components/modals/SubscriptionFormModal";
 import { useSettings } from "../../context/SettingsContext";
 
@@ -82,13 +83,19 @@ export function SubscriptionDetail() {
 
   useEffect(() => { load(); }, [load]);
 
+  const { addNotification } = useNotifications();
+
   const handleUpdate = async (data) => {
     try {
       await billApi.update(id, data);
       await load();
       setEditOpen(false);
       toast.success("Đã cập nhật!");
-    } catch { toast.error("Không thể cập nhật"); }
+      addNotification({ type: 'success', title: 'Đã cập nhật hóa đơn', message: `"${bill?.name}" đã được cập nhật`, link: `/subscriptions/${id}` });
+    } catch {
+      toast.error("Không thể cập nhật");
+      addNotification({ type: 'error', title: 'Lỗi cập nhật', message: 'Không thể cập nhật hóa đơn định kỳ' });
+    }
   };
 
   const handleDelete = async () => {
@@ -96,8 +103,12 @@ export function SubscriptionDetail() {
     try {
       await billApi.delete(id);
       toast.success(`Đã xóa "${bill?.name}".`);
+      addNotification({ type: 'success', title: 'Đã xóa hóa đơn', message: `"${bill?.name}" đã được xóa` });
       navigate("/subscriptions");
-    } catch { toast.error("Không thể xóa"); }
+    } catch {
+      toast.error("Không thể xóa");
+      addNotification({ type: 'error', title: 'Lỗi xóa', message: 'Không thể xóa hóa đơn định kỳ' });
+    }
   };
 
   const handleRescan = async () => {
@@ -106,8 +117,10 @@ export function SubscriptionDetail() {
       await billApi.rescan(id);
       await load();
       toast.success("Quét lại hoàn tất!");
+      addNotification({ type: 'info', title: 'Đã quét lại', message: `Hóa đơn "${bill?.name}" đã được quét lại`, link: `/subscriptions/${id}` });
     } catch (e) {
       toast.error(e?.response?.data?.message ?? "Không thể quét lại");
+      addNotification({ type: 'error', title: 'Lỗi quét lại', message: 'Không thể quét lại hóa đơn' });
     } finally {
       setRescanning(false);
     }

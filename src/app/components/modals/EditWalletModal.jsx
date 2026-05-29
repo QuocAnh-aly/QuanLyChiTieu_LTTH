@@ -1,5 +1,12 @@
-import { X, Landmark, Users, PiggyBank, CreditCard, Wallet } from "lucide-react";
+import { X, Landmark, Users, PiggyBank, CreditCard, Wallet, DollarSign, Euro, JapaneseYen } from "lucide-react";
 import { useState, useEffect } from "react";
+
+const CURRENCIES = [
+  { code: "VND", symbol: "₫", label: "Việt Nam Đồng", Icon: DollarSign },
+  { code: "USD", symbol: "$", label: "US Dollar",       Icon: DollarSign },
+  { code: "EUR", symbol: "€", label: "Euro",            Icon: Euro },
+  { code: "JPY", symbol: "¥", label: "Japanese Yen",    Icon: JapaneseYen },
+];
 
 const ACCOUNT_TYPES = [
   {
@@ -68,12 +75,14 @@ export function EditWalletModal({ wallet, onClose, onSave }) {
   const [selectedKey, setSelectedKey] = useState(() => ICON_TO_KEY[wallet.iconName] || 'default');
   const [name,        setName]        = useState(wallet.name || '');
   const [cardNumber,  setCardNumber]  = useState(wallet.cardNumber || '');
+  const [currency,    setCurrency]    = useState(wallet.currencyCode || 'VND');
   const [error,       setError]       = useState('');
 
   useEffect(() => {
     setSelectedKey(ICON_TO_KEY[wallet.iconName] || 'default');
     setName(wallet.name || '');
     setCardNumber(wallet.cardNumber || '');
+    setCurrency(wallet.currencyCode || 'VND');
     setError('');
   }, [wallet]);
 
@@ -85,6 +94,10 @@ export function EditWalletModal({ wallet, onClose, onSave }) {
     if (!name.trim()) { setError('Tên tài khoản không được để trống'); return; }
 
     const updates = { name: name.trim() };
+
+    if (currency !== wallet.currencyCode) {
+      updates.currencyCode = currency;
+    }
 
     if (selected && selected.iconName !== wallet.iconName) {
       updates.iconName     = selected.iconName;
@@ -167,6 +180,38 @@ export function EditWalletModal({ wallet, onClose, onSave }) {
                 className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
               {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+            </div>
+
+            {/* Currency */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Loại tiền tệ
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {CURRENCIES.map(c => {
+                  const isActive = currency === c.code;
+                  return (
+                    <button
+                      key={c.code}
+                      type="button"
+                      onClick={() => setCurrency(c.code)}
+                      className={`flex flex-col items-center gap-1 px-2 py-3 rounded-xl border-2 text-center transition-all ${
+                        isActive
+                          ? 'border-purple-500 bg-purple-50'
+                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      <c.Icon size={18} className={isActive ? 'text-purple-600' : 'text-slate-400'} />
+                      <span className={`text-xs font-bold ${isActive ? 'text-purple-700' : 'text-slate-600'}`}>
+                        {c.code}
+                      </span>
+                      <span className={`text-[10px] ${isActive ? 'text-purple-500' : 'text-slate-400'}`}>
+                        {c.symbol}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Card number — credit only */}

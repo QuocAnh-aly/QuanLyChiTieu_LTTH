@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { billApi } from "../../api/billApi";
 import { SubscriptionFormModal } from "../../components/modals/SubscriptionFormModal";
 import { useSettings } from "../../context/SettingsContext";
+import { useNotifications } from "../../context/NotificationContext";
 
 const FREQ_LABELS = {
   daily:      "Hàng ngày",
@@ -73,13 +74,19 @@ export function Subscriptions() {
 
   useEffect(() => { load(); }, [load]);
 
+  const { addNotification } = useNotifications();
+
   const handleCreate = async (data) => {
     try {
       await billApi.create(data);
       await load();
       setFormOpen(false);
       toast.success(`Đã tạo "${data.name}"!`);
-    } catch { toast.error("Không thể tạo hóa đơn"); }
+      addNotification({ type: 'success', title: 'Đã tạo hóa đơn định kỳ', message: `"${data.name}" đã được tạo thành công`, link: '/subscriptions' });
+    } catch {
+      toast.error("Không thể tạo hóa đơn");
+      addNotification({ type: 'error', title: 'Lỗi tạo hóa đơn', message: 'Không thể tạo hóa đơn định kỳ mới' });
+    }
   };
 
   const handleUpdate = async (data) => {
@@ -88,7 +95,11 @@ export function Subscriptions() {
       await load();
       setEditBill(null);
       toast.success("Đã cập nhật!");
-    } catch { toast.error("Không thể cập nhật"); }
+      addNotification({ type: 'success', title: 'Đã cập nhật hóa đơn', message: `"${editBill.name}" đã được cập nhật`, link: `/subscriptions/${editBill.billId}` });
+    } catch {
+      toast.error("Không thể cập nhật");
+      addNotification({ type: 'error', title: 'Lỗi cập nhật', message: 'Không thể cập nhật hóa đơn định kỳ' });
+    }
   };
 
   const handleDelete = async (bill) => {
@@ -97,7 +108,11 @@ export function Subscriptions() {
       await billApi.delete(bill.billId);
       await load();
       toast.success(`Đã xóa "${bill.name}".`);
-    } catch { toast.error("Không thể xóa"); }
+      addNotification({ type: 'success', title: 'Đã xóa hóa đơn', message: `"${bill.name}" đã được xóa` });
+    } catch {
+      toast.error("Không thể xóa");
+      addNotification({ type: 'error', title: 'Lỗi xóa', message: 'Không thể xóa hóa đơn định kỳ' });
+    }
   };
 
   // ─── Summaries ─────────────────────────────────────────────────────────────

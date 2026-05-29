@@ -16,7 +16,7 @@ public class Account
     public decimal? Balance { get; set; }
     public decimal? InitialBalance { get; set; }
     public string? CardNumber { get; set; }
-    public string CurrencyCode { get; set; } = "USD";
+    public string CurrencyCode { get; set; } = "VND";
     public bool? IsActive { get; set; }
     public DateTime? CreatedAt { get; set; }
 

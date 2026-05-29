@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { AddTransactionModal } from "../../components/modals/AddTransactionModal";
 import { EditTransactionModal } from "../../components/modals/EditTransactionModal";
 import { useSettings } from "../../context/SettingsContext";
+import { useNotifications } from "../../context/NotificationContext";
 
 function mapTx(t) {
   const details       = t.details || [];
@@ -66,6 +67,7 @@ import { PageLayout } from "../../components/layout/PageLayout";
 
 export function Deposit() {
   const { fmt } = useSettings();
+  const { addNotification } = useNotifications();
 
   const [allTx,      setAllTx]      = useState([]);
   const [isLoading,  setIsLoading]  = useState(true);
@@ -142,18 +144,18 @@ export function Deposit() {
   }, [filtered]);
 
   const handleAdd = async (data) => {
-    try { await transactionApi.create(data); await loadData(true); toast.success("Đã thêm giao dịch!"); }
-    catch { toast.error("Không thể thêm giao dịch"); }
+    try { await transactionApi.create(data); await loadData(true); toast.success("Đã thêm giao dịch!"); addNotification({ type: 'success', title: 'Khoản thu mới', message: 'Đã thêm giao dịch thu nhập', link: '/transactions/deposit' }); }
+    catch { toast.error("Không thể thêm giao dịch"); addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể thêm giao dịch thu nhập' }); }
   };
   const handleSaveEdit = async (data) => {
     if (!editTarget) return;
-    try { await transactionApi.update(editTarget.journalId, data); setEditTarget(null); await loadData(true); toast.success("Đã cập nhật!"); }
-    catch { toast.error("Không thể cập nhật"); }
+    try { await transactionApi.update(editTarget.journalId, data); setEditTarget(null); await loadData(true); toast.success("Đã cập nhật!"); addNotification({ type: 'success', title: 'Đã cập nhật', message: 'Khoản thu đã được cập nhật' }); }
+    catch { toast.error("Không thể cập nhật"); addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể cập nhật khoản thu' }); }
   };
   const handleDelete = async (id, desc) => {
     if (!window.confirm(`Xóa giao dịch "${desc || 'này'}"?`)) return;
-    try { await transactionApi.delete(id); await loadData(true); toast.success("Đã xóa!"); }
-    catch { toast.error("Không thể xóa"); }
+    try { await transactionApi.delete(id); await loadData(true); toast.success("Đã xóa!"); addNotification({ type: 'warning', title: 'Đã xóa', message: `Đã xóa khoản thu "${desc || ''}"` }); }
+    catch { toast.error("Không thể xóa"); addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể xóa khoản thu' }); }
   };
 
   const tooltip = (props) => <ChartTooltip {...props} fmt={fmt} />;

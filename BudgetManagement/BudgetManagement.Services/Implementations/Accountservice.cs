@@ -58,6 +58,7 @@ public class AccountService : IAccountService
             Balance        = request.Balance      ?? 0,
             InitialBalance = request.Balance      ?? 0,
             CardNumber     = request.CardNumber   ?? "•••• ••••",
+            CurrencyCode = request.CurrencyCode,
             IsActive     = true,
             CreatedAt    = DateTime.UtcNow
         };
@@ -79,8 +80,9 @@ public class AccountService : IAccountService
         account.Color        = request.Color        ?? account.Color;
         account.GradientFrom = request.GradientFrom ?? account.GradientFrom;
         account.GradientTo   = request.GradientTo   ?? account.GradientTo;
-        account.CardNumber   = request.CardNumber   ?? account.CardNumber;
-        account.IsActive     = request.IsActive     ?? account.IsActive;
+        account.CardNumber     = request.CardNumber     ?? account.CardNumber;
+        account.CurrencyCode   = request.CurrencyCode   ?? account.CurrencyCode;
+        account.IsActive       = request.IsActive       ?? account.IsActive;
 
         var updated = await _accountRepo.UpdateAsync(account);
         return MapToDto(updated);
@@ -144,6 +146,7 @@ public class AccountService : IAccountService
         Balance        = a.Balance        ?? 0,
         InitialBalance = a.InitialBalance ?? 0,
         CardNumber     = a.CardNumber,
+        CurrencyCode = a.CurrencyCode,
         IsActive     = a.IsActive ?? true,
         CreatedAt    = a.CreatedAt
     };
