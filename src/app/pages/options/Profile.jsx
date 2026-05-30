@@ -28,15 +28,16 @@ import { useAuth } from "../../context/AuthContext";
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function mapTransaction(t) {
-  const details       = t.details || [];
-  const expenseDetail = details.find(d => d.typeId === 5 && d.debit  > 0);
-  const revenueDetail = details.find(d => d.typeId === 4 && d.credit > 0);
-  const isTransfer    = !expenseDetail && !revenueDetail;
-  const isIncome      = !!revenueDetail;
-  let categoryName    = "Uncategorized";
-  if (expenseDetail)      categoryName = expenseDetail.accountName || "Chi tiêu";
-  else if (revenueDetail) categoryName = revenueDetail.accountName || "Thu nhập";
-  else if (isTransfer)    categoryName = "Chuyển khoản";
+  const details = t.details || [];
+  const expenseDetail = details.find((d) => d.typeId === 5 && d.debit > 0);
+  const revenueDetail = details.find((d) => d.typeId === 4 && d.credit > 0);
+  const isTransfer = !expenseDetail && !revenueDetail;
+  const isIncome = !!revenueDetail;
+  let categoryName = "Uncategorized";
+  if (expenseDetail) categoryName = expenseDetail.accountName || "Chi tiêu";
+  else if (revenueDetail)
+    categoryName = revenueDetail.accountName || "Thu nhập";
+  else if (isTransfer) categoryName = "Chuyển khoản";
   return { ...t, categoryName, isIncome, isTransfer };
 }
 
@@ -57,7 +58,7 @@ function Toggle({ value, onChange }) {
 function SkeletonRow() {
   return (
     <tr>
-      {[1,2,3,4].map(i => (
+      {[1, 2, 3, 4].map((i) => (
         <td key={i} className="px-6 py-4">
           <div className="h-4 bg-slate-100 rounded animate-pulse" />
         </td>
@@ -67,9 +68,9 @@ function SkeletonRow() {
 }
 
 const TX_FILTER_TYPES = [
-  { key: "all",      label: "Tất cả" },
-  { key: "income",   label: "Thu nhập" },
-  { key: "expense",  label: "Chi tiêu" },
+  { key: "all", label: "Tất cả" },
+  { key: "income", label: "Thu nhập" },
+  { key: "expense", label: "Chi tiêu" },
   { key: "transfer", label: "Chuyển khoản" },
 ];
 
@@ -84,30 +85,49 @@ export function Profile() {
   const [activeTab, setActiveTab] = useState("transactions");
 
   // ── Transactions state ────────────────────────────────────────────────────
-  const [transactions,  setTransactions]  = useState([]);
-  const [cashFlow,      setCashFlow]      = useState({ totalIncome: 0, totalExpense: 0 });
-  const [isLoading,     setIsLoading]     = useState(true);
-  const [selectedDate,  setSelectedDate]  = useState(undefined);
-  const [showCalendar,  setShowCalendar]  = useState(false);
-  const [searchTerm,    setSearchTerm]    = useState("");
-  const [filterType,    setFilterType]    = useState("all");
+  const [transactions, setTransactions] = useState([]);
+  const [cashFlow, setCashFlow] = useState({ totalIncome: 0, totalExpense: 0 });
+  const [isLoading, setIsLoading] = useState(true);
+  const [dateRange, setDateRange] = useState();
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("all");
 
   // ── Profile state ──────────────────────────────────────────────────────────
-  const [profile,       setProfile]       = useState({ userName: "", fullName: "", email: "" });
+  const [profile, setProfile] = useState({
+    userName: "",
+    fullName: "",
+    email: "",
+  });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // ── Change password state ──────────────────────────────────────────────────
-  const [showPwForm,    setShowPwForm]    = useState(false);
-  const [pwForm,        setPwForm]        = useState({ current: "", next: "", confirm: "" });
-  const [showPw,        setShowPw]        = useState({ current: false, next: false, confirm: false });
-  const [isSavingPw,    setIsSavingPw]    = useState(false);
+  const [showPwForm, setShowPwForm] = useState(false);
+  const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
+  const [showPw, setShowPw] = useState({
+    current: false,
+    next: false,
+    confirm: false,
+  });
+  const [isSavingPw, setIsSavingPw] = useState(false);
 
   // ── Settings state (localStorage) ─────────────────────────────────────────
   const [notifications, setNotifications] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("notif_settings")) || { email: true, push: true, sms: false }; }
-    catch { return { email: true, push: true, sms: false }; }
+    try {
+      return (
+        JSON.parse(localStorage.getItem("notif_settings")) || {
+          email: true,
+          push: true,
+          sms: false,
+        }
+      );
+    } catch {
+      return { email: true, push: true, sms: false };
+    }
   });
-  const [currency, setCurrency] = useState(() => localStorage.getItem("app_currency") || "VND");
+  const [currency, setCurrency] = useState(
+    () => localStorage.getItem("app_currency") || "VND",
+  );
 
   // ── Load data ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -122,11 +142,13 @@ export function Profile() {
         setProfile({
           userName: prof.userName || prof.account || "",
           fullName: prof.fullName || prof.userName || "",
-          email:    prof.email    || "",
+          email: prof.email || "",
         });
-        setTransactions((transData.items || transData || []).map(mapTransaction));
+        setTransactions(
+          (transData.items || transData || []).map(mapTransaction),
+        );
         setCashFlow({
-          totalIncome:  summary.totalIncome  || 0,
+          totalIncome: summary.totalIncome || 0,
           totalExpense: summary.totalExpense || 0,
         });
       } catch {
@@ -138,34 +160,39 @@ export function Profile() {
   }, []);
 
   // ── Filtered transactions ──────────────────────────────────────────────────
-  const filtered = transactions.filter(t => {
-    const matchSearch = (t.description || "").toLowerCase().includes(searchTerm.toLowerCase())
-      || (t.categoryName || "").toLowerCase().includes(searchTerm.toLowerCase());
+  const filtered = transactions.filter((t) => {
+    const matchSearch =
+      (t.description || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (t.categoryName || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchType =
-      filterType === "all"
-      || (filterType === "income"   &&  t.isIncome)
-      || (filterType === "transfer" &&  t.isTransfer)
-      || (filterType === "expense"  && !t.isIncome && !t.isTransfer);
-    const matchDate = !selectedDate
-      || format(new Date(t.transactionDate), "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd");
+      filterType === "all" ||
+      (filterType === "income" && t.isIncome) ||
+      (filterType === "transfer" && t.isTransfer) ||
+      (filterType === "expense" && !t.isIncome && !t.isTransfer);
+    const matchDate =
+      !dateRange ||
+      format(new Date(t.transactionDate), "yyyy-MM-dd") ===
+        format(dateRange, "yyyy-MM-dd");
     return matchSearch && matchType && matchDate;
   });
 
   // ── Export CSV ─────────────────────────────────────────────────────────────
   const exportCSV = () => {
     const headers = ["Ngày", "Mô tả", "Danh mục", "Loại", "Số tiền"];
-    const rows = filtered.map(t => [
+    const rows = filtered.map((t) => [
       format(new Date(t.transactionDate), "dd/MM/yyyy"),
       `"${(t.description || "").replace(/"/g, '""')}"`,
       t.categoryName,
       t.isIncome ? "Thu nhập" : t.isTransfer ? "Chuyển khoản" : "Chi tiêu",
       (t.isIncome ? "+" : t.isTransfer ? "" : "-") + Math.abs(t.totalAmount),
     ]);
-    const csv = [headers, ...rows].map(r => r.join(",")).join("\n");
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a");
-    a.href     = url;
+    const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
     a.download = `giao-dich-${format(new Date(), "yyyy-MM-dd")}.csv`;
     a.click();
     URL.revokeObjectURL(url);
@@ -176,7 +203,10 @@ export function Profile() {
   const handleSaveProfile = async () => {
     try {
       setIsSavingProfile(true);
-      await authApi.updateProfile({ fullName: profile.fullName, email: profile.email });
+      await authApi.updateProfile({
+        fullName: profile.fullName,
+        email: profile.email,
+      });
       toast.success("Đã cập nhật hồ sơ");
     } catch (err) {
       const msg = err?.response?.data?.message ?? err?.response?.data;
@@ -199,13 +229,18 @@ export function Profile() {
     }
     try {
       setIsSavingPw(true);
-      await authApi.changePassword({ currentPassword: pwForm.current, newPassword: pwForm.next });
+      await authApi.changePassword({
+        currentPassword: pwForm.current,
+        newPassword: pwForm.next,
+      });
       toast.success("Đã đổi mật khẩu thành công");
       setPwForm({ current: "", next: "", confirm: "" });
       setShowPwForm(false);
     } catch (err) {
       const msg = err?.response?.data?.message ?? err?.response?.data;
-      toast.error(typeof msg === "string" ? msg : "Mật khẩu hiện tại không đúng");
+      toast.error(
+        typeof msg === "string" ? msg : "Mật khẩu hiện tại không đúng",
+      );
     } finally {
       setIsSavingPw(false);
     }
@@ -227,7 +262,11 @@ export function Profile() {
   };
 
   const initials = (profile.fullName || profile.userName || "U")
-    .split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <PageLayout
@@ -246,13 +285,12 @@ export function Profile() {
         )
       }
     >
-
       {/* Tabs */}
       <div className="flex gap-2 mb-8 border-b border-slate-200">
         {[
           { key: "transactions", label: "Giao dịch" },
-          { key: "profile",      label: "Hồ sơ" },
-          { key: "settings",     label: "Cài đặt" },
+          { key: "profile", label: "Hồ sơ" },
+          { key: "settings", label: "Cài đặt" },
         ].map(({ key, label }) => (
           <button
             key={key}
@@ -284,7 +322,7 @@ export function Profile() {
                 {cashFlow.totalIncome.toLocaleString()} {currency}
               </p>
               <p className="text-green-600 text-sm mt-1">
-                {filtered.filter(t => t.isIncome).length} giao dịch
+                {filtered.filter((t) => t.isIncome).length} giao dịch
               </p>
             </div>
 
@@ -299,7 +337,8 @@ export function Profile() {
                 {cashFlow.totalExpense.toLocaleString()} {currency}
               </p>
               <p className="text-red-600 text-sm mt-1">
-                {filtered.filter(t => !t.isIncome && !t.isTransfer).length} giao dịch
+                {filtered.filter((t) => !t.isIncome && !t.isTransfer).length}{" "}
+                giao dịch
               </p>
             </div>
 
@@ -308,8 +347,13 @@ export function Profile() {
                 <span className="text-purple-100">Dòng tiền ròng</span>
                 <div className="w-2 h-2 rounded-full bg-purple-200" />
               </div>
-              <p className={`text-3xl font-bold ${(cashFlow.totalIncome - cashFlow.totalExpense) < 0 ? "text-red-200" : ""}`}>
-                {(cashFlow.totalIncome - cashFlow.totalExpense).toLocaleString()} {currency}
+              <p
+                className={`text-3xl font-bold ${cashFlow.totalIncome - cashFlow.totalExpense < 0 ? "text-red-200" : ""}`}
+              >
+                {(
+                  cashFlow.totalIncome - cashFlow.totalExpense
+                ).toLocaleString()}{" "}
+                {currency}
               </p>
               <p className="text-purple-100 text-sm mt-1">
                 {filtered.length} giao dịch
@@ -322,12 +366,15 @@ export function Profile() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Search */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <Search
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={18}
+                />
                 <input
                   type="text"
                   placeholder="Tìm kiếm giao dịch..."
                   value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                 />
               </div>
@@ -339,7 +386,9 @@ export function Profile() {
                     key={key}
                     onClick={() => setFilterType(key)}
                     className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                      filterType === key ? "bg-purple-600 text-white" : "text-slate-600 hover:bg-slate-100"
+                      filterType === key
+                        ? "bg-purple-600 text-white"
+                        : "text-slate-600 hover:bg-slate-100"
                     }`}
                   >
                     {label}
@@ -349,26 +398,38 @@ export function Profile() {
 
               {/* Date picker */}
               <div className="relative">
-                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <CalendarIcon
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={18}
+                />
                 <button
-                  onClick={() => setShowCalendar(v => !v)}
+                  onClick={() => setShowCalendar((v) => !v)}
                   className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-left bg-white text-sm hover:border-purple-300 transition-colors"
                 >
-                  {selectedDate ? format(selectedDate, "dd/MM/yyyy") : "Lọc theo ngày"}
+                  {dateRange?.from && dateRange?.to
+                    ? `${format(dateRange.from, "dd/MM/yyyy")} - ${format(
+                        dateRange.to,
+                        "dd/MM/yyyy",
+                      )}`
+                    : "Lọc theo khoảng ngày"}
                 </button>
                 {showCalendar && (
                   <div className="absolute right-0 z-20 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-3">
                     <DayPicker
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={date => { setSelectedDate(date); setShowCalendar(false); }}
+                      mode="range"
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={2}
                     />
-                    {selectedDate && (
+                    {dateRange && (
                       <button
-                        onClick={() => { setSelectedDate(undefined); setShowCalendar(false); }}
+                        onClick={() => {
+                          setDateRange(undefined);
+                          setShowCalendar(false);
+                        }}
                         className="w-full mt-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 text-sm transition-colors"
                       >
-                        Xóa bộ lọc ngày
+                        Tắt bộ lọc ngày
                       </button>
                     )}
                   </div>
@@ -383,29 +444,66 @@ export function Profile() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-slate-700">Giao dịch</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-slate-700">Danh mục</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-slate-700">Ngày</th>
-                    <th className="text-right px-6 py-4 text-sm font-semibold text-slate-700">Số tiền</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-slate-700">
+                      Giao dịch
+                    </th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-slate-700">
+                      Danh mục
+                    </th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-slate-700">
+                      Ngày
+                    </th>
+                    <th className="text-right px-6 py-4 text-sm font-semibold text-slate-700">
+                      Số tiền
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {isLoading
-                    ? Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
-                    : filtered.map(t => {
-                        const iconBg  = t.isTransfer ? "bg-blue-50"     : t.isIncome ? "bg-green-100" : "bg-red-50";
-                        const Icon    = t.isTransfer ? ArrowLeftRight    : t.isIncome ? ArrowUpRight   : ArrowDownRight;
-                        const iconCls = t.isTransfer ? "text-blue-500"   : t.isIncome ? "text-green-600" : "text-red-500";
-                        const amtCls  = t.isTransfer ? "text-blue-600"   : t.isIncome ? "text-green-600" : "text-slate-900";
-                        const prefix  = t.isIncome ? "+" : t.isTransfer ? "" : "-";
+                    ? Array.from({ length: 5 }).map((_, i) => (
+                        <SkeletonRow key={i} />
+                      ))
+                    : filtered.map((t) => {
+                        const iconBg = t.isTransfer
+                          ? "bg-blue-50"
+                          : t.isIncome
+                            ? "bg-green-100"
+                            : "bg-red-50";
+                        const Icon = t.isTransfer
+                          ? ArrowLeftRight
+                          : t.isIncome
+                            ? ArrowUpRight
+                            : ArrowDownRight;
+                        const iconCls = t.isTransfer
+                          ? "text-blue-500"
+                          : t.isIncome
+                            ? "text-green-600"
+                            : "text-red-500";
+                        const amtCls = t.isTransfer
+                          ? "text-blue-600"
+                          : t.isIncome
+                            ? "text-green-600"
+                            : "text-slate-900";
+                        const prefix = t.isIncome
+                          ? "+"
+                          : t.isTransfer
+                            ? ""
+                            : "-";
                         return (
-                          <tr key={t.journalId} className="hover:bg-slate-50 transition-colors">
+                          <tr
+                            key={t.journalId}
+                            className="hover:bg-slate-50 transition-colors"
+                          >
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
-                                <div className={`w-9 h-9 rounded-full ${iconBg} flex items-center justify-center`}>
+                                <div
+                                  className={`w-9 h-9 rounded-full ${iconBg} flex items-center justify-center`}
+                                >
                                   <Icon size={16} className={iconCls} />
                                 </div>
-                                <span className="font-medium text-slate-900">{t.description || "—"}</span>
+                                <span className="font-medium text-slate-900">
+                                  {t.description || "—"}
+                                </span>
                               </div>
                             </td>
                             <td className="px-6 py-4">
@@ -414,23 +512,29 @@ export function Profile() {
                               </span>
                             </td>
                             <td className="px-6 py-4 text-sm text-slate-600">
-                              {format(new Date(t.transactionDate), "dd/MM/yyyy")}
+                              {format(
+                                new Date(t.transactionDate),
+                                "dd/MM/yyyy",
+                              )}
                             </td>
                             <td className="px-6 py-4 text-right">
                               <span className={`font-bold ${amtCls}`}>
-                                {prefix}{Math.abs(t.totalAmount).toLocaleString()} {currency}
+                                {prefix}
+                                {Math.abs(t.totalAmount).toLocaleString()}{" "}
+                                {currency}
                               </span>
                             </td>
                           </tr>
                         );
-                      })
-                  }
+                      })}
                 </tbody>
               </table>
               {!isLoading && filtered.length === 0 && (
                 <div className="text-center py-16">
                   <Search size={40} className="mx-auto mb-3 text-slate-200" />
-                  <p className="text-slate-500">Không tìm thấy giao dịch phù hợp</p>
+                  <p className="text-slate-500">
+                    Không tìm thấy giao dịch phù hợp
+                  </p>
                 </div>
               )}
             </div>
@@ -448,7 +552,9 @@ export function Profile() {
                 {initials}
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-900">{profile.fullName || profile.userName}</h2>
+                <h2 className="text-xl font-bold text-slate-900">
+                  {profile.fullName || profile.userName}
+                </h2>
                 <p className="text-slate-500 text-sm">@{profile.userName}</p>
               </div>
             </div>
@@ -464,7 +570,9 @@ export function Profile() {
                   disabled
                   className="w-full px-4 py-3 border border-slate-200 rounded-lg bg-slate-50 text-slate-500 cursor-not-allowed text-sm"
                 />
-                <p className="text-xs text-slate-400 mt-1">Tên đăng nhập không thể thay đổi</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Tên đăng nhập không thể thay đổi
+                </p>
               </div>
 
               <div>
@@ -474,7 +582,9 @@ export function Profile() {
                 <input
                   type="text"
                   value={profile.fullName}
-                  onChange={e => setProfile(p => ({ ...p, fullName: e.target.value }))}
+                  onChange={(e) =>
+                    setProfile((p) => ({ ...p, fullName: e.target.value }))
+                  }
                   className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                   placeholder="Nhập họ và tên"
                 />
@@ -487,7 +597,9 @@ export function Profile() {
                 <input
                   type="email"
                   value={profile.email}
-                  onChange={e => setProfile(p => ({ ...p, email: e.target.value }))}
+                  onChange={(e) =>
+                    setProfile((p) => ({ ...p, email: e.target.value }))
+                  }
                   className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                   placeholder="email@example.com"
                 />
@@ -506,7 +618,7 @@ export function Profile() {
           {/* Change password card */}
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
             <button
-              onClick={() => setShowPwForm(v => !v)}
+              onClick={() => setShowPwForm((v) => !v)}
               className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors"
             >
               <div className="flex items-center gap-3">
@@ -515,34 +627,61 @@ export function Profile() {
                 </div>
                 <div className="text-left">
                   <p className="font-semibold text-slate-900">Đổi mật khẩu</p>
-                  <p className="text-xs text-slate-500">Cập nhật mật khẩu đăng nhập</p>
+                  <p className="text-xs text-slate-500">
+                    Cập nhật mật khẩu đăng nhập
+                  </p>
                 </div>
               </div>
-              {showPwForm ? <ChevronUp size={18} className="text-slate-400" /> : <ChevronDown size={18} className="text-slate-400" />}
+              {showPwForm ? (
+                <ChevronUp size={18} className="text-slate-400" />
+              ) : (
+                <ChevronDown size={18} className="text-slate-400" />
+              )}
             </button>
 
             {showPwForm && (
-              <form onSubmit={handleChangePassword} className="px-6 pb-6 space-y-4 border-t border-slate-100 pt-4">
+              <form
+                onSubmit={handleChangePassword}
+                className="px-6 pb-6 space-y-4 border-t border-slate-100 pt-4"
+              >
                 {/* Current password */}
                 {[
-                  { key: "current", label: "Mật khẩu hiện tại", placeholder: "Nhập mật khẩu hiện tại" },
-                  { key: "next",    label: "Mật khẩu mới",       placeholder: "Tối thiểu 6 ký tự" },
-                  { key: "confirm", label: "Xác nhận mật khẩu",  placeholder: "Nhập lại mật khẩu mới" },
+                  {
+                    key: "current",
+                    label: "Mật khẩu hiện tại",
+                    placeholder: "Nhập mật khẩu hiện tại",
+                  },
+                  {
+                    key: "next",
+                    label: "Mật khẩu mới",
+                    placeholder: "Tối thiểu 6 ký tự",
+                  },
+                  {
+                    key: "confirm",
+                    label: "Xác nhận mật khẩu",
+                    placeholder: "Nhập lại mật khẩu mới",
+                  },
                 ].map(({ key, label, placeholder }) => (
                   <div key={key}>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">{label}</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                      {label}
+                    </label>
                     <div className="relative">
                       <input
                         type={showPw[key] ? "text" : "password"}
                         value={pwForm[key]}
-                        onChange={e => setPwForm(p => ({ ...p, [key]: e.target.value }))}
+                        onChange={(e) =>
+                          setPwForm((p) => ({ ...p, [key]: e.target.value }))
+                        }
                         placeholder={placeholder}
                         required
                         className="w-full px-4 py-3 pr-11 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                       />
                       <button
                         type="button"
-                        onClick={() => setShowPw(p => ({ ...p, [key]: !p[key] }))}
+                        onClick={() =>
+                          setShowPw((p) => ({ ...p, [key]: !p[key] }))
+                        }
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                       >
                         {showPw[key] ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -554,7 +693,10 @@ export function Profile() {
                 <div className="flex gap-3 pt-1">
                   <button
                     type="button"
-                    onClick={() => { setShowPwForm(false); setPwForm({ current: "", next: "", confirm: "" }); }}
+                    onClick={() => {
+                      setShowPwForm(false);
+                      setPwForm({ current: "", next: "", confirm: "" });
+                    }}
                     className="flex-1 px-4 py-3 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-semibold"
                   >
                     Hủy
@@ -576,7 +718,6 @@ export function Profile() {
       {/* ── Tab: Cài đặt ───────────────────────────────────────────────────── */}
       {activeTab === "settings" && (
         <div className="max-w-2xl space-y-6">
-
           {/* Notifications */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200">
             <div className="flex items-center gap-3 mb-5">
@@ -585,21 +726,43 @@ export function Profile() {
               </div>
               <div>
                 <h2 className="font-bold text-slate-900">Thông báo</h2>
-                <p className="text-xs text-slate-500">Quản lý cách nhận thông báo</p>
+                <p className="text-xs text-slate-500">
+                  Quản lý cách nhận thông báo
+                </p>
               </div>
             </div>
             <div className="space-y-4">
               {[
-                { key: "email", label: "Thông báo Email",     desc: "Nhận cập nhật qua email" },
-                { key: "push",  label: "Thông báo đẩy",        desc: "Thông báo trên thiết bị" },
-                { key: "sms",   label: "Thông báo SMS",         desc: "Cảnh báo qua tin nhắn" },
+                {
+                  key: "email",
+                  label: "Thông báo Email",
+                  desc: "Nhận cập nhật qua email",
+                },
+                {
+                  key: "push",
+                  label: "Thông báo đẩy",
+                  desc: "Thông báo trên thiết bị",
+                },
+                {
+                  key: "sms",
+                  label: "Thông báo SMS",
+                  desc: "Cảnh báo qua tin nhắn",
+                },
               ].map(({ key, label, desc }) => (
-                <div key={key} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+                <div
+                  key={key}
+                  className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0"
+                >
                   <div>
-                    <p className="font-medium text-slate-900 text-sm">{label}</p>
+                    <p className="font-medium text-slate-900 text-sm">
+                      {label}
+                    </p>
                     <p className="text-xs text-slate-500">{desc}</p>
                   </div>
-                  <Toggle value={notifications[key]} onChange={() => toggleNotif(key)} />
+                  <Toggle
+                    value={notifications[key]}
+                    onChange={() => toggleNotif(key)}
+                  />
                 </div>
               ))}
             </div>
@@ -613,14 +776,18 @@ export function Profile() {
               </div>
               <div>
                 <h2 className="font-bold text-slate-900">Cài đặt vùng</h2>
-                <p className="text-xs text-slate-500">Đơn vị tiền tệ hiển thị</p>
+                <p className="text-xs text-slate-500">
+                  Đơn vị tiền tệ hiển thị
+                </p>
               </div>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Tiền tệ</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Tiền tệ
+              </label>
               <select
                 value={currency}
-                onChange={e => handleCurrencyChange(e.target.value)}
+                onChange={(e) => handleCurrencyChange(e.target.value)}
                 className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
               >
                 <option value="VND">VND — Việt Nam Đồng</option>
@@ -641,14 +808,20 @@ export function Profile() {
               </div>
               <div>
                 <h2 className="font-bold text-slate-900">Bảo mật</h2>
-                <p className="text-xs text-slate-500">Thông tin bảo mật tài khoản</p>
+                <p className="text-xs text-slate-500">
+                  Thông tin bảo mật tài khoản
+                </p>
               </div>
             </div>
             <div className="space-y-3">
               <div className="flex items-center justify-between py-3 border-b border-slate-100">
                 <div>
-                  <p className="text-sm font-medium text-slate-900">Đổi mật khẩu</p>
-                  <p className="text-xs text-slate-500">Cập nhật trong tab Hồ sơ</p>
+                  <p className="text-sm font-medium text-slate-900">
+                    Đổi mật khẩu
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Cập nhật trong tab Hồ sơ
+                  </p>
                 </div>
                 <button
                   onClick={() => setActiveTab("profile")}
@@ -659,21 +832,30 @@ export function Profile() {
               </div>
               <div className="flex items-center justify-between py-3 border-b border-slate-100">
                 <div>
-                  <p className="text-sm font-medium text-slate-900">Xác thực hai yếu tố</p>
+                  <p className="text-sm font-medium text-slate-900">
+                    Xác thực hai yếu tố
+                  </p>
                   <p className="text-xs text-slate-500">Sắp ra mắt</p>
                 </div>
-                <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full">Coming soon</span>
+                <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full">
+                  Coming soon
+                </span>
               </div>
               <div className="flex items-center justify-between py-3">
                 <div>
-                  <p className="text-sm font-medium text-slate-900">Phiên đăng nhập</p>
-                  <p className="text-xs text-slate-500">Quản lý thiết bị đã kết nối</p>
+                  <p className="text-sm font-medium text-slate-900">
+                    Phiên đăng nhập
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Quản lý thiết bị đã kết nối
+                  </p>
                 </div>
-                <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full">Coming soon</span>
+                <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full">
+                  Coming soon
+                </span>
               </div>
             </div>
           </div>
-
         </div>
       )}
     </PageLayout>
