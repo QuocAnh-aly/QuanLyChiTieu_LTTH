@@ -42,7 +42,7 @@ public class AuthService : IAuthService
             Email         = request.Email,
             AvatarInitials = (request.UserName ?? request.Account)[..Math.Min(2, (request.UserName ?? request.Account).Length)].ToUpper(),
             Theme         = "light",
-            Currency      = "USD",
+            Currency      = "VND",
             NotifyEmail   = true,
             NotifyPush    = true,
             NotifySms     = false,
@@ -53,9 +53,9 @@ public class AuthService : IAuthService
 
         // ─── Tạo các account dựng sẵn (1 income, 1 expense, 1 equity) ────────────────
         // Account_Types: 3: Equity, 4: Revenue (Income), 5: Expense
-        await _accountRepo.CreateAsync(new Account { UserId = created.UserId, TypeId = 4, Name = "Main Income", IconName = "TrendingUp", Color = "green" });
-        await _accountRepo.CreateAsync(new Account { UserId = created.UserId, TypeId = 5, Name = "General Expense", IconName = "ShoppingBag", Color = "red" });
-        await _accountRepo.CreateAsync(new Account { UserId = created.UserId, TypeId = 3, Name = "Opening Balance", IconName = "Scale", Color = "blue" });
+        await _accountRepo.CreateAsync(new Account { UserId = created.UserId, TypeId = 4, Name = "Thu nhập chính", IconName = "TrendingUp", Color = "green", IsActive = true, CreatedAt = DateTime.UtcNow });
+        await _accountRepo.CreateAsync(new Account { UserId = created.UserId, TypeId = 5, Name = "Ăn uống", IconName = "Pizza", Color = "red", IsActive = true, CreatedAt = DateTime.UtcNow });
+        await _accountRepo.CreateAsync(new Account { UserId = created.UserId, TypeId = 3, Name = "Initial", IconName = "Scale", Color = "blue", IsActive = true, CreatedAt = DateTime.UtcNow });
 
         var (accessToken, refreshToken) = GenerateTokens(created);
 
