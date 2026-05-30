@@ -49,6 +49,9 @@ logs/services.pid
 # AI guide
 AI_GUIDE.md
 
+# Test runner output (Playwright, etc.)
+test-results/
+
 # User-specific files
 *.suo
 *.user

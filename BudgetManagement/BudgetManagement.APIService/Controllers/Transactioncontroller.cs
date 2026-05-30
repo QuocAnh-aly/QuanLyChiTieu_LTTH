@@ -51,7 +51,7 @@ public class TransactionController : BaseController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { message = ex.Message });
         }
     }
 
@@ -84,7 +84,7 @@ public class TransactionController : BaseController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { message = ex.Message });
         }
     }
 
@@ -103,7 +103,7 @@ public class TransactionController : BaseController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { message = ex.Message });
         }
     }
 
@@ -119,10 +119,9 @@ public class TransactionController : BaseController
         catch (KeyNotFoundException ex)
         {
             return NotFound(new { message = ex.Message });
-        }
-        catch (UnauthorizedAccessException ex)
+        }        catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { message = ex.Message });
         }
     }
 }
