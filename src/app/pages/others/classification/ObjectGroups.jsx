@@ -55,16 +55,16 @@ export function ObjectGroups() {
   const filtered = objectGroups.filter(o => o.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-card-foreground">Nhóm đối tượng</h1>
-          <p className="text-muted-foreground mt-1">Quản lý người liên hệ, đối tác, cửa hàng hoặc người nhận/trả tiền</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground">Nhóm đối tượng</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Quản lý người liên hệ, đối tác, cửa hàng hoặc người nhận/trả tiền</p>
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
+          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm whitespace-nowrap"
         >
           <Plus size={18} />
           <span className="font-medium">Thêm đối tượng</span>
@@ -94,47 +94,60 @@ export function ObjectGroups() {
             <p className="text-muted-foreground">Quản lý những người và công ty bạn thường xuyên giao dịch.</p>
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="text-xs uppercase tracking-wider text-muted-foreground border-b border-border bg-muted">
-                <th className="px-6 py-4 font-semibold">Tên đối tượng</th>
-                <th className="px-6 py-4 font-semibold">Loại</th>
-                <th className="px-6 py-4 font-semibold">Vai trò</th>
-                <th className="px-6 py-4 font-semibold">Ghi chú</th>
-                <th className="px-6 py-4 font-semibold text-right">Thao tác</th>
+                <th className="px-4 sm:px-6 py-4 font-semibold">Tên đối tượng</th>
+                <th className="px-4 sm:px-6 py-4 font-semibold hidden sm:table-cell">Loại</th>
+                <th className="px-4 sm:px-6 py-4 font-semibold hidden sm:table-cell">Vai trò</th>
+                <th className="px-4 sm:px-6 py-4 font-semibold hidden md:table-cell">Ghi chú</th>
+                <th className="px-4 sm:px-6 py-4 font-semibold text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map(obj => (
                 <tr key={obj.id} className="hover:bg-muted transition-colors">
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                         obj.type === 'company' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'
                       }`}>
-                        {obj.type === 'company' ? <Building2 size={18} /> : <Users size={18} />}
+                        {obj.type === 'company' ? <Building2 size={16} /> : <Users size={16} />}
                       </div>
-                      <span className="font-semibold text-card-foreground">{obj.name}</span>
+                      <span className="font-semibold text-card-foreground text-sm">{obj.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 sm:hidden">
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                        obj.type === 'company' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
+                      }`}>
+                        {obj.type === 'company' ? 'Công ty' : 'Cá nhân'}
+                      </span>
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                        obj.role === 'payer' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      }`}>
+                        {obj.role === 'payer' ? 'Trả tiền' : 'Nhận tiền'}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4 hidden sm:table-cell">
                     <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${
                       obj.type === 'company' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
                     }`}>
                       {obj.type === 'company' ? 'Công ty' : 'Cá nhân'}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4 hidden sm:table-cell">
                     <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${
                       obj.role === 'payer' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                     }`}>
                       {obj.role === 'payer' ? 'Người trả tiền' : 'Người nhận tiền'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground max-w-xs truncate">
+                  <td className="px-4 sm:px-6 py-4 text-sm text-muted-foreground max-w-xs truncate hidden md:table-cell">
                     {obj.notes || <span className="italic text-muted-foreground">—</span>}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4">
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => openEdit(obj)}
@@ -156,6 +169,7 @@ export function ObjectGroups() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

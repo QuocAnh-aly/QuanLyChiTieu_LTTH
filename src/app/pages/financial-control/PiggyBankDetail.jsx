@@ -192,25 +192,25 @@ export function PiggyBankDetail() {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto">
 
       {/* Back + header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/piggy-banks")}
             className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-muted-foreground transition-colors">
             <ArrowLeft size={20} />
           </button>
-          <div className={`w-11 h-11 rounded-xl ${c.bg} flex items-center justify-center`}>
+          <div className={`w-11 h-11 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}>
             <PiggyBank size={22} className={c.text} />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-card-foreground">{goal.title}</h1>
-            {goal.notes && <p className="text-sm text-muted-foreground mt-0.5">{goal.notes}</p>}
+          <div className="min-w-0">
+            <h1 className="text-xl md:text-2xl font-bold text-card-foreground truncate">{goal.title}</h1>
+            {goal.notes && <p className="text-sm text-muted-foreground mt-0.5 truncate">{goal.notes}</p>}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setAddOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium text-sm transition-colors">
             <Plus size={16} /> Nạp tiền
@@ -323,13 +323,14 @@ export function PiggyBankDetail() {
             <p className="text-sm">Chưa có giao dịch nào</p>
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="text-xs text-muted-foreground uppercase tracking-wider bg-muted/30">
-                <th className="px-6 py-3 font-semibold">Ngày</th>
-                <th className="px-6 py-3 font-semibold">Loại</th>
-                <th className="px-6 py-3 font-semibold">Ghi chú</th>
-                <th className="px-6 py-3 font-semibold text-right">Số tiền</th>
+                <th className="px-4 md:px-6 py-3 font-semibold">Ngày</th>
+                <th className="px-4 md:px-6 py-3 font-semibold">Loại</th>
+                <th className="px-4 md:px-6 py-3 font-semibold hidden md:table-cell">Ghi chú</th>
+                <th className="px-4 md:px-6 py-3 font-semibold text-right">Số tiền</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -337,12 +338,12 @@ export function PiggyBankDetail() {
                 const isAdd = e.amount > 0;
                 return (
                   <tr key={e.eventId} className="hover:bg-muted">
-                    <td className="px-6 py-3 text-sm text-muted-foreground">
+                    <td className="px-4 md:px-6 py-3 text-sm text-muted-foreground whitespace-nowrap">
                       {e.eventDate
                         ? format(parseISO(e.eventDate), "dd/MM/yyyy HH:mm", { locale: vi })
                         : "—"}
                     </td>
-                    <td className="px-6 py-3">
+                    <td className="px-4 md:px-6 py-3">
                       <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full ${
                         isAdd ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
                       }`}>
@@ -350,8 +351,8 @@ export function PiggyBankDetail() {
                         {isAdd ? "Nạp tiền" : "Rút tiền"}
                       </span>
                     </td>
-                    <td className="px-6 py-3 text-sm text-muted-foreground">{e.notes || "—"}</td>
-                    <td className={`px-6 py-3 text-sm font-bold text-right ${isAdd ? "text-green-600" : "text-orange-500"}`}>
+                    <td className="px-4 md:px-6 py-3 text-sm text-muted-foreground hidden md:table-cell">{e.notes || "—"}</td>
+                    <td className={`px-4 md:px-6 py-3 text-sm font-bold text-right ${isAdd ? "text-green-600" : "text-orange-500"} whitespace-nowrap`}>
                       {isAdd ? "+" : ""}{fmt(Math.abs(e.amount))}
                     </td>
                   </tr>
@@ -359,6 +360,7 @@ export function PiggyBankDetail() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

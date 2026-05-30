@@ -91,7 +91,7 @@ export function AddTransactionModal({ isOpen, onClose, onAdd, initialType = "exp
 
   return (
     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={onClose}>
-      <div className="bg-muted w-full max-w-[1200px] min-h-[80vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="bg-muted w-full max-w-full sm:max-w-[1200px] sm:min-h-[80vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
         
         {/* Header */}
         <div className="bg-card px-6 py-4 border-b border-border flex items-center justify-between">
@@ -212,8 +212,8 @@ export function AddTransactionModal({ isOpen, onClose, onAdd, initialType = "exp
                     onChange={e => setAmount(e.target.value)}
                     className="flex-1 px-3 py-2 border border-border rounded-l focus:outline-none focus:border-blue-500 text-sm"
                     placeholder="Số tiền"
-                    step="1000"
-                    min="1"
+                    step="1"
+                    min="0"
                     required
                   />
                   <button type="button" className="px-3 py-2 border border-l-0 border-border bg-muted rounded-r text-muted-foreground hover:bg-muted">

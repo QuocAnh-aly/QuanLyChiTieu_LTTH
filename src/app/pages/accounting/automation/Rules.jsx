@@ -165,14 +165,14 @@ export function Rules() {
     (rule.actions || []).map(a => `${labelOf(ACTION_TYPES, a.type)} ${a.value ?? ''}`).join('; ');
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-4 sm:p-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-card-foreground">Quy tắc tự động</h1>
-          <p className="text-muted-foreground mt-1">Thiết lập các quy tắc để tự động phân loại giao dịch</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground">Quy tắc tự động</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Thiết lập các quy tắc để tự động phân loại giao dịch</p>
         </div>
         <button onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm">
+          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm whitespace-nowrap">
           <Plus size={18} />
           <span className="font-medium">Tạo quy tắc mới</span>
         </button>
@@ -264,7 +264,7 @@ export function Rules() {
                 </div>
               </div>
 
-              <div className="bg-muted rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center gap-4">
+              <div className="bg-muted rounded-xl p-3 sm:p-4 flex flex-col md:flex-row items-start md:items-center gap-3 sm:gap-4">
                 <div className="flex-1">
                   <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
                     Nếu (Điều kiện — {rule.strict ? 'tất cả' : 'bất kỳ'})

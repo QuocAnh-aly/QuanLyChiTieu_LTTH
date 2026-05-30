@@ -76,7 +76,7 @@ export function AddBudgetModal({ isOpen, onClose, onAdd }) {
       onClick={handleClose}
     >
       <div
-        className="bg-muted rounded-xl w-full max-w-5xl max-h-[95vh] overflow-y-auto shadow-2xl flex flex-col"
+        className="bg-muted rounded-xl w-full max-w-full sm:max-w-5xl max-h-[95vh] overflow-y-auto shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -209,7 +209,7 @@ export function AddBudgetModal({ isOpen, onClose, onAdd }) {
                       onChange={(e) => setAmount(e.target.value)}
                       className="flex-1 px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                       placeholder="0"
-                      step="0.01"
+                      step="1"
                       min="0"
                     />
                   </div>

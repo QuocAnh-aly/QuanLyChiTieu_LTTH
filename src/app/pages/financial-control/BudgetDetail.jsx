@@ -302,8 +302,7 @@ export function BudgetDetail() {
     return (
       <PageLayout title="Chi tiết ngân sách">
         <div className="space-y-4">
-          <div className="h-32 bg-muted rounded-2xl animate-pulse" />
-          <div className="grid grid-cols-4 gap-4">
+          <div className="h-32 bg-muted rounded-2xl animate-pulse" />            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[1,2,3,4].map(i => <div key={i} className="h-24 bg-muted rounded-2xl animate-pulse" />)}
           </div>
           <div className="h-64 bg-muted rounded-2xl animate-pulse" />
@@ -553,14 +552,15 @@ export function BudgetDetail() {
             <p className="text-xs mt-1 text-muted-foreground">Thêm giao dịch chi tiêu vào danh mục để bắt đầu theo dõi</p>
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="text-xs text-muted-foreground uppercase tracking-wider bg-muted/30">
-                <th className="px-6 py-3 font-semibold">Ngày</th>
-                <th className="px-6 py-3 font-semibold">Mô tả</th>
-                <th className="px-6 py-3 font-semibold">Nguồn</th>
-                <th className="px-6 py-3 font-semibold">Đích</th>
-                <th className="px-6 py-3 font-semibold text-right">Số tiền</th>
+                <th className="px-4 md:px-6 py-3 font-semibold">Ngày</th>
+                <th className="px-4 md:px-6 py-3 font-semibold">Mô tả</th>
+                <th className="px-4 md:px-6 py-3 font-semibold hidden md:table-cell">Nguồn</th>
+                <th className="px-4 md:px-6 py-3 font-semibold hidden md:table-cell">Đích</th>
+                <th className="px-4 md:px-6 py-3 font-semibold text-right">Số tiền</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -572,20 +572,20 @@ export function BudgetDetail() {
                   const amtCls = t.isTransfer ? "text-blue-600" : t.isIncome ? "text-green-600" : "text-red-500";
                   return (
                     <tr key={t.journalId} className="hover:bg-muted">
-                      <td className="px-6 py-3 text-sm text-muted-foreground">
+                      <td className="px-4 md:px-6 py-3 text-sm text-muted-foreground">
                         {t.transactionDate
                           ? format(parseISO(t.transactionDate), "dd/MM/yyyy", { locale: vi })
                           : "—"}
                       </td>
-                      <td className="px-6 py-3 text-sm text-foreground">
+                      <td className="px-4 md:px-6 py-3 text-sm text-foreground">
                         <div className="flex items-center gap-2">
                           <TxIcon size={14} className={txCls} />
                           <span>{t.description || "—"}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-3 text-sm text-muted-foreground">{t.sourceAccount}</td>
-                      <td className="px-6 py-3 text-sm text-muted-foreground">{t.destAccount}</td>
-                      <td className={`px-6 py-3 text-sm font-bold text-right ${amtCls}`}>
+                      <td className="px-4 md:px-6 py-3 text-sm text-muted-foreground hidden md:table-cell">{t.sourceAccount}</td>
+                      <td className="px-4 md:px-6 py-3 text-sm text-muted-foreground hidden md:table-cell">{t.destAccount}</td>
+                      <td className={`px-4 md:px-6 py-3 text-sm font-bold text-right ${amtCls}`}>
                         {t.isIncome ? "+" : t.isTransfer ? "" : "-"}{fmt(t.totalAmount)}
                       </td>
                     </tr>
@@ -593,6 +593,7 @@ export function BudgetDetail() {
                 })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

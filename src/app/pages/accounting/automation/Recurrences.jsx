@@ -27,13 +27,13 @@ export function Recurrences() {
   const filtered = recurrences.filter(r => r.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-4 sm:p-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-card-foreground">Lịch lặp lại</h1>
-          <p className="text-muted-foreground mt-1">Quản lý các tiến trình và giao dịch chạy ngầm định kỳ</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground">Lịch lặp lại</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Quản lý các tiến trình và giao dịch chạy ngầm định kỳ</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm">
+        <button className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm whitespace-nowrap">
           <Plus size={18} />
           <span className="font-medium">Tạo tiến trình mới</span>
         </button>
@@ -75,44 +75,46 @@ export function Recurrences() {
              <p className="text-card-foreground font-medium text-lg">Không tìm thấy dữ liệu</p>
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="text-xs uppercase tracking-wider text-muted-foreground border-b border-border bg-muted">
-                <th className="px-6 py-4 font-semibold">Tên tiến trình</th>
-                <th className="px-6 py-4 font-semibold">Lịch trình (Cron)</th>
-                <th className="px-6 py-4 font-semibold">Lần chạy tiếp theo</th>
-                <th className="px-6 py-4 font-semibold text-center">Trạng thái</th>
-                <th className="px-6 py-4 font-semibold text-right">Thao tác</th>
+                <th className="px-4 sm:px-6 py-4 font-semibold">Tên tiến trình</th>
+                <th className="px-4 sm:px-6 py-4 font-semibold hidden sm:table-cell">Lịch trình (Cron)</th>
+                <th className="px-4 sm:px-6 py-4 font-semibold hidden md:table-cell">Lần chạy tiếp theo</th>
+                <th className="px-4 sm:px-6 py-4 font-semibold text-center">Trạng thái</th>
+                <th className="px-4 sm:px-6 py-4 font-semibold text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map((item) => (
                 <tr key={item.id} className="hover:bg-muted transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="font-semibold text-card-foreground">{item.name}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                  <td className="px-4 sm:px-6 py-4">
+                    <div className="font-semibold text-card-foreground text-sm">{item.name}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1 flex-wrap">
+                      <span className="sm:hidden font-mono text-xs px-1.5 py-0.5 bg-muted rounded">{item.cron}</span>
                       Kết quả gần nhất: 
                       <span className={item.lastRunStatus === "success" ? "text-green-600" : "text-red-500"}>
                         {item.lastRunStatus === "success" ? "Thành công" : "Thất bại"}
                       </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <span className="font-mono text-sm px-2.5 py-1 bg-muted text-foreground rounded-md border border-border shadow-sm">
+                  <td className="px-4 sm:px-6 py-4 hidden sm:table-cell">
+                    <span className="font-mono text-xs sm:text-sm px-2 sm:px-2.5 py-1 bg-muted text-foreground rounded-md border border-border shadow-sm">
                       {item.cron}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-foreground font-medium">
+                  <td className="px-4 sm:px-6 py-4 text-sm text-foreground font-medium hidden md:table-cell">
                     {format(new Date(item.nextRun), "HH:mm, dd/MM/yyyy", { locale: vi })}
                   </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${
+                  <td className="px-4 sm:px-6 py-4 text-center">
+                    <span className={`inline-flex px-2 sm:px-2.5 py-1 rounded-full text-xs font-semibold ${
                       item.status === "active" ? "bg-blue-100 text-blue-700" : "bg-muted text-muted-foreground"
                     }`}>
                       {item.status === "active" ? "Đang theo dõi" : "Đã tạm dừng"}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4">
                     <div className="flex items-center justify-end gap-2">
                       <button onClick={() => toggleStatus(item.id, item.status)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors" title={item.status === "active" ? "Tạm dừng" : "Tiếp tục"}>
                         {item.status === "active" ? <Pause size={16} /> : <Play size={16} />}
@@ -126,6 +128,7 @@ export function Recurrences() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

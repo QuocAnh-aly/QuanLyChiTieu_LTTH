@@ -30,6 +30,7 @@ import {
   Cell,
 } from "recharts";
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { AddWalletModal } from "../../../components/modals/AddWalletModal";
 import { EditWalletModal } from "../../../components/modals/EditWalletModal";
@@ -129,6 +130,7 @@ function CopyButton({ text }) {
 import { PageLayout } from "../../../components/layout/PageLayout";
 
 export function AssetAccounts() {
+  const navigate = useNavigate();
   const { fmt, fmtShort } = useSettings();
   const [accounts, setAccounts] = useState([]);
   const [summary, setSummary] = useState({
@@ -355,7 +357,10 @@ export function AssetAccounts() {
           </p>
         </div>
 
-        <div className="bg-card rounded-2xl p-6 border border-border">
+        <div
+          onClick={() => navigate('/accounts/liabilities')}
+          className="bg-card rounded-2xl p-6 border border-border cursor-pointer hover:border-red-400 hover:shadow-md transition-all"
+        >
           <div className="flex items-center justify-between mb-4">
             <span className="text-muted-foreground text-sm font-medium">Nợ</span>
             <div className="w-10 h-10 rounded-full bg-red-500/15 flex items-center justify-center">
@@ -417,8 +422,8 @@ export function AssetAccounts() {
 
       {/* Search & sort toolbar */}
       {accounts.length > 0 && (
-        <div className="flex gap-3 mb-5">
-          <div className="relative flex-1 max-w-xs">
+        <div className="flex flex-col sm:flex-row gap-3 mb-5">
+          <div className="relative flex-1 max-w-full sm:max-w-xs">
             <Search
               size={16}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
@@ -431,7 +436,7 @@ export function AssetAccounts() {
               className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
           </div>
-          <div className="flex items-center gap-1.5 border border-border rounded-lg px-3 bg-card">
+          <div className="flex items-center gap-1.5 border border-border rounded-lg px-3 bg-card w-full sm:w-auto">
             <SortAsc size={15} className="text-muted-foreground" />
             <select
               value={sortBy}
@@ -585,8 +590,8 @@ export function AssetAccounts() {
       {/* Account details table */}
       {accounts.length > 0 && (
         <div className="bg-card rounded-2xl border border-border overflow-hidden mb-6">
-          <div className="px-6 py-4 border-b border-border bg-muted/50">
-            <h2 className="text-base font-bold text-card-foreground">
+          <div className="px-4 sm:px-6 py-4 border-b border-border bg-muted/50">
+            <h2 className="text-sm sm:text-base font-bold text-card-foreground">
               Chi tiết tài khoản
             </h2>
           </div>
@@ -594,20 +599,12 @@ export function AssetAccounts() {
             <table className="w-full text-left">
               <thead>
                 <tr className="text-xs uppercase tracking-wider text-muted-foreground border-b border-border bg-muted">
-                  <th className="px-6 py-3 font-semibold">Tên tài khoản</th>
-                  <th className="px-6 py-3 font-semibold">Loại</th>
-                  <th className="px-6 py-3 font-semibold text-center">
-                    Tiền tệ
-                  </th>
-                  <th className="px-6 py-3 font-semibold text-right">
-                    Số dư ban đầu
-                  </th>
-                  <th className="px-6 py-3 font-semibold text-right">
-                    Số dư hiện tại
-                  </th>
-                  <th className="px-6 py-3 font-semibold text-right">
-                    Thay đổi
-                  </th>
+                  <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">Tên tài khoản</th>
+                  <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">Loại</th>
+                  <th className="px-3 sm:px-6 py-3 font-semibold text-center whitespace-nowrap">Tiền tệ</th>
+                  <th className="px-3 sm:px-6 py-3 font-semibold text-right whitespace-nowrap">Số dư ban đầu</th>
+                  <th className="px-3 sm:px-6 py-3 font-semibold text-right whitespace-nowrap">Số dư hiện tại</th>
+                  <th className="px-3 sm:px-6 py-3 font-semibold text-right whitespace-nowrap">Thay đổi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -622,40 +619,40 @@ export function AssetAccounts() {
                       key={acc.id}
                       className="hover:bg-muted transition-colors"
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <div
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs"
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs shrink-0"
                             style={{
                               background: `linear-gradient(135deg, ${acc.gradientFrom}, ${acc.gradientTo})`,
                             }}
                           >
                             <acc.icon size={14} />
                           </div>
-                          <span className="font-semibold text-card-foreground">
+                          <span className="font-semibold text-card-foreground text-sm sm:text-base">
                             {acc.name}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                         <span className="px-2.5 py-1 bg-muted text-muted-foreground rounded-full text-xs font-medium">
                           {acc.type}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-3 sm:px-6 py-4 text-center whitespace-nowrap">
                         <span className="px-2.5 py-1 bg-purple-500/15 text-purple-600 rounded-full text-xs font-semibold">
                           {acc.currencyCode}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right text-muted-foreground font-medium">
+                      <td className="px-3 sm:px-6 py-4 text-right text-muted-foreground font-medium whitespace-nowrap text-sm">
                         {fmt(acc.initialBalance)}
                       </td>
-                      <td className="px-6 py-4 text-right font-bold text-card-foreground">
+                      <td className="px-3 sm:px-6 py-4 text-right font-bold text-card-foreground whitespace-nowrap text-sm">
                         {fmt(acc.balance)}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-3 sm:px-6 py-4 text-right whitespace-nowrap">
                         <span
-                          className={`font-semibold text-sm ${diff >= 0 ? "text-green-600" : "text-red-500"}`}
+                          className={`font-semibold text-xs sm:text-sm ${diff >= 0 ? "text-green-600" : "text-red-500"}`}
                         >
                           {diff >= 0 ? "+" : "-"}
                           {fmt(Math.abs(diff))}
@@ -677,14 +674,14 @@ export function AssetAccounts() {
 
       {/* Recent Transactions */}
       <div className="bg-card rounded-2xl border border-border overflow-hidden mb-6">
-        <div className="px-6 py-4 border-b border-border bg-muted/50 flex items-center justify-between flex-wrap gap-3">
-          <h2 className="text-base font-bold text-card-foreground">
+        <div className="px-4 sm:px-6 py-4 border-b border-border bg-muted/50 flex items-center justify-between flex-wrap gap-3">
+          <h2 className="text-sm sm:text-base font-bold text-card-foreground">
             Lịch sử giao dịch gần nhất
           </h2>
           <select
             value={txWalletFilter}
             onChange={(e) => setTxWalletFilter(e.target.value)}
-            className="text-sm border border-border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card"
+            className="text-xs sm:text-sm border border-border rounded-lg px-2 sm:px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card"
           >
             <option value="all">Tất cả ví</option>
             {accounts.map((a) => (
@@ -698,10 +695,10 @@ export function AssetAccounts() {
           <table className="w-full text-left">
             <thead>
               <tr className="text-xs uppercase tracking-wider text-muted-foreground border-b border-border bg-muted">
-                <th className="px-6 py-3 font-semibold">Mô tả</th>
-                <th className="px-6 py-3 font-semibold">Danh mục</th>
-                <th className="px-6 py-3 font-semibold">Ngày</th>
-                <th className="px-6 py-3 font-semibold text-right">Số tiền</th>
+                <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">Mô tả</th>
+                <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">Danh mục</th>
+                <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">Ngày</th>
+                <th className="px-3 sm:px-6 py-3 font-semibold text-right whitespace-nowrap">Số tiền</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -740,30 +737,31 @@ export function AssetAccounts() {
                       key={t.journalId}
                       className="hover:bg-muted transition-colors"
                     >
-                      <td className="px-6 py-3.5">
-                        <div className="flex items-center gap-3">
+                      <td className="px-3 sm:px-6 py-3.5 whitespace-nowrap">
+                        <div className="flex items-center gap-2 sm:gap-3">
                           <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}
+                            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}
                           >
-                            <TxIcon size={14} className={iconCls} />
+                            <TxIcon size={12} className={iconCls + " sm:hidden"} />
+                            <TxIcon size={14} className={iconCls + " hidden sm:block"} />
                           </div>
-                          <span className="font-medium text-card-foreground text-sm">
+                          <span className="font-medium text-card-foreground text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">
                             {t.description || "—"}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-3.5">
-                        <span className="px-2.5 py-1 bg-muted text-muted-foreground rounded-full text-xs font-medium">
+                      <td className="px-3 sm:px-6 py-3.5 whitespace-nowrap">
+                        <span className="px-2 py-1 bg-muted text-muted-foreground rounded-full text-[10px] sm:text-xs font-medium">
                           {t.categoryName}
                         </span>
                       </td>
-                      <td className="px-6 py-3.5 text-muted-foreground text-sm">
+                      <td className="px-3 sm:px-6 py-3.5 text-muted-foreground text-xs sm:text-sm whitespace-nowrap">
                         {t.transactionDate
                           ? format(new Date(t.transactionDate), "dd/MM/yyyy")
                           : "—"}
                       </td>
                       <td
-                        className={`px-6 py-3.5 text-right font-bold text-sm ${amtCls}`}
+                        className={`px-3 sm:px-6 py-3.5 text-right font-bold text-xs sm:text-sm ${amtCls} whitespace-nowrap`}
                       >
                         {prefix}
                         {fmt(Math.abs(t.totalAmount))}
@@ -781,7 +779,7 @@ export function AssetAccounts() {
                 <tr>
                   <td
                     colSpan="4"
-                    className="px-6 py-10 text-center text-muted-foreground text-sm"
+                    className="px-3 sm:px-6 py-10 text-center text-muted-foreground text-sm"
                   >
                     Không có giao dịch nào
                   </td>

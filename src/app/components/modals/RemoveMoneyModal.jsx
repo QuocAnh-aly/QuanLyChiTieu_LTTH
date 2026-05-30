@@ -59,7 +59,7 @@ export function RemoveMoneyModal({ isOpen, onClose, onSave, goal }) {
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{currencySymbol}</span>
                 <input autoFocus type="number" value={amount} onChange={e => setAmount(e.target.value)}
-                  min="1" step="1000" max={maxAmount}
+                  min="1" step="1" max={maxAmount}
                   className={`w-full pl-9 pr-4 py-2.5 border rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 ${
                     enteredAmount > maxAmount ? "border-red-400 focus:ring-red-400" : "border-border focus:ring-orange-500"
                   }`}

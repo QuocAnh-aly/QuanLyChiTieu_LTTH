@@ -82,7 +82,7 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-[#2c323c] rounded-lg w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl border border-slate-700" onClick={e => e.stopPropagation()}>
+      <div className="bg-[#2c323c] rounded-lg w-full max-w-full sm:max-w-6xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl border border-slate-700" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-700 flex justify-between items-center bg-[#2c323c]">
           <div className="flex items-center gap-3">
@@ -117,7 +117,7 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                     <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0">Số tiền mục tiêu</label>
-                    <input type="number" value={targetAmount} onChange={e => setTargetAmount(e.target.value)} required min="1" step="1000"
+                    <input type="number" value={targetAmount} onChange={e => setTargetAmount(e.target.value)} required min="1" step="1"
                       className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" />
                   </div>
 
@@ -187,7 +187,7 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 hidden">
                     <label className="sm:w-32 font-medium text-muted-foreground text-right shrink-0">Tiết kiệm hàng tháng</label>
-                    <input type="number" value={monthly} onChange={e => setMonthly(e.target.value)} min="0" step="1000"
+                    <input type="number" value={monthly} onChange={e => setMonthly(e.target.value)} min="0" step="1"
                       className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" />
                   </div>
 

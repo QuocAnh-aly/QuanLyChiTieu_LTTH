@@ -302,38 +302,39 @@ export function ExchangeRates() {
             </p>
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="text-xs uppercase tracking-wider text-muted-foreground border-b border-border bg-muted">
-                <th className="px-6 py-4 font-semibold">Cặp tiền tệ</th>
-                <th className="px-6 py-4 font-semibold text-right">
-                  1 đơn vị = X {defaultCode}
+                <th className="px-4 sm:px-6 py-4 font-semibold">Cặp tiền tệ</th>
+                <th className="px-4 sm:px-6 py-4 font-semibold text-right">
+                  Tỷ giá
                 </th>
-                <th className="px-6 py-4 font-semibold text-right">
-                  1 {defaultCode} = X đơn vị
+                <th className="px-4 sm:px-6 py-4 font-semibold text-right hidden md:table-cell">
+                  Nghịch đảo
                 </th>
-                <th className="px-6 py-4 font-semibold text-right w-24">Sửa</th>
+                <th className="px-4 sm:px-6 py-4 font-semibold text-right w-24">Sửa</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map(p => (
                 <tr key={p.code} className="hover:bg-muted transition-colors">
                   {/* Pair */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2 bg-muted border border-border rounded-lg px-3 py-1.5">
-                        <span className="font-bold text-card-foreground font-mono text-sm">{p.code}</span>
+                  <td className="px-4 sm:px-6 py-4">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="flex items-center gap-1 sm:gap-2 bg-muted border border-border rounded-lg px-2 sm:px-3 py-1.5">
+                        <span className="font-bold text-card-foreground font-mono text-xs sm:text-sm">{p.code}</span>
                         <ArrowRightLeft size={12} className="text-muted-foreground" />
-                        <span className="font-bold text-card-foreground font-mono text-sm">{defaultCode}</span>
+                        <span className="font-bold text-card-foreground font-mono text-xs sm:text-sm">{defaultCode}</span>
                       </div>
-                      <span className="text-sm text-muted-foreground">{p.name}</span>
+                      <span className="text-xs sm:text-sm text-muted-foreground hidden sm:inline">{p.name}</span>
                     </div>
                   </td>
 
                   {/* Forward rate */}
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-4 sm:px-6 py-4 text-right">
                     {editingCode === p.code ? (
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1 sm:gap-2">
                         <input
                           type="number"
                           value={editValue}
@@ -342,7 +343,7 @@ export function ExchangeRates() {
                           autoFocus
                           min="0"
                           step="any"
-                          className="w-32 text-right px-2 py-1 border border-purple-400 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          className="w-20 sm:w-32 text-right px-2 py-1 border border-purple-400 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                         />
                         <button onClick={() => commitEdit(p.code)}
                           className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors">
@@ -354,19 +355,19 @@ export function ExchangeRates() {
                         </button>
                       </div>
                     ) : (
-                      <span className="text-lg font-bold text-card-foreground font-mono">
+                      <span className="text-base sm:text-lg font-bold text-card-foreground font-mono">
                         {p.rate.toLocaleString('vi-VN')}
                       </span>
                     )}
                   </td>
 
                   {/* Inverse rate */}
-                  <td className="px-6 py-4 text-right text-muted-foreground font-mono text-sm">
+                  <td className="px-4 sm:px-6 py-4 text-right text-muted-foreground font-mono text-xs sm:text-sm hidden md:table-cell">
                     {editingCode !== p.code && (1 / p.rate).toLocaleString('vi-VN', { maximumFractionDigits: 6 })}
                   </td>
 
                   {/* Edit button */}
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-4 sm:px-6 py-4 text-right">
                     {editingCode !== p.code && (
                       <button
                         onClick={() => startEdit(p.code, p.rate)}
@@ -382,13 +383,14 @@ export function ExchangeRates() {
 
               {filtered.length === 0 && pairs.length > 0 && (
                 <tr>
-                  <td colSpan="4" className="px-6 py-12 text-center text-muted-foreground">
+                  <td colSpan="4" className="px-4 sm:px-6 py-12 text-center text-muted-foreground">
                     Không tìm thấy tỷ giá nào.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </PageLayout>

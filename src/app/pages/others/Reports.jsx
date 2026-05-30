@@ -108,11 +108,11 @@ export function Reports() {
   const hasAnyData = incomeTotal > 0 || expenseTotal > 0 || monthlyData.some(r => r.income > 0 || r.expense > 0);
 
   return (
-    <div className="p-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+    <div className="p-4 sm:p-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-card-foreground">Báo cáo phân tích</h1>
-          <p className="text-muted-foreground mt-1">Cái nhìn toàn cảnh về tình hình tài chính của bạn</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground">Báo cáo phân tích</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Cái nhìn toàn cảnh về tình hình tài chính của bạn</p>
         </div>
 
         <div className="flex items-center gap-3">

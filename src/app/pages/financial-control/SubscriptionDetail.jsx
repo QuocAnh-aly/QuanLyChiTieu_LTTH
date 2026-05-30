@@ -158,32 +158,32 @@ export function SubscriptionDetail() {
     : 0;
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto">
 
       {/* Back + header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/subscriptions")}
-            className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-muted-foreground transition-colors">
+            className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-muted-foreground transition-colors shrink-0">
             <ArrowLeft size={20} />
           </button>
-          <div className="w-11 h-11 rounded-xl bg-purple-100 flex items-center justify-center">
+          <div className="w-11 h-11 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
             <Receipt size={22} className="text-purple-600" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-card-foreground">{bill.name}</h1>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg md:text-2xl font-bold text-card-foreground truncate">{bill.name}</h1>
               {!bill.active && (
                 <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded font-semibold">Tắt</span>
               )}
             </div>
             {bill.objectGroup && (
-              <p className="text-sm text-muted-foreground">{bill.objectGroup}</p>
+              <p className="text-sm text-muted-foreground truncate">{bill.objectGroup}</p>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button onClick={handleRescan} disabled={rescanning || !bill.active}
             className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg font-medium text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
             <RefreshCw size={14} className={rescanning ? "animate-spin" : ""} />
@@ -304,30 +304,32 @@ export function SubscriptionDetail() {
             <p className="text-xs mt-1 text-muted-foreground">Nhấn "Quét lại" để tìm giao dịch tự động</p>
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="text-xs text-muted-foreground uppercase tracking-wider bg-muted/30">
-                <th className="px-6 py-3 font-semibold">Ngày</th>
-                <th className="px-6 py-3 font-semibold">Mô tả</th>
-                <th className="px-6 py-3 font-semibold text-right">Số tiền</th>
+                <th className="px-4 md:px-6 py-3 font-semibold">Ngày</th>
+                <th className="px-4 md:px-6 py-3 font-semibold">Mô tả</th>
+                <th className="px-4 md:px-6 py-3 font-semibold text-right">Số tiền</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {bill.matchedTransactions.map(t => (
                 <tr key={t.journalId} className="hover:bg-muted">
-                  <td className="px-6 py-3 text-sm text-muted-foreground">
+                  <td className="px-4 md:px-6 py-3 text-sm text-muted-foreground whitespace-nowrap">
                     {t.transactionDate
                       ? format(parseISO(t.transactionDate), "dd/MM/yyyy", { locale: vi })
                       : "—"}
                   </td>
-                  <td className="px-6 py-3 text-sm text-foreground">{t.description || "—"}</td>
-                  <td className="px-6 py-3 text-sm font-bold text-purple-600 text-right">
+                  <td className="px-4 md:px-6 py-3 text-sm text-foreground">{t.description || "—"}</td>
+                  <td className="px-4 md:px-6 py-3 text-sm font-bold text-purple-600 text-right whitespace-nowrap">
                     {fmt(t.amount)}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

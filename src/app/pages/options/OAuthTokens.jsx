@@ -262,14 +262,14 @@ export function OAuthTokens() {
     >
 
       {/* ── Security banner ─────────────────────────────────────── */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-sm relative overflow-hidden mb-8 flex items-center gap-6">
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-4 sm:p-6 text-white shadow-sm relative overflow-hidden mb-8 flex flex-col sm:flex-row items-center gap-3 sm:gap-6 text-center sm:text-left">
         <div className="absolute top-0 right-0 w-64 h-64 bg-card opacity-5 rounded-full -mr-32 -mt-32 pointer-events-none" />
-        <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm relative z-10 shrink-0">
-          <ShieldCheck size={32} />
+        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm relative z-10 shrink-0">
+          <ShieldCheck size={24} className="sm:size-[32px]" />
         </div>
         <div className="relative z-10">
-          <h3 className="text-xl font-bold mb-1">Bảo mật dữ liệu của bạn</h3>
-          <p className="text-blue-100 max-w-2xl text-sm leading-relaxed">
+          <h3 className="text-lg sm:text-xl font-bold mb-1">Bảo mật dữ liệu của bạn</h3>
+          <p className="text-blue-100 text-xs sm:text-sm leading-relaxed">
             MoneyFlow sử dụng chuẩn <strong>OAuth 2.0</strong> để liên kết với ngân hàng và dịch vụ lưu trữ.
             Chúng tôi <strong>KHÔNG BAO GIỜ</strong> lưu mật khẩu ngân hàng của bạn. Bạn có thể thu hồi quyền truy cập bất cứ lúc nào.
           </p>

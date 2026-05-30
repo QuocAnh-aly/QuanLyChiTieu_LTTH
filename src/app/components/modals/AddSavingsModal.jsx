@@ -111,8 +111,8 @@ export function AddSavingsModal({ isOpen, onClose, onAdd }) {
                 value={targetAmount}
                 onChange={(e) => setTargetAmount(e.target.value)}
                 className="w-full pl-8 pr-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="0.00"
-                step="0.01"
+                placeholder="0"
+                step="1"
                 min="0"
                 required
               />
@@ -145,8 +145,8 @@ export function AddSavingsModal({ isOpen, onClose, onAdd }) {
                 value={monthlyContribution}
                 onChange={(e) => setMonthlyContribution(e.target.value)}
                 className="w-full pl-8 pr-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="0.00"
-                step="0.01"
+                placeholder="0"
+                step="1"
                 min="0"
               />
             </div>

@@ -292,16 +292,16 @@ export function Budgets() {
 
       {/* Main content */}
       {budgets.length > 0 && (
-        <div className="flex gap-6 mb-6">
+        <div className="flex flex-col lg:flex-row gap-6 mb-6">
           <div className="flex-1 min-w-0">
             {/* Toolbar */}
             <div className="flex flex-wrap gap-3 items-center mb-4">
-              <div className="relative flex-1 min-w-[180px] max-w-xs">
+              <div className="relative flex-1 min-w-[180px] max-w-full md:max-w-xs">
                 <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Tìm kiếm ngân sách..."
                   className="w-full pl-9 pr-4 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-1 flex-wrap">
                 {[{ key: "all", label: "Tất cả" }, { key: "on-track", label: "Ổn định" }, { key: "warning", label: "Cảnh báo" }, { key: "over", label: "Vượt" }].map(f => (
                   <button key={f.key} onClick={() => setFilterStatus(f.key)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${filterStatus === f.key ? "bg-purple-600 text-white border-purple-600" : "bg-card text-muted-foreground border-border hover:bg-muted"}`}>
@@ -344,7 +344,7 @@ export function Budgets() {
           </div>
 
           {pieData.length > 0 && (
-            <div className="w-64 shrink-0 bg-card rounded-2xl p-5 border border-border self-start">
+            <div className="w-full lg:w-64 shrink-0 bg-card rounded-2xl p-5 border border-border self-start">
               <h3 className="font-bold text-card-foreground mb-4 text-sm">Phân bổ chi tiêu</h3>
               <ResponsiveContainer width="100%" height={160}>
                 <PieChart>

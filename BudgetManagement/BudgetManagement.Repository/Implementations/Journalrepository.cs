@@ -29,6 +29,18 @@ public class JournalRepository : BaseRepository<JournalEntry>, IJournalRepositor
             .OrderByDescending(e => e.TransactionDate)
             .ToListAsync();
 
+    public async Task<IEnumerable<JournalEntry>> GetByDateRangeAndAccountAsync(
+        int userId, DateTime from, DateTime to, int accountId)
+        => await _context.JournalEntries
+            .Where(e => e.UserId == userId
+                     && e.TransactionDate >= from
+                     && e.TransactionDate <= to
+                     && e.JournalDetails.Any(d => d.AccountId == accountId))
+            .Include(e => e.JournalDetails)
+                .ThenInclude(d => d.Account)
+            .OrderByDescending(e => e.TransactionDate)
+            .ToListAsync();
+
     public async Task<JournalEntry?> GetWithDetailsAsync(int journalId)
         => await _context.JournalEntries
             .Include(e => e.JournalDetails)

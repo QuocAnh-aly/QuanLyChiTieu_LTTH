@@ -178,45 +178,45 @@ export function Dashboard() {
     >
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl p-6 text-white">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-purple-100">Tổng số dư</span>
-            <TrendingUp size={20} className="text-purple-200" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 mb-6 sm:mb-8">
+        <div className="bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white">
+          <div className="flex items-center justify-between mb-2 sm:mb-4">
+            <span className="text-purple-100 text-xs sm:text-sm">Tổng số dư</span>
+            <TrendingUp size={18} className="text-purple-200" />
           </div>
-          <p className="text-4xl font-bold mb-2">{fmt(summary.totalBalance)}</p>
-          <p className="text-purple-100 text-sm">Trên tất cả tài khoản</p>
+          <p className="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2 truncate">{fmt(summary.totalBalance)}</p>
+          <p className="text-purple-100 text-xs sm:text-sm">Trên tất cả tài khoản</p>
         </div>
 
-        <div className="bg-card rounded-2xl p-6 border border-border">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-muted-foreground">Thu nhập</span>
-            <div className="w-10 h-10 rounded-full bg-green-500/15 flex items-center justify-center">
-              <ArrowUpRight size={20} className="text-green-600" />
+        <div className="bg-card rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-border">
+          <div className="flex items-center justify-between mb-2 sm:mb-4">
+            <span className="text-muted-foreground text-xs sm:text-sm">Thu nhập</span>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-500/15 flex items-center justify-center">
+              <ArrowUpRight size={16} className="text-green-600" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-card-foreground mb-2">{fmt(summary.monthlyIncome)}</p>
-          <p className="text-green-600 text-sm">Tháng này</p>
+          <p className="text-xl sm:text-3xl font-bold text-card-foreground mb-1 sm:mb-2 truncate">{fmt(summary.monthlyIncome)}</p>
+          <p className="text-green-600 text-xs sm:text-sm">Tháng này</p>
         </div>
 
-        <div className="bg-card rounded-2xl p-6 border border-border">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-muted-foreground">Chi tiêu</span>
-            <div className="w-10 h-10 rounded-full bg-red-500/15 flex items-center justify-center">
-              <ArrowDownRight size={20} className="text-red-600" />
+        <div className="bg-card rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-border">
+          <div className="flex items-center justify-between mb-2 sm:mb-4">
+            <span className="text-muted-foreground text-xs sm:text-sm">Chi tiêu</span>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-red-500/15 flex items-center justify-center">
+              <ArrowDownRight size={16} className="text-red-600" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-card-foreground mb-2">{fmt(summary.monthlyExpense)}</p>
-          <p className={`text-sm font-medium ${netPositive ? "text-green-600" : "text-red-500"}`}>
+          <p className="text-xl sm:text-3xl font-bold text-card-foreground mb-1 sm:mb-2 truncate">{fmt(summary.monthlyExpense)}</p>
+          <p className={`text-xs sm:text-sm font-medium ${netPositive ? "text-green-600" : "text-red-500"}`}>
             Dòng tiền ròng: {netPositive ? "+" : ""}{fmt(summary.netCashFlow)}
           </p>
         </div>
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-card rounded-2xl p-6 border border-border">
-          <h2 className="text-xl font-bold text-card-foreground mb-6">Thu nhập và Chi tiêu</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <div className="bg-card rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-border">
+          <h2 className="text-base sm:text-xl font-bold text-card-foreground mb-4 sm:mb-6">Thu nhập và Chi tiêu</h2>
           {monthlyTrend.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={monthlyTrend}>
@@ -240,8 +240,8 @@ export function Dashboard() {
           )}
         </div>
 
-        <div className="bg-card rounded-2xl p-6 border border-border">
-          <h2 className="text-xl font-bold text-card-foreground mb-6">Chi tiêu theo danh mục</h2>
+        <div className="bg-card rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-border">
+          <h2 className="text-base sm:text-xl font-bold text-card-foreground mb-4 sm:mb-6">Chi tiêu theo danh mục</h2>
           {categorySpending.length > 0 ? (
             <>
               <ResponsiveContainer width="100%" height={220}>
@@ -288,9 +288,9 @@ export function Dashboard() {
       </div>
 
       {/* Recent Transactions */}
-      <div className="bg-card rounded-2xl p-6 border border-border">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-card-foreground">Giao dịch gần đây</h2>
+      <div className="bg-card rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-border">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h2 className="text-base sm:text-xl font-bold text-card-foreground">Giao dịch gần đây</h2>
           <Link
             to="/transactions"
             className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors"

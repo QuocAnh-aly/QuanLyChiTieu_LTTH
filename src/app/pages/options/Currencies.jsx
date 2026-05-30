@@ -135,14 +135,15 @@ export function Currencies() {
           </div>
         </div>
 
+        <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead>
             <tr className="text-xs uppercase tracking-wider text-muted-foreground border-b border-border bg-muted">
-              <th className="px-6 py-4 font-semibold">Mã</th>
-              <th className="px-6 py-4 font-semibold">Tên tiền tệ</th>
-              <th className="px-6 py-4 font-semibold text-center">Ký hiệu</th>
-              <th className="px-6 py-4 font-semibold text-center">Trạng thái</th>
-              <th className="px-6 py-4 font-semibold text-right">Thao tác</th>
+              <th className="px-4 sm:px-6 py-4 font-semibold">Mã</th>
+              <th className="px-4 sm:px-6 py-4 font-semibold hidden sm:table-cell">Tên tiền tệ</th>
+              <th className="px-4 sm:px-6 py-4 font-semibold text-center">Ký hiệu</th>
+              <th className="px-4 sm:px-6 py-4 font-semibold text-center hidden md:table-cell">Trạng thái</th>
+              <th className="px-4 sm:px-6 py-4 font-semibold text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -151,16 +152,16 @@ export function Currencies() {
                 key={c.code}
                 className={`hover:bg-muted transition-colors ${c.isDefault ? 'bg-indigo-50/30' : ''}`}
               >
-                <td className="px-6 py-4">
+                <td className="px-4 sm:px-6 py-4">
                   <span className="font-bold text-card-foreground font-mono">{c.code}</span>
                 </td>
-                <td className="px-6 py-4 text-foreground font-medium">{c.name}</td>
-                <td className="px-6 py-4 text-center">
+                <td className="px-4 sm:px-6 py-4 text-foreground font-medium hidden sm:table-cell">{c.name}</td>
+                <td className="px-4 sm:px-6 py-4 text-center">
                   <span className="inline-flex min-w-8 h-8 px-2 items-center justify-center bg-muted text-foreground rounded-lg font-mono font-bold text-sm border border-border">
                     {c.symbol}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-center">
+                <td className="px-4 sm:px-6 py-4 text-center hidden md:table-cell">
                   {c.isDefault ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold">
                       <Star size={12} className="fill-indigo-700" />
@@ -170,13 +171,13 @@ export function Currencies() {
                     <span className="text-muted-foreground text-sm">—</span>
                   )}
                 </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center justify-end gap-2">
+                <td className="px-4 sm:px-6 py-4">
+                  <div className="flex items-center justify-end gap-1 sm:gap-2">
                     {!c.isDefault && (
                       <>
                         <button
                           onClick={() => handleSetDefault(c.code)}
-                          className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-card border border-border rounded-md hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-colors"
+                          className="px-2 sm:px-3 py-1.5 text-xs font-medium text-muted-foreground bg-card border border-border rounded-md hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-colors"
                         >
                           Đặt mặc định
                         </button>
@@ -198,7 +199,7 @@ export function Currencies() {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan="5" className="px-6 py-16 text-center">
+                <td colSpan="5" className="px-4 sm:px-6 py-16 text-center">
                   <DollarSign size={32} className="mx-auto text-muted-foreground mb-2" />
                   <p className="text-muted-foreground">Không tìm thấy loại tiền tệ nào.</p>
                 </td>
@@ -206,6 +207,7 @@ export function Currencies() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* ── Add Currency Modal ──────────────────────── */}

@@ -57,7 +57,7 @@ export function EditSavingsModal({ goal, onClose, onSave }) {
                 value={targetAmount}
                 onChange={(e) => setTargetAmount(e.target.value)}
                 className="w-full pl-8 pr-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                step="0.01"
+                step="1"
                 min="0"
                 required
               />
@@ -73,7 +73,7 @@ export function EditSavingsModal({ goal, onClose, onSave }) {
                 value={monthlyContribution}
                 onChange={(e) => setMonthlyContribution(e.target.value)}
                 className="w-full pl-8 pr-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                step="0.01"
+                step="1"
                 min="0"
               />
             </div>

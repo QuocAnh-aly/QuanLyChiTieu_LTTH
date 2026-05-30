@@ -231,13 +231,13 @@ export function Subscriptions() {
 
                     return (
                       <div key={bill.billId}
-                        className={`px-4 py-3.5 hover:bg-muted transition-colors flex items-center gap-3 group ${!bill.active ? "opacity-60" : ""}`}>
+                        className={`px-3 sm:px-4 py-3 hover:bg-muted transition-colors flex items-center gap-2 sm:gap-3 group flex-wrap sm:flex-nowrap ${!bill.active ? "opacity-60" : ""}`}>
                         {/* Drag handle (visual only) */}
-                        <GripVertical size={16} className="text-muted-foreground shrink-0 cursor-grab" />
+                        <GripVertical size={16} className="text-muted-foreground shrink-0 cursor-grab hidden sm:block" />
 
                         {/* Icon */}
-                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${bill.active ? "bg-purple-100" : "bg-muted"}`}>
-                          <Receipt size={16} className={bill.active ? "text-purple-600" : "text-muted-foreground"} />
+                        <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center shrink-0 ${bill.active ? "bg-purple-100" : "bg-muted"}`}>
+                          <Receipt size={14} className={bill.active ? "text-purple-600" : "text-muted-foreground"} />
                         </div>
 
                         {/* Name + freq */}
@@ -252,13 +252,21 @@ export function Subscriptions() {
                               <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-medium">Hết hạn</span>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
                             {FREQ_LABELS[bill.repeatFreq] ?? bill.repeatFreq}
                             {bill.skip > 0 ? ` · bỏ ${bill.skip} chu kỳ` : ""}
+                            {/* Show amount on mobile */}
+                            <span className="sm:hidden font-semibold text-foreground">{fmt(bill.amountMin)}–{fmt(bill.amountMax)}</span>
+                            {/* Show next date on mobile */}
+                            {nextDate && (
+                              <span className={`sm:hidden text-xs ${daysUntil !== null && daysUntil <= 7 ? "text-orange-500" : "text-muted-foreground"}`}>
+                                {format(nextDate, "dd/MM", { locale: vi })}
+                              </span>
+                            )}
                           </p>
                         </div>
 
-                        {/* Amount range */}
+                        {/* Amount range - desktop only */}
                         <div className="hidden md:block text-right shrink-0">
                           <p className="text-xs text-muted-foreground mb-0.5">Khoảng tiền</p>
                           <p className="text-sm font-semibold text-foreground">
@@ -266,12 +274,12 @@ export function Subscriptions() {
                           </p>
                         </div>
 
-                        {/* Paid status */}
+                        {/* Paid status - desktop only */}
                         <div className="hidden lg:block shrink-0">
                           <PaidBadge status={bill.paidStatus} />
                         </div>
 
-                        {/* Next expected */}
+                        {/* Next expected - desktop only */}
                         <div className="hidden md:block text-right shrink-0 w-28">
                           <p className="text-xs text-muted-foreground mb-0.5">Tiếp theo</p>
                           {nextDate ? (

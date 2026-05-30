@@ -257,28 +257,30 @@ export function PiggyBanks() {
           <div className="px-6 py-3 border-b border-border bg-muted/50">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Trạng thái tài khoản</p>
           </div>
+          <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="text-xs text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/30">
-                <th className="px-6 py-3 font-semibold">Tài khoản</th>
-                <th className="px-6 py-3 font-semibold text-right">Số dư</th>
-                <th className="px-6 py-3 font-semibold text-right">Đã gán vào lợn</th>
-                <th className="px-6 py-3 font-semibold text-right">Còn tự do</th>
+                <th className="px-4 md:px-6 py-3 font-semibold">Tài khoản</th>
+                <th className="px-4 md:px-6 py-3 font-semibold text-right">Số dư</th>
+                <th className="px-4 md:px-6 py-3 font-semibold text-right">Đã gán vào lợn</th>
+                <th className="px-4 md:px-6 py-3 font-semibold text-right">Còn tự do</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {accountStatus.map(a => (
                 <tr key={a.accountId} className="hover:bg-muted">
-                  <td className="px-6 py-3 font-medium text-card-foreground text-sm">{a.name}</td>
-                  <td className="px-6 py-3 text-right text-sm text-foreground">{fmt(a.balance ?? 0)}</td>
-                  <td className="px-6 py-3 text-right text-sm text-purple-600 font-semibold">{fmt(a.assigned)}</td>
-                  <td className={`px-6 py-3 text-right text-sm font-bold ${a.remaining >= 0 ? "text-green-600" : "text-red-500"}`}>
+                  <td className="px-4 md:px-6 py-3 font-medium text-card-foreground text-sm">{a.name}</td>
+                  <td className="px-4 md:px-6 py-3 text-right text-sm text-foreground">{fmt(a.balance ?? 0)}</td>
+                  <td className="px-4 md:px-6 py-3 text-right text-sm text-purple-600 font-semibold">{fmt(a.assigned)}</td>
+                  <td className={`px-4 md:px-6 py-3 text-right text-sm font-bold ${a.remaining >= 0 ? "text-green-600" : "text-red-500"}`}>
                     {fmt(a.remaining)}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

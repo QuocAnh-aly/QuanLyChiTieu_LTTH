@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, Fragment } from "react";
 import {
   ArrowUpRight, Plus, RefreshCw, Search, Pencil, Trash2, TrendingUp,
 } from "lucide-react";
@@ -294,52 +294,53 @@ export function Deposit() {
         </div>
 
         {isLoading ? (
-          <div className="p-8 space-y-3">{[...Array(5)].map((_, i) => (
+          <div className="p-4 sm:p-8 space-y-3">{[...Array(5)].map((_, i) => (
             <div key={i} className="h-12 bg-muted rounded-xl animate-pulse" />
           ))}</div>
         ) : filtered.length === 0 ? (
-          <div className="py-16 text-center">
+          <div className="py-12 sm:py-16 text-center">
             <TrendingUp size={40} className="mx-auto mb-3 text-slate-200" />
             <p className="font-medium text-muted-foreground">Không có khoản thu nào</p>
             <p className="text-sm text-muted-foreground mt-1">Thử thay đổi khoảng thời gian</p>
           </div>
         ) : (
-          <table className="w-full text-left">
+          <div className="overflow-x-auto">
+          <table className="w-full text-left min-w-[600px]">
             <thead>
               <tr className="bg-muted text-muted-foreground text-xs uppercase tracking-wider border-b border-border">
-                <th className="px-6 py-3 font-semibold">Mô tả</th>
-                <th className="px-6 py-3 font-semibold">Nguồn thu</th>
-                <th className="px-6 py-3 font-semibold">Nhận vào ví</th>
-                <th className="px-6 py-3 font-semibold">Giờ</th>
-                <th className="px-6 py-3 font-semibold text-right">Số tiền</th>
-                <th className="px-6 py-3 w-20"></th>
+                <th className="px-3 sm:px-6 py-3 font-semibold">Mô tả</th>
+                <th className="px-3 sm:px-6 py-3 font-semibold">Nguồn thu</th>
+                <th className="px-3 sm:px-6 py-3 font-semibold">Nhận vào ví</th>
+                <th className="px-3 sm:px-6 py-3 font-semibold">Giờ</th>
+                <th className="px-3 sm:px-6 py-3 font-semibold text-right">Số tiền</th>
+                <th className="px-3 sm:px-6 py-3 w-16 sm:w-20"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {[...grouped.entries()].map(([dateKey, txs]) => {
                 const dayTotal = txs.reduce((s, t) => s + t.totalAmount, 0);
                 return (
-                  <>
-                    <tr key={`hdr-${dateKey}`} className="bg-muted/80">
-                      <td colSpan={4} className="px-6 py-2">
+                  <Fragment key={dateKey}>
+                    <tr className="bg-muted/80">
+                      <td colSpan={4} className="px-3 sm:px-6 py-2">
                         <span className="text-xs font-bold text-muted-foreground capitalize">
                           {format(new Date(dateKey), "EEEE, dd/MM/yyyy", { locale: vi })}
                         </span>
                       </td>
-                      <td className="px-6 py-2 text-right">
+                      <td className="px-3 sm:px-6 py-2 text-right">
                         <span className="text-xs font-bold text-green-600">+{fmt(dayTotal)}</span>
                       </td>
                       <td />
                     </tr>
                     {txs.map(t => (
                       <tr key={t.journalId} className="hover:bg-muted transition-colors group">
-                        <td className="px-6 py-3.5">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center shrink-0">
-                              <ArrowUpRight size={15} className="text-green-600" />
+                        <td className="px-3 sm:px-6 py-3 sm:py-3.5">
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-green-50 flex items-center justify-center shrink-0">
+                              <ArrowUpRight size={13} className="text-green-600" />
                             </div>
                             <div>
-                              <p className="font-medium text-card-foreground text-sm">
+                              <p className="font-medium text-card-foreground text-xs sm:text-sm">
                                 {t.description || <span className="italic text-muted-foreground">Không có mô tả</span>}
                               </p>
                               {t.tags && (
@@ -352,20 +353,20 @@ export function Deposit() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-3.5">
-                          <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                        <td className="px-3 sm:px-6 py-3 sm:py-3.5">
+                          <span className="inline-flex px-2 py-1 sm:px-2.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-green-100 text-green-700">
                             {t.categoryName}
                           </span>
                         </td>
-                        <td className="px-6 py-3.5 text-xs text-muted-foreground">{t.destAccount}</td>
-                        <td className="px-6 py-3.5 text-xs text-muted-foreground">
+                        <td className="px-3 sm:px-6 py-3 sm:py-3.5 text-xs text-muted-foreground">{t.destAccount}</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-3.5 text-xs text-muted-foreground whitespace-nowrap">
                           {format(new Date(t.transactionDate), "HH:mm")}
                         </td>
-                        <td className="px-6 py-3.5 text-right font-bold text-sm text-green-600">
+                        <td className="px-3 sm:px-6 py-3 sm:py-3.5 text-right font-bold text-xs sm:text-sm text-green-600 whitespace-nowrap">
                           +{fmt(t.totalAmount)}
                         </td>
-                        <td className="px-6 py-3.5">
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all justify-end">
+                        <td className="px-3 sm:px-6 py-3 sm:py-3.5">
+                          <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all justify-end">
                             <button onClick={() => setEditTarget(t)}
                               className="p-1.5 rounded hover:bg-purple-50 text-muted-foreground hover:text-purple-600">
                               <Pencil size={14} />
@@ -378,11 +379,12 @@ export function Deposit() {
                         </td>
                       </tr>
                     ))}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

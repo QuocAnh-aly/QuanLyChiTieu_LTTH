@@ -145,16 +145,16 @@ export function Webhooks() {
   const triggerLabel = (val) => TRIGGER_OPTIONS.find(o => o.value === val)?.label ?? val;
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-4 sm:p-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-card-foreground">Webhooks</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground">Webhooks</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
             Gửi sự kiện giao dịch tới hệ thống bên ngoài (Zapier, n8n, IFTTT, server riêng…)
           </p>
         </div>
         <button onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm">
+          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm whitespace-nowrap">
           <Plus size={18} />
           <span className="font-medium">Tạo Webhook mới</span>
         </button>
@@ -191,25 +191,25 @@ export function Webhooks() {
             <div key={w.webhook_id}
               className={`bg-card rounded-2xl border ${w.is_active ? 'border-border shadow-sm' : 'border-border/60 opacity-70'} p-5`}>
               <div className="flex items-start justify-between mb-3">
-                <div className="flex items-start gap-3 min-w-0 flex-1">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${w.is_active ? 'bg-indigo-100 text-indigo-600' : 'bg-muted text-muted-foreground'}`}>
-                    <Link2 size={20} />
+                <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${w.is_active ? 'bg-indigo-100 text-indigo-600' : 'bg-muted text-muted-foreground'}`}>
+                    <Link2 size={16} className="sm:size-[20]" />
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="font-bold text-card-foreground truncate">{w.title}</h3>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-card-foreground text-sm sm:text-base truncate">{w.title}</h3>
                     <p className="text-xs text-muted-foreground font-medium">{triggerLabel(w.trigger_type)} → {w.response}</p>
                     <div className="mt-2 flex items-center gap-2">
-                      <span className="bg-muted border border-border rounded-lg px-2 py-1 font-mono text-xs text-muted-foreground truncate max-w-md">
+                      <span className="bg-muted border border-border rounded-lg px-2 py-1 font-mono text-xs text-muted-foreground truncate max-w-[120px] sm:max-w-md">
                         {w.url}
                       </span>
                       <button onClick={() => handleCopy(w.url, `url-${w.webhook_id}`)}
-                        className="p-1 text-muted-foreground hover:text-purple-600" title="Sao chép URL">
+                        className="p-1 text-muted-foreground hover:text-purple-600 shrink-0" title="Sao chép URL">
                         {copiedId === `url-${w.webhook_id}` ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
                       </button>
                     </div>
                     {w.secret && (
                       <div className="mt-1 flex items-center gap-2">
-                        <Key size={12} className="text-muted-foreground" />
+                        <Key size={12} className="text-muted-foreground shrink-0" />
                         <span className="font-mono text-xs text-muted-foreground">
                           {w.secret.slice(0, 10)}…{w.secret.slice(-4)}
                         </span>
@@ -221,8 +221,8 @@ export function Webhooks() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${w.is_active ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'}`}>
+                <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 flex-wrap sm:flex-nowrap justify-end">
+                  <span className={`px-2 sm:px-2.5 py-1 text-xs font-semibold rounded-full ${w.is_active ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'}`}>
                     {w.is_active ? 'Đang hoạt động' : 'Đã tắt'}
                   </span>
                   <button onClick={() => submitTest(w)} title="Gửi test"

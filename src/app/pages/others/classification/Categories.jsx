@@ -232,7 +232,7 @@ export function Categories() {
 
         {/* ── Panel: Danh mục chi tiêu ─────────────────────────────────────── */}
         <div className="bg-card rounded-2xl border border-border overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
                 <LayoutList size={16} className="text-purple-600" />
@@ -245,9 +245,9 @@ export function Categories() {
             {!showAddExpense && (
               <button
                 onClick={() => { setShowAddExpense(true); setEditExpenseId(null); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors font-medium"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors font-medium whitespace-nowrap"
               >
-                <Plus size={14} /> Thêm mới
+                <Plus size={14} className="shrink-0" /> <span className="hidden sm:inline">Thêm mới</span><span className="sm:hidden">Mới</span>
               </button>
             )}
           </div>
@@ -315,7 +315,7 @@ export function Categories() {
 
         {/* ── Panel: Nguồn thu nhập ─────────────────────────────────────────── */}
         <div className="bg-card rounded-2xl border border-border overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
                 <BadgeDollarSign size={16} className="text-green-600" />
@@ -328,9 +328,9 @@ export function Categories() {
             {!showAddIncome && (
               <button
                 onClick={() => { setShowAddIncome(true); setEditIncomeId(null); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors font-medium"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors font-medium whitespace-nowrap"
               >
-                <Plus size={14} /> Thêm mới
+                <Plus size={14} className="shrink-0" /> <span className="hidden sm:inline">Thêm mới</span><span className="sm:hidden">Mới</span>
               </button>
             )}
           </div>

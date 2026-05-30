@@ -90,10 +90,10 @@ export function ExportData() {
   const summaryDataLabel = DATA_TYPES.find(d => d.key === dataType)?.label ?? dataType;
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-card-foreground">Xuất dữ liệu</h1>
-        <p className="text-muted-foreground mt-1">
+    <div className="p-4 sm:p-8 max-w-5xl mx-auto">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground">Xuất dữ liệu</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
           Trích xuất dữ liệu tài chính của bạn ra các định dạng chuẩn để lưu trữ hoặc phân tích bên ngoài
         </p>
       </div>

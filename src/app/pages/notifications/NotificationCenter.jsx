@@ -108,7 +108,7 @@ export function NotificationCenter() {
       )}
 
       {/* Summary card */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-3 sm:grid-cols-3 gap-2 sm:gap-4 mb-6">
         <div className="bg-card rounded-xl p-4 border border-border flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
             <Bell size={18} className="text-purple-600" />
@@ -157,31 +157,31 @@ export function NotificationCenter() {
               return (
                 <div
                   key={n.id}
-                  className={`px-6 py-4 flex items-start gap-4 transition-colors ${
+                  className={`px-3 sm:px-6 py-3 sm:py-4 flex items-start gap-3 sm:gap-4 transition-colors ${
                     !n.read ? 'bg-purple-50/40 hover:bg-purple-50/60' : 'hover:bg-muted'
                   }`}
                 >
                   {/* Icon */}
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
-                    <Icon size={18} className={cfg.text} />
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
+                    <Icon size={16} className={cfg.text} />
                   </div>
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start justify-between gap-2 sm:gap-4">
                       <div>
                         <p className={`text-sm ${!n.read ? 'font-semibold text-card-foreground' : 'font-medium text-foreground'}`}>
                           {n.title}
                         </p>
                         {n.message && (
-                          <p className="text-sm text-muted-foreground mt-1">{n.message}</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground mt-1">{n.message}</p>
                         )}
                       </div>
                       {!n.read && (
-                        <span className="w-2.5 h-2.5 rounded-full bg-purple-600 flex-shrink-0 mt-1.5" />
+                        <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-purple-600 flex-shrink-0 mt-1.5" />
                       )}
                     </div>
-                    <div className="flex items-center gap-3 mt-2">
+                    <div className="flex items-center gap-2 sm:gap-3 mt-1 sm:mt-2 flex-wrap">
                       <span className="text-xs text-muted-foreground">
                         {format(new Date(n.time), "HH:mm:ss, dd/MM/yyyy", { locale: vi })}
                       </span>

@@ -100,7 +100,7 @@ export function Tags() {
       </div>
 
       {/* Tag list */}
-      <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
+      <div className="bg-card rounded-2xl border border-border p-4 sm:p-6 shadow-sm">
         {filtered.length === 0 ? (
           <div className="py-12 text-center">
             <Tag size={48} className="mx-auto text-muted-foreground mb-4" />
