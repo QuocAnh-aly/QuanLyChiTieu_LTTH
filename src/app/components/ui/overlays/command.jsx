@@ -27,8 +27,8 @@ function Command({ className, ...props }) {
 }
 
 function CommandDialog({
-  title = "Command Palette",
-  description = "Search for a command to run...",
+  title = "Bảng lệnh",
+  description = "Tìm kiếm lệnh để thực thi...",
   children,
   ...props
 }) {

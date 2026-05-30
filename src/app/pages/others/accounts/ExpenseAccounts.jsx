@@ -22,10 +22,8 @@ export function ExpenseAccounts() {
       const data = await walletApi.getByType(5);
       setAccounts(data.items || data || []);
     } catch {
-      setAccounts([
-        { accountId: 1, name: 'Thẻ tín dụng VIB',  balance: 15000000, color: 'orange', gradientFrom: '#f97316', gradientTo: '#c2410c', cardNumber: '**** 1234' },
-        { accountId: 2, name: 'Ví ShopeePay',       balance: 500000,   color: 'pink',   gradientFrom: '#ec4899', gradientTo: '#be185d' },
-      ]);
+      setAccounts([]);
+      toast.error("Không thể tải dữ liệu tài khoản chi");
     } finally {
       setIsLoading(false);
     }
@@ -93,13 +91,13 @@ export function ExpenseAccounts() {
       {/* Search */}
       <div className="flex gap-3 mb-6">
         <div className="relative flex-1 max-w-sm">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Tìm kiếm tài khoản chi..."
-            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full pl-9 pr-4 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
         </div>
       </div>
@@ -107,15 +105,15 @@ export function ExpenseAccounts() {
       {/* Cards */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map(i => <div key={i} className="h-40 bg-slate-200 animate-pulse rounded-2xl" />)}
+          {[1, 2, 3].map(i => <div key={i} className="h-40 bg-accent animate-pulse rounded-2xl" />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="py-16 text-center bg-white rounded-2xl border border-slate-200">
-          <CreditCard size={40} className="mx-auto text-slate-300 mb-3" />
-          <p className="text-slate-500 font-medium">
+        <div className="py-16 text-center bg-card rounded-2xl border border-border">
+          <CreditCard size={40} className="mx-auto text-muted-foreground mb-3" />
+          <p className="text-muted-foreground font-medium">
             {search ? 'Không tìm thấy tài khoản phù hợp' : 'Chưa có tài khoản chi nào'}
           </p>
-          {!search && <p className="text-slate-400 text-sm mt-1">Nhấn "Thêm tài khoản" để bắt đầu</p>}
+          {!search && <p className="text-muted-foreground text-sm mt-1">Nhấn "Thêm tài khoản" để bắt đầu</p>}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -125,7 +123,7 @@ export function ExpenseAccounts() {
               className="relative overflow-hidden rounded-2xl p-6 text-white group shadow-sm"
               style={{ background: `linear-gradient(135deg, ${acc.gradientFrom} 0%, ${acc.gradientTo} 100%)` }}
             >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white opacity-10 rounded-full -mr-10 -mt-10" />
+              <div className="absolute top-0 right-0 w-24 h-24 bg-card opacity-10 rounded-full -mr-10 -mt-10" />
 
               <div className="flex justify-between items-start mb-6">
                 <div>

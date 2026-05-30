@@ -39,7 +39,7 @@ export function SettingsProvider({ children }) {
       if (primary) setCurrencyCode(primary.code);
     } catch (err) {
       // Stay on fallback when unauthenticated or offline
-      console.warn('Could not load currencies:', err?.message);
+      console.warn('Không thể tải dữ liệu tiền tệ:', err?.message);
     }
   }, []);
 
@@ -55,7 +55,7 @@ export function SettingsProvider({ children }) {
       }
       setRates(map);
     } catch (err) {
-      console.warn('Could not load exchange rates:', err?.message);
+      console.warn('Không thể tải tỷ giá hối đoái:', err?.message);
     }
   }, []);
 

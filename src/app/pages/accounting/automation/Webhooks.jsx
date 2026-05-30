@@ -148,8 +148,8 @@ export function Webhooks() {
     <div className="p-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Webhooks</h1>
-          <p className="text-slate-500 mt-1">
+          <h1 className="text-3xl font-bold text-card-foreground">Webhooks</h1>
+          <p className="text-muted-foreground mt-1">
             Gửi sự kiện giao dịch tới hệ thống bên ngoài (Zapier, n8n, IFTTT, server riêng…)
           </p>
         </div>
@@ -162,59 +162,59 @@ export function Webhooks() {
 
       <div className="flex gap-3 mb-6">
         <div className="relative flex-1 max-w-sm">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Tìm webhook..."
-            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full pl-9 pr-4 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
         </div>
         <button onClick={refresh}
-          className="p-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50" title="Làm mới">
+          className="p-2 border border-border rounded-lg text-muted-foreground hover:bg-muted" title="Làm mới">
           <RefreshCw size={18} />
         </button>
       </div>
 
       {loading ? (
-        <div className="py-16 text-center text-slate-500">Đang tải...</div>
+        <div className="py-16 text-center text-muted-foreground">Đang tải...</div>
       ) : filtered.length === 0 ? (
-        <div className="py-16 text-center bg-white rounded-2xl border border-slate-200 shadow-sm">
-          <Link2 size={48} className="mx-auto text-slate-300 mb-4" />
-          <p className="text-slate-900 font-bold text-lg mb-1">Chưa có webhook nào</p>
-          <p className="text-slate-500 font-medium">Nhấn "Tạo Webhook mới" để bắt đầu</p>
+        <div className="py-16 text-center bg-card rounded-2xl border border-border shadow-sm">
+          <Link2 size={48} className="mx-auto text-muted-foreground mb-4" />
+          <p className="text-card-foreground font-bold text-lg mb-1">Chưa có webhook nào</p>
+          <p className="text-muted-foreground font-medium">Nhấn "Tạo Webhook mới" để bắt đầu</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {filtered.map(w => (
             <div key={w.webhook_id}
-              className={`bg-white rounded-2xl border ${w.is_active ? 'border-slate-200 shadow-sm' : 'border-slate-200/60 opacity-70'} p-5`}>
+              className={`bg-card rounded-2xl border ${w.is_active ? 'border-border shadow-sm' : 'border-border/60 opacity-70'} p-5`}>
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-start gap-3 min-w-0 flex-1">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${w.is_active ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${w.is_active ? 'bg-indigo-100 text-indigo-600' : 'bg-muted text-muted-foreground'}`}>
                     <Link2 size={20} />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-bold text-slate-900 truncate">{w.title}</h3>
-                    <p className="text-xs text-slate-500 font-medium">{triggerLabel(w.trigger_type)} → {w.response}</p>
+                    <h3 className="font-bold text-card-foreground truncate">{w.title}</h3>
+                    <p className="text-xs text-muted-foreground font-medium">{triggerLabel(w.trigger_type)} → {w.response}</p>
                     <div className="mt-2 flex items-center gap-2">
-                      <span className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 font-mono text-xs text-slate-600 truncate max-w-md">
+                      <span className="bg-muted border border-border rounded-lg px-2 py-1 font-mono text-xs text-muted-foreground truncate max-w-md">
                         {w.url}
                       </span>
                       <button onClick={() => handleCopy(w.url, `url-${w.webhook_id}`)}
-                        className="p-1 text-slate-400 hover:text-purple-600" title="Sao chép URL">
+                        className="p-1 text-muted-foreground hover:text-purple-600" title="Sao chép URL">
                         {copiedId === `url-${w.webhook_id}` ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
                       </button>
                     </div>
                     {w.secret && (
                       <div className="mt-1 flex items-center gap-2">
-                        <Key size={12} className="text-slate-400" />
-                        <span className="font-mono text-xs text-slate-500">
+                        <Key size={12} className="text-muted-foreground" />
+                        <span className="font-mono text-xs text-muted-foreground">
                           {w.secret.slice(0, 10)}…{w.secret.slice(-4)}
                         </span>
                         <button onClick={() => handleCopy(w.secret, `secret-${w.webhook_id}`)}
-                          className="p-1 text-slate-400 hover:text-purple-600" title="Sao chép Secret">
+                          className="p-1 text-muted-foreground hover:text-purple-600" title="Sao chép Secret">
                           {copiedId === `secret-${w.webhook_id}` ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
                         </button>
                       </div>
@@ -222,27 +222,27 @@ export function Webhooks() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${w.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
+                  <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${w.is_active ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'}`}>
                     {w.is_active ? 'Đang hoạt động' : 'Đã tắt'}
                   </span>
                   <button onClick={() => submitTest(w)} title="Gửi test"
-                    className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors">
+                    className="p-1.5 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors">
                     <Send size={16} />
                   </button>
                   <button onClick={() => openLogs(w)} title="Xem log"
-                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+                    className="p-1.5 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
                     <Eye size={16} />
                   </button>
                   <button onClick={() => toggleStatus(w)} title={w.is_active ? "Tắt" : "Bật"}
-                    className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors">
+                    className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors">
                     {w.is_active ? <XCircle size={16} /> : <CheckCircle2 size={16} />}
                   </button>
                   <button onClick={() => openEdit(w)} title="Sửa"
-                    className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors">
+                    className="p-1.5 text-muted-foreground hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors">
                     <Pencil size={16} />
                   </button>
                   <button onClick={() => deleteWebhook(w)} title="Xóa"
-                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors">
+                    className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-md transition-colors">
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -255,71 +255,71 @@ export function Webhooks() {
       {/* ── Edit/Create Modal ───────────────────────────────────────────── */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
-              <h2 className="text-xl font-bold text-slate-900">{editing ? 'Sửa webhook' : 'Tạo webhook mới'}</h2>
-              <button onClick={closeModal} className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-500">
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <h2 className="text-xl font-bold text-card-foreground">{editing ? 'Sửa webhook' : 'Tạo webhook mới'}</h2>
+              <button onClick={closeModal} className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground">
                 <X size={20} />
               </button>
             </div>
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Tên *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Tên *</label>
                 <input
                   type="text"
                   value={form.title}
                   onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="VD: Notify Slack" />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">URL *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">URL *</label>
                 <input
                   type="url"
                   value={form.url}
                   onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
                   placeholder="https://hooks.slack.com/services/..." />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Sự kiện kích hoạt</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Sự kiện kích hoạt</label>
                 <select
                   value={form.trigger_type}
                   onChange={e => setForm(f => ({ ...f, trigger_type: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white">
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card">
                   {TRIGGER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Loại payload</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Loại payload</label>
                 <select
                   value={form.response}
                   onChange={e => setForm(f => ({ ...f, response: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white">
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card">
                   {RESPONSE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Secret (HMAC-SHA256, để trống = tự sinh)
                 </label>
                 <input
                   type="text"
                   value={form.secret}
                   onChange={e => setForm(f => ({ ...f, secret: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
                   placeholder="whsec_..." />
               </div>
             </div>
 
-            <div className="flex gap-3 p-6 border-t border-slate-100">
+            <div className="flex gap-3 p-6 border-t border-border">
               <button onClick={closeModal}
-                className="flex-1 px-4 py-2.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
+                className="flex-1 px-4 py-2.5 border border-border rounded-lg text-sm font-medium text-foreground hover:bg-muted">
                 Hủy
               </button>
               <button onClick={submitForm}
@@ -334,32 +334,32 @@ export function Webhooks() {
       {/* ── Log viewer Modal ────────────────────────────────────────────── */}
       {logModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-border">
               <div className="min-w-0">
-                <h2 className="text-xl font-bold text-slate-900 truncate">Log webhook</h2>
-                <p className="text-sm text-slate-500 truncate">{logModal.webhook.title} — {logModal.webhook.url}</p>
+                <h2 className="text-xl font-bold text-card-foreground truncate">Log webhook</h2>
+                <p className="text-sm text-muted-foreground truncate">{logModal.webhook.title} — {logModal.webhook.url}</p>
               </div>
-              <button onClick={() => setLogModal(null)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500">
+              <button onClick={() => setLogModal(null)} className="p-2 hover:bg-muted rounded-lg text-muted-foreground">
                 <X size={20} />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto">
               {logModal.messages.length === 0 ? (
-                <div className="py-12 text-center text-slate-500">Chưa có log nào.</div>
+                <div className="py-12 text-center text-muted-foreground">Chưa có log nào.</div>
               ) : (
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50 sticky top-0">
+                    <tr className="text-xs uppercase tracking-wider text-muted-foreground border-b border-border bg-muted sticky top-0">
                       <th className="px-4 py-3 font-semibold">Trạng thái</th>
                       <th className="px-4 py-3 font-semibold">Thời gian</th>
                       <th className="px-4 py-3 font-semibold w-1/2">Payload</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-border">
                     {logModal.messages.map(m => (
-                      <tr key={m.message_id} className="hover:bg-slate-50">
+                      <tr key={m.message_id} className="hover:bg-muted">
                         <td className="px-4 py-3">
                           {m.success ? (
                             <div className="flex items-center gap-1.5 text-green-600 font-medium text-sm">
@@ -371,11 +371,11 @@ export function Webhooks() {
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-600">
+                        <td className="px-4 py-3 text-sm text-muted-foreground">
                           {m.sent_at ? format(new Date(m.sent_at), "HH:mm:ss dd/MM", { locale: vi }) : '—'}
                         </td>
                         <td className="px-4 py-3">
-                          <div className="bg-slate-900 text-green-400 font-mono text-xs p-2.5 rounded-lg overflow-x-auto max-h-24">
+                          <div className="bg-muted text-green-500 font-mono text-xs p-2.5 rounded-lg overflow-x-auto max-h-24">
                             {m.payload}
                           </div>
                           {m.error_message && (

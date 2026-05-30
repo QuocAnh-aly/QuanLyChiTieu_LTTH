@@ -218,7 +218,7 @@ export function Transactions() {
   const amountDisplay = (t) => {
     if (t.isTransfer) return <span className="text-blue-600">{fmt(t.totalAmount)}</span>;
     if (t.isIncome)   return <span className="text-green-600">+{fmt(t.totalAmount)}</span>;
-    return                   <span className="text-slate-900">-{fmt(t.totalAmount)}</span>;
+    return                   <span className="text-card-foreground">-{fmt(t.totalAmount)}</span>;
   };
 
   const txBg   = (t) => t.isTransfer ? "bg-blue-50" : t.isIncome ? "bg-green-100" : "bg-red-50";
@@ -236,7 +236,7 @@ export function Transactions() {
           <button
             onClick={() => loadData(true)}
             disabled={isRefreshing}
-            className="p-2.5 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 text-slate-600 transition-colors"
+            className="p-2.5 border border-border bg-card rounded-lg hover:bg-muted text-muted-foreground transition-colors"
             title="Làm mới"
           >
             <RefreshCw size={18} className={isRefreshing ? "animate-spin" : ""} />
@@ -261,7 +261,7 @@ export function Transactions() {
             className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors border ${
               preset === p.key
                 ? "bg-purple-600 text-white border-purple-600"
-                : "border-slate-200 text-slate-600 hover:border-purple-400 hover:text-purple-600"
+                : "border-border text-muted-foreground hover:border-purple-400 hover:text-purple-600"
             }`}
           >
             {p.label}
@@ -272,7 +272,7 @@ export function Transactions() {
           className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors border ${
             preset === "custom"
               ? "bg-purple-600 text-white border-purple-600"
-              : "border-slate-200 text-slate-600 hover:border-purple-400 hover:text-purple-600"
+              : "border-border text-muted-foreground hover:border-purple-400 hover:text-purple-600"
           }`}
         >
           Tùy chỉnh
@@ -285,14 +285,14 @@ export function Transactions() {
               type="date"
               value={customFrom}
               onChange={e => setCustomFrom(e.target.value)}
-              className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="px-3 py-1.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
-            <span className="text-slate-400 text-sm">đến</span>
+            <span className="text-muted-foreground text-sm">đến</span>
             <input
               type="date"
               value={customTo}
               onChange={e => setCustomTo(e.target.value)}
-              className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="px-3 py-1.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
           </div>
         )}
@@ -300,39 +300,39 @@ export function Transactions() {
 
       {/* ── Cash flow summary ─────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-xl p-5 border border-slate-200 flex items-center gap-4 shadow-sm">
+        <div className="bg-card rounded-xl p-5 border border-border flex items-center gap-4 shadow-sm">
           <div className="w-11 h-11 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
             <ArrowUpRight size={20} className="text-green-600" />
           </div>
           <div>
-            <p className="text-xs text-slate-500 font-medium">Thu nhập</p>
+            <p className="text-xs text-muted-foreground font-medium">Thu nhập</p>
             <p className="text-xl font-bold text-green-600">{fmt(cashFlow.totalIncome)}</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-5 border border-slate-200 flex items-center gap-4 shadow-sm">
+        <div className="bg-card rounded-xl p-5 border border-border flex items-center gap-4 shadow-sm">
           <div className="w-11 h-11 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
             <ArrowDownRight size={20} className="text-red-600" />
           </div>
           <div>
-            <p className="text-xs text-slate-500 font-medium">Chi tiêu</p>
-            <p className="text-xl font-bold text-slate-900">-{fmt(cashFlow.totalExpense)}</p>
+            <p className="text-xs text-muted-foreground font-medium">Chi tiêu</p>
+            <p className="text-xl font-bold text-card-foreground">-{fmt(cashFlow.totalExpense)}</p>
           </div>
         </div>
 
         <div className={`rounded-xl p-5 border flex items-center gap-4 shadow-sm ${
-          netPositive ? "bg-purple-600 border-purple-700" : "bg-white border-slate-200"
+          netPositive ? "bg-purple-600 border-purple-700" : "bg-card border-border"
         }`}>
           <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${
-            netPositive ? "bg-white/20" : "bg-slate-100"
+            netPositive ? "bg-white/20" : "bg-muted"
           }`}>
-            <TrendingUp size={20} className={netPositive ? "text-white" : "text-slate-600"} />
+            <TrendingUp size={20} className={netPositive ? "text-white" : "text-muted-foreground"} />
           </div>
           <div>
-            <p className={`text-xs font-medium ${netPositive ? "text-purple-100" : "text-slate-500"}`}>
+            <p className={`text-xs font-medium ${netPositive ? "text-purple-100" : "text-muted-foreground"}`}>
               {useRange ? "Còn lại" : "Số giao dịch"}
             </p>
-            <p className={`text-xl font-bold ${netPositive ? "text-white" : "text-slate-900"}`}>
+            <p className={`text-xl font-bold ${netPositive ? "text-white" : "text-card-foreground"}`}>
               {useRange
                 ? `${netPositive ? "+" : ""}${fmt(cashFlow.netCashFlow)}`
                 : totalCount
@@ -343,20 +343,20 @@ export function Transactions() {
       </div>
 
       {/* ── Table card ────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
 
         {/* Search + filter row */}
-        <div className="p-4 border-b border-slate-200 flex flex-wrap gap-3 items-center bg-slate-50/50">
+        <div className="p-4 border-b border-border flex flex-wrap gap-3 items-center bg-muted/50">
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
             <input
-              className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-sm"
+              className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card text-sm"
               placeholder="Tìm kiếm theo mô tả hoặc danh mục..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1">
+          <div className="flex gap-1 bg-card border border-border rounded-lg p-1">
             {[
               { key: "all",      label: "Tất cả"       },
               { key: "income",   label: "Thu nhập"     },
@@ -367,7 +367,7 @@ export function Transactions() {
                 key={key}
                 onClick={() => setFilterType(key)}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  filterType === key ? "bg-purple-600 text-white" : "text-slate-600 hover:bg-slate-100"
+                  filterType === key ? "bg-purple-600 text-white" : "text-muted-foreground hover:bg-muted"
                 }`}
               >
                 {label}
@@ -381,19 +381,19 @@ export function Transactions() {
           {isLoading ? (
             <div className="p-8 space-y-3">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-12 bg-slate-100 rounded-xl animate-pulse" />
+                <div key={i} className="h-12 bg-muted rounded-xl animate-pulse" />
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="py-16 text-center text-slate-400">
+            <div className="py-16 text-center text-muted-foreground">
               <ArrowLeftRight size={40} className="mx-auto mb-3 opacity-30" />
-              <p className="font-medium text-slate-600">Không có giao dịch nào</p>
+              <p className="font-medium text-muted-foreground">Không có giao dịch nào</p>
               <p className="text-sm mt-1">Thử thay đổi bộ lọc hoặc khoảng thời gian</p>
             </div>
           ) : (
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
+                <tr className="bg-muted text-muted-foreground text-xs uppercase tracking-wider border-b border-border">
                   <th className="px-6 py-3 font-semibold">Mô tả</th>
                   <th className="px-6 py-3 font-semibold">Nguồn → Đích</th>
                   <th className="px-6 py-3 font-semibold">Giờ</th>
@@ -401,7 +401,7 @@ export function Transactions() {
                   <th className="px-6 py-3 w-20"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border">
                 {[...grouped.entries()].map(([dateKey, txs]) => {
                   const dateLabel = format(new Date(dateKey), "EEEE, dd/MM/yyyy", { locale: vi });
                   const dayIncome  = txs.filter(t => t.isIncome).reduce((s, t) => s + t.totalAmount, 0);
@@ -410,9 +410,9 @@ export function Transactions() {
                   return (
                     <>
                       {/* Date separator */}
-                      <tr key={`hdr-${dateKey}`} className="bg-slate-50/80">
+                      <tr key={`hdr-${dateKey}`} className="bg-muted/80">
                         <td colSpan={3} className="px-6 py-2">
-                          <span className="text-xs font-bold text-slate-500 capitalize">{dateLabel}</span>
+                          <span className="text-xs font-bold text-muted-foreground capitalize">{dateLabel}</span>
                         </td>
                         <td className="px-6 py-2 text-right">
                           <div className="flex items-center justify-end gap-3 text-xs font-semibold">
@@ -427,23 +427,23 @@ export function Transactions() {
                       {txs.map(t => {
                         const Icon = TxIcon(t);
                         return (
-                          <tr key={t.journalId} className="hover:bg-slate-50 transition-colors group">
+                          <tr key={t.journalId} className="hover:bg-muted transition-colors group">
                             <td className="px-6 py-3.5">
                               <div className="flex items-center gap-3">
                                 <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${txBg(t)}`}>
                                   <Icon size={15} className={txIconCls(t)} />
                                 </div>
-                                <span className="font-medium text-slate-900 text-sm">
-                                  {t.description || <span className="italic text-slate-400">Không có mô tả</span>}
+                                <span className="font-medium text-card-foreground text-sm">
+                                  {t.description || <span className="italic text-muted-foreground">Không có mô tả</span>}
                                 </span>
                               </div>
                             </td>
                             <td className="px-6 py-3.5">
                               <div className="flex items-center gap-1.5 text-xs">
-                                <span className="text-slate-500 max-w-[90px] truncate" title={t.sourceAccount}>
+                                <span className="text-muted-foreground max-w-[90px] truncate" title={t.sourceAccount}>
                                   {t.sourceAccount}
                                 </span>
-                                <ArrowLeftRight size={11} className="text-slate-300 shrink-0" />
+                                <ArrowLeftRight size={11} className="text-muted-foreground shrink-0" />
                                 <span className={`font-semibold max-w-[90px] truncate ${
                                   t.isTransfer ? "text-blue-600" :
                                   t.isIncome   ? "text-green-600" : "text-red-600"
@@ -461,7 +461,7 @@ export function Transactions() {
                                 </div>
                               )}
                             </td>
-                            <td className="px-6 py-3.5 text-slate-400 text-xs">
+                            <td className="px-6 py-3.5 text-muted-foreground text-xs">
                               {format(new Date(t.transactionDate), "HH:mm")}
                             </td>
                             <td className="px-6 py-3.5 text-right font-bold text-sm">
@@ -471,14 +471,14 @@ export function Transactions() {
                               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all justify-end">
                                 <button
                                   onClick={() => setEditTarget(t)}
-                                  className="p-1.5 rounded hover:bg-purple-50 text-slate-400 hover:text-purple-600 transition-colors"
+                                  className="p-1.5 rounded hover:bg-purple-50 text-muted-foreground hover:text-purple-600 transition-colors"
                                   title="Sửa"
                                 >
                                   <Pencil size={14} />
                                 </button>
                                 <button
                                   onClick={() => handleDelete(t.journalId, t.description)}
-                                  className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"
+                                  className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors"
                                   title="Xóa"
                                 >
                                   <Trash2 size={14} />
@@ -498,22 +498,22 @@ export function Transactions() {
 
         {/* Pagination — only in "all" mode */}
         {!useRange && totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
-            <p className="text-sm text-slate-500">
+          <div className="px-6 py-4 border-t border-border flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
               Trang {page} / {totalPages} • {totalCount} giao dịch
             </p>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setPage(1)}
                 disabled={page === 1}
-                className="px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs hover:bg-slate-50 disabled:opacity-40"
+                className="px-2.5 py-1.5 border border-border rounded-lg text-xs hover:bg-muted disabled:opacity-40"
               >
                 «
               </button>
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm hover:bg-slate-50 disabled:opacity-40"
+                className="px-3 py-1.5 border border-border rounded-lg text-sm hover:bg-muted disabled:opacity-40"
               >
                 Trước
               </button>
@@ -530,7 +530,7 @@ export function Transactions() {
                     className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
                       p === page
                         ? "bg-purple-600 text-white"
-                        : "border border-slate-200 hover:bg-slate-50 text-slate-600"
+                        : "border border-border hover:bg-muted text-muted-foreground"
                     }`}
                   >
                     {p}
@@ -541,14 +541,14 @@ export function Transactions() {
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm hover:bg-slate-50 disabled:opacity-40"
+                className="px-3 py-1.5 border border-border rounded-lg text-sm hover:bg-muted disabled:opacity-40"
               >
                 Tiếp
               </button>
               <button
                 onClick={() => setPage(totalPages)}
                 disabled={page === totalPages}
-                className="px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs hover:bg-slate-50 disabled:opacity-40"
+                className="px-2.5 py-1.5 border border-border rounded-lg text-xs hover:bg-muted disabled:opacity-40"
               >
                 »
               </button>

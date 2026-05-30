@@ -47,7 +47,7 @@ function NavItem({ to, icon: Icon, label, end = false }) {
         `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
           isActive
             ? "bg-purple-100 text-purple-700 font-semibold"
-            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium"
+            : "text-muted-foreground hover:bg-muted hover:text-card-foreground font-medium"
         }`
       }
     >
@@ -68,7 +68,7 @@ function SubMenuItem({ to, icon: Icon, label }) {
         `flex items-center gap-2 pl-8 pr-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 ${
           isActive
             ? "bg-purple-100 text-purple-700 font-semibold"
-            : "text-slate-500 hover:bg-slate-100 hover:text-slate-800 font-medium"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground font-medium"
         }`
       }
     >
@@ -95,7 +95,7 @@ function CollapsibleMenu({ icon: Icon, label, children, matchPaths = [] }) {
         className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
           isAnyChildActive
             ? "bg-purple-50 text-purple-700 font-semibold"
-            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium"
+            : "text-muted-foreground hover:bg-muted hover:text-card-foreground font-medium"
         }`}
       >
         {Icon && <Icon size={16} className="shrink-0" />}
@@ -125,7 +125,7 @@ function CollapsibleMenu({ icon: Icon, label, children, matchPaths = [] }) {
 function SectionLabel({ label }) {
   return (
     <div className="px-3 pt-4 pb-1">
-      <span className="text-[10px] font-bold tracking-widest uppercase text-slate-400 select-none">
+      <span className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground select-none">
         {label}
       </span>
     </div>
@@ -133,7 +133,7 @@ function SectionLabel({ label }) {
 }
 
 function Divider() {
-  return <div className="mx-3 my-1 border-t border-slate-100" />;
+  return <div className="mx-3 my-1 border-t border-sidebar-border" />;
 }
 
 // ──────────────────────────────────────────────
@@ -150,16 +150,16 @@ export function Layout() {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-screen bg-muted">
       {/* ── Sidebar ── */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 shadow-sm">
+      <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col shrink-0 shadow-sm">
         {/* Logo + Notification Bell */}
-        <div className="px-5 py-5 border-b border-slate-100 flex items-center justify-between">
+        <div className="px-5 py-5 border-b border-sidebar-border flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent tracking-tight">
               MoneyFlow
             </h1>
-            <p className="text-[11px] text-slate-400 mt-0.5">Quản lý chi tiêu</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Quản lý chi tiêu</p>
           </div>
           <NotificationBell />
         </div>
@@ -345,22 +345,22 @@ export function Layout() {
         </nav>
 
         {/* ── User Footer ── */}
-        <div className="p-3 border-t border-slate-100">
+        <div className="p-3 border-t border-sidebar-border">
           <div className="flex items-center gap-3 px-2 py-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold text-xs shrink-0">
               {user?.avatarInitials || "U"}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-900 truncate">
+              <p className="text-sm font-semibold text-card-foreground truncate">
                 {user?.userName || "User"}
               </p>
-              <p className="text-[11px] text-slate-400 truncate">
+              <p className="text-[11px] text-muted-foreground truncate">
                 {user?.email || ""}
               </p>
             </div>
             <button
               onClick={handleLogout}
-              className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50"
+              className="text-muted-foreground hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50"
               title="Đăng xuất"
             >
               <LogOut size={16} />

@@ -105,15 +105,15 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto"
+        className="bg-card rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 sticky top-0 bg-white rounded-t-2xl z-10">
-          <h2 className="text-lg font-bold text-slate-900">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-card rounded-t-2xl z-10">
+          <h2 className="text-lg font-bold text-card-foreground">
             {TITLES[isEdit ? 'edit' : 'create'][typeId]}
           </h2>
-          <button type="button" onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
+          <button type="button" onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">
             <X size={18} />
           </button>
         </div>
@@ -122,7 +122,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
           <div className="px-6 py-5 space-y-4">
             {/* Name */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              <label className="block text-sm font-semibold text-foreground mb-1.5">
                 Tên <span className="text-red-500">*</span>
               </label>
               <input
@@ -131,14 +131,14 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
                 value={form.name}
                 onChange={set('name')}
                 placeholder={PLACEHOLDERS[typeId]}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
               {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
             </div>
 
             {/* Color picker */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Màu sắc</label>
+              <label className="block text-sm font-semibold text-foreground mb-2">Màu sắc</label>
               <div className="grid grid-cols-4 gap-2">
                 {COLOR_OPTIONS.map(opt => (
                   <button
@@ -148,11 +148,11 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
                     className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border-2 transition-all ${
                       form.color === opt.value
                         ? 'border-purple-500 bg-purple-50'
-                        : 'border-slate-200 hover:border-slate-300'
+                        : 'border-border hover:border-border'
                     }`}
                   >
                     <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: opt.from }} />
-                    <span className="text-xs text-slate-700">{opt.label}</span>
+                    <span className="text-xs text-foreground">{opt.label}</span>
                   </button>
                 ))}
               </div>
@@ -167,7 +167,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
             {/* Card number — Expense only */}
             {isExpense && (
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
                   Số thẻ (4 số cuối)
                 </label>
                 <input
@@ -176,7 +176,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
                   onChange={set('cardNumber')}
                   placeholder="VD: **** 1234"
                   maxLength={9}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
             )}
@@ -185,25 +185,25 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
             {isLiability && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Số tiền ban đầu</label>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">Số tiền ban đầu</label>
                   <input
                     type="number"
                     value={form.initialBalance}
                     onChange={set('initialBalance')}
                     placeholder="300000000"
                     min={0}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Dư nợ còn lại</label>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">Dư nợ còn lại</label>
                   <input
                     type="number"
                     value={form.balance}
                     onChange={set('balance')}
                     placeholder="250000000"
                     min={0}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
               </div>
@@ -212,7 +212,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
             {/* Revenue / Expense: single balance */}
             {!isLiability && (
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
                   {isExpense ? 'Dư nợ hiện tại' : 'Tổng đã nhận'}
                 </label>
                 <input
@@ -221,30 +221,30 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
                   onChange={set('balance')}
                   placeholder="0"
                   min={0}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
             )}
 
             {/* Notes (optional for all) */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Ghi chú</label>
+              <label className="block text-sm font-semibold text-foreground mb-1.5">Ghi chú</label>
               <textarea
                 value={form.notes}
                 onChange={set('notes')}
                 placeholder="Thêm ghi chú tùy chọn..."
                 rows={2}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
               />
             </div>
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-200">
+          <div className="flex justify-end gap-3 px-6 py-4 border-t border-border">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800"
+              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               Hủy
             </button>

@@ -52,7 +52,7 @@ export function NotificationBell() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(v => !v)}
-        className="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+        className="relative p-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
         title="Thông báo"
       >
         <Bell size={18} />
@@ -64,12 +64,12 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute left-0 mt-2 w-96 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 max-h-[70vh] flex flex-col">
+        <div className="absolute left-0 mt-2 w-96 bg-card border border-border rounded-2xl shadow-2xl z-50 max-h-[70vh] flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
             <div>
-              <h3 className="font-bold text-slate-900">Thông báo</h3>
-              <p className="text-xs text-slate-500">
+              <h3 className="font-bold text-card-foreground">Thông báo</h3>
+              <p className="text-xs text-muted-foreground">
                 {unreadCount > 0
                   ? `${unreadCount} chưa đọc`
                   : 'Không có thông báo mới'}
@@ -80,14 +80,14 @@ export function NotificationBell() {
                 <>
                   <button
                     onClick={() => { markAllAsRead(); }}
-                    className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors"
+                    className="p-1.5 text-muted-foreground hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors"
                     title="Đánh dấu đã đọc"
                   >
                     <CheckCheck size={16} />
                   </button>
                   <button
                     onClick={() => { clearAll(); }}
-                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                    className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
                     title="Xóa tất cả"
                   >
                     <Trash2 size={16} />
@@ -96,7 +96,7 @@ export function NotificationBell() {
               )}
               <button
                 onClick={() => setOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
+                className="p-1.5 text-muted-foreground hover:text-muted-foreground hover:bg-muted rounded-md transition-colors"
               >
                 <X size={16} />
               </button>
@@ -106,19 +106,19 @@ export function NotificationBell() {
           {/* List */}
           <div className="flex-1 overflow-y-auto">
             {recent.length === 0 ? (
-              <div className="py-12 text-center text-slate-400">
+              <div className="py-12 text-center text-muted-foreground">
                 <Bell size={36} className="mx-auto mb-2 opacity-30" />
                 <p className="text-sm">Chưa có thông báo nào</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-border">
                 {recent.map(n => {
                   const cfg = TYPE_CONFIG[n.type] || TYPE_CONFIG.info;
                   const Icon = cfg.icon;
                   return (
                     <div
                       key={n.id}
-                      className={`px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer ${
+                      className={`px-4 py-3 hover:bg-muted transition-colors cursor-pointer ${
                         !n.read ? 'bg-purple-50/40' : ''
                       }`}
                       onClick={() => {
@@ -131,14 +131,14 @@ export function NotificationBell() {
                           <Icon size={14} className={cfg.text} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm ${!n.read ? 'font-semibold text-slate-900' : 'font-medium text-slate-700'}`}>
+                          <p className={`text-sm ${!n.read ? 'font-semibold text-card-foreground' : 'font-medium text-foreground'}`}>
                             {n.title}
                           </p>
                           {n.message && (
-                            <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{n.message}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
                           )}
                           <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[10px] text-slate-400">
+                            <span className="text-[10px] text-muted-foreground">
                               {format(new Date(n.time), "HH:mm, dd/MM", { locale: vi })}
                             </span>
                             {n.link && (
@@ -161,7 +161,7 @@ export function NotificationBell() {
 
           {/* Footer — link to full page */}
           {notifications.length > 0 && (
-            <div className="border-t border-slate-100 p-2">
+            <div className="border-t border-border p-2">
               <button
                 onClick={() => { setOpen(false); navigate('/notifications'); }}
                 className="w-full py-2 text-sm text-purple-600 hover:text-purple-700 font-semibold hover:bg-purple-50 rounded-lg transition-colors"

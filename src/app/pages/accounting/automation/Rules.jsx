@@ -168,8 +168,8 @@ export function Rules() {
     <div className="p-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Quy tắc tự động</h1>
-          <p className="text-slate-500 mt-1">Thiết lập các quy tắc để tự động phân loại giao dịch</p>
+          <h1 className="text-3xl font-bold text-card-foreground">Quy tắc tự động</h1>
+          <p className="text-muted-foreground mt-1">Thiết lập các quy tắc để tự động phân loại giao dịch</p>
         </div>
         <button onClick={openCreate}
           className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm">
@@ -179,7 +179,7 @@ export function Rules() {
       </div>
 
       <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-sm relative overflow-hidden mb-8 flex items-center justify-between">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -mr-32 -mt-32 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-card opacity-5 rounded-full -mr-32 -mt-32 pointer-events-none" />
         <div className="flex items-center gap-6 relative z-10">
           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
             <Zap size={32} className="text-white" />
@@ -200,84 +200,84 @@ export function Rules() {
 
       <div className="flex gap-3 mb-6">
         <div className="relative flex-1 max-w-sm">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Tìm kiếm quy tắc..."
-            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full pl-9 pr-4 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
         </div>
       </div>
 
       {loading ? (
-        <div className="py-16 text-center text-slate-500">Đang tải...</div>
+        <div className="py-16 text-center text-muted-foreground">Đang tải...</div>
       ) : filtered.length === 0 ? (
-        <div className="py-16 text-center bg-white rounded-2xl border border-slate-200 shadow-sm">
-          <GitMerge size={48} className="mx-auto text-slate-300 mb-4" />
-          <p className="text-slate-900 font-bold text-lg mb-1">Chưa có quy tắc nào</p>
-          <p className="text-slate-500 font-medium">Nhấn "Tạo quy tắc mới" để bắt đầu tự động hóa</p>
+        <div className="py-16 text-center bg-card rounded-2xl border border-border shadow-sm">
+          <GitMerge size={48} className="mx-auto text-muted-foreground mb-4" />
+          <p className="text-card-foreground font-bold text-lg mb-1">Chưa có quy tắc nào</p>
+          <p className="text-muted-foreground font-medium">Nhấn "Tạo quy tắc mới" để bắt đầu tự động hóa</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {filtered.map(rule => (
             <div key={rule.rule_id}
-              className={`bg-white rounded-2xl border ${rule.is_active ? 'border-slate-200 shadow-sm' : 'border-slate-200/60 opacity-70'} p-5 transition-all hover:shadow-md`}>
+              className={`bg-card rounded-2xl border ${rule.is_active ? 'border-border shadow-sm' : 'border-border/60 opacity-70'} p-5 transition-all hover:shadow-md`}>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${rule.is_active ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${rule.is_active ? 'bg-indigo-100 text-indigo-600' : 'bg-muted text-muted-foreground'}`}>
                     <GitMerge size={20} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-slate-900">{rule.title}</h3>
-                    <p className="text-xs text-slate-500">
-                      Đã chạy: <span className="font-medium text-slate-700">{rule.runs} lần</span>
+                    <h3 className="font-bold text-card-foreground">{rule.title}</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Đã chạy: <span className="font-medium text-foreground">{rule.runs} lần</span>
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${rule.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
+                  <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${rule.is_active ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'}`}>
                     {rule.is_active ? 'Đang hoạt động' : 'Đã tắt'}
                   </span>
-                  <div className="w-px h-6 bg-slate-200 mx-2"></div>
-                  <button onClick={() => testRule(rule)} title="Test (dry-run)"
-                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+                  <div className="w-px h-6 bg-muted mx-2"></div>
+                  <button onClick={() => testRule(rule)} title="Chạy thử (dry-run)"
+                    className="p-1.5 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
                     <FlaskConical size={16} />
                   </button>
-                  <button onClick={() => triggerRule(rule)} title="Trigger (áp dụng)"
-                    className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors">
+                  <button onClick={() => triggerRule(rule)} title="Kích hoạt (áp dụng)"
+                    className="p-1.5 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors">
                     <Rocket size={16} />
                   </button>
                   <button onClick={() => toggleStatus(rule)} title={rule.is_active ? "Tắt" : "Bật"}
-                    className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors">
+                    className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors">
                     {rule.is_active ? <Pause size={16} /> : <Play size={16} />}
                   </button>
                   <button onClick={() => openEdit(rule)} title="Sửa"
-                    className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors">
+                    className="p-1.5 text-muted-foreground hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors">
                     <Pencil size={16}/>
                   </button>
                   <button onClick={() => deleteRule(rule)} title="Xóa"
-                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors">
+                    className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-md transition-colors">
                     <Trash2 size={16}/>
                   </button>
                 </div>
               </div>
 
-              <div className="bg-slate-50 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center gap-4">
+              <div className="bg-muted rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center gap-4">
                 <div className="flex-1">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
                     Nếu (Điều kiện — {rule.strict ? 'tất cả' : 'bất kỳ'})
                   </p>
-                  <p className="text-sm font-medium text-slate-800 bg-white border border-slate-200 rounded-lg px-3 py-2">
+                  <p className="text-sm font-medium text-foreground bg-card border border-border rounded-lg px-3 py-2">
                     {triggerSummary(rule) || '(chưa có)'}
                   </p>
                 </div>
                 <div className="hidden md:flex items-center justify-center mt-6">
-                  <ArrowRight size={20} className="text-slate-300" />
+                  <ArrowRight size={20} className="text-muted-foreground" />
                 </div>
                 <div className="flex-1 w-full">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Thì (Hành động)</p>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Thì (Hành động)</p>
                   <p className="text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
                     {actionSummary(rule) || '(chưa có)'}
                   </p>
@@ -291,35 +291,35 @@ export function Rules() {
       {/* ── Modal ───────────────────────────────────────────────────────── */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
-              <h2 className="text-xl font-bold text-slate-900">
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <h2 className="text-xl font-bold text-card-foreground">
                 {editing ? 'Sửa quy tắc' : 'Tạo quy tắc mới'}
               </h2>
-              <button onClick={closeModal} className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-500">
+              <button onClick={closeModal} className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground">
                 <X size={20} />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Tên quy tắc *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Tên quy tắc *</label>
                 <input
                   type="text"
                   value={form.title}
                   onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="VD: Phân loại Starbucks"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Mô tả</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Mô tả</label>
                 <input
                   type="text"
                   value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="(không bắt buộc)"
                 />
               </div>
@@ -346,7 +346,7 @@ export function Rules() {
               {/* Triggers */}
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <p className="text-sm font-bold text-slate-700">Điều kiện (NẾU)</p>
+                  <p className="text-sm font-bold text-foreground">Điều kiện (NẾU)</p>
                   <button
                     type="button"
                     onClick={() => setForm(f => ({ ...f, triggers: [...f.triggers, { type: 'description_contains', value: '' }] }))}
@@ -360,7 +360,7 @@ export function Rules() {
                         const v = e.target.value;
                         setForm(f => ({ ...f, triggers: f.triggers.map((x, idx) => idx === i ? { ...x, type: v } : x) }));
                       }}
-                      className="w-1/2 px-2 py-2 border border-slate-200 rounded-lg text-sm">
+                      className="w-1/2 px-2 py-2 border border-border rounded-lg text-sm">
                       {TRIGGER_TYPES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                     <input
@@ -371,9 +371,9 @@ export function Rules() {
                         setForm(f => ({ ...f, triggers: f.triggers.map((x, idx) => idx === i ? { ...x, value: v } : x) }));
                       }}
                       placeholder="Giá trị"
-                      className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm" />
                     <button type="button" onClick={() => setForm(f => ({ ...f, triggers: f.triggers.filter((_, idx) => idx !== i) }))}
-                      className="p-2 text-slate-400 hover:text-red-500"><Trash2 size={16}/></button>
+                      className="p-2 text-muted-foreground hover:text-red-500"><Trash2 size={16}/></button>
                   </div>
                 ))}
               </div>
@@ -381,7 +381,7 @@ export function Rules() {
               {/* Actions */}
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <p className="text-sm font-bold text-slate-700">Hành động (THÌ)</p>
+                  <p className="text-sm font-bold text-foreground">Hành động (THÌ)</p>
                   <button
                     type="button"
                     onClick={() => setForm(f => ({ ...f, actions: [...f.actions, { type: 'add_tag', value: '' }] }))}
@@ -395,7 +395,7 @@ export function Rules() {
                         const v = e.target.value;
                         setForm(f => ({ ...f, actions: f.actions.map((x, idx) => idx === i ? { ...x, type: v } : x) }));
                       }}
-                      className="w-1/2 px-2 py-2 border border-slate-200 rounded-lg text-sm">
+                      className="w-1/2 px-2 py-2 border border-border rounded-lg text-sm">
                       {ACTION_TYPES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                     <input
@@ -406,17 +406,17 @@ export function Rules() {
                         setForm(f => ({ ...f, actions: f.actions.map((x, idx) => idx === i ? { ...x, value: v } : x) }));
                       }}
                       placeholder="Giá trị"
-                      className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm" />
                     <button type="button" onClick={() => setForm(f => ({ ...f, actions: f.actions.filter((_, idx) => idx !== i) }))}
-                      className="p-2 text-slate-400 hover:text-red-500"><Trash2 size={16}/></button>
+                      className="p-2 text-muted-foreground hover:text-red-500"><Trash2 size={16}/></button>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="flex gap-3 p-6 border-t border-slate-100">
+            <div className="flex gap-3 p-6 border-t border-border bg-muted/30">
               <button onClick={closeModal}
-                className="flex-1 px-4 py-2.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
+                className="flex-1 px-4 py-2.5 border border-border rounded-lg text-sm font-medium text-foreground hover:bg-muted">
                 Hủy
               </button>
               <button onClick={submitForm}

@@ -19,7 +19,7 @@ const COLOR_MAP = {
   pink:    { bg: "bg-pink-100",    text: "text-pink-600",    hex: "#ec4899" },
   indigo:  { bg: "bg-indigo-100",  text: "text-indigo-600",  hex: "#6366f1" },
   emerald: { bg: "bg-emerald-100", text: "text-emerald-600", hex: "#10b981" },
-  slate:   { bg: "bg-slate-100",   text: "text-slate-600",   hex: "#64748b" },
+  slate:   { bg: "bg-muted",   text: "text-muted-foreground",   hex: "#64748b" },
 };
 
 function mapGoal(g) {
@@ -148,43 +148,43 @@ export function PiggyBanks() {
             {totalTarget > 0 ? `${((totalSaved / totalTarget) * 100).toFixed(1)}% của mục tiêu` : "—"}
           </p>
         </div>
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+        <div className="bg-card rounded-2xl p-5 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-1">
-            <p className="text-slate-500 text-xs font-medium">Tổng mục tiêu</p>
-            <Target size={18} className="text-slate-300" />
+            <p className="text-muted-foreground text-xs font-medium">Tổng mục tiêu</p>
+            <Target size={18} className="text-muted-foreground" />
           </div>
-          <p className="text-3xl font-bold text-slate-900 mb-1">{fmt(totalTarget)}</p>
-          <p className="text-slate-400 text-xs">Trên {goals.length} lợn tiết kiệm</p>
+          <p className="text-3xl font-bold text-card-foreground mb-1">{fmt(totalTarget)}</p>
+          <p className="text-muted-foreground text-xs">Trên {goals.length} lợn tiết kiệm</p>
         </div>
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+        <div className="bg-card rounded-2xl p-5 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-1">
-            <p className="text-slate-500 text-xs font-medium">Tiết kiệm hàng tháng</p>
-            <TrendingUp size={18} className="text-slate-300" />
+            <p className="text-muted-foreground text-xs font-medium">Tiết kiệm hàng tháng</p>
+            <TrendingUp size={18} className="text-muted-foreground" />
           </div>
-          <p className="text-3xl font-bold text-slate-900 mb-1">{fmt(totalMonthly)}</p>
-          <p className="text-slate-400 text-xs">Tổng đóng góp định kỳ</p>
+          <p className="text-3xl font-bold text-card-foreground mb-1">{fmt(totalMonthly)}</p>
+          <p className="text-muted-foreground text-xs">Tổng đóng góp định kỳ</p>
         </div>
       </div>
 
       {/* Goals list */}
       {isLoading ? (
         <div className="space-y-3">
-          {[1,2,3].map(i => <div key={i} className="h-20 bg-slate-100 rounded-2xl animate-pulse" />)}
+          {[1,2,3].map(i => <div key={i} className="h-20 bg-muted rounded-2xl animate-pulse" />)}
         </div>
       ) : goals.length === 0 ? (
-        <div className="py-20 flex flex-col items-center justify-center bg-white rounded-2xl border border-dashed border-slate-300">
+        <div className="py-20 flex flex-col items-center justify-center bg-card rounded-2xl border border-dashed border-border">
           <PiggyBank size={48} className="text-slate-200 mb-4" />
-          <p className="font-medium text-slate-500">Chưa có lợn tiết kiệm nào</p>
-          <p className="text-sm text-slate-400 mt-1">Nhấn "Thêm lợn tiết kiệm" để bắt đầu</p>
+          <p className="font-medium text-muted-foreground">Chưa có lợn tiết kiệm nào</p>
+          <p className="text-sm text-muted-foreground mt-1">Nhấn "Thêm lợn tiết kiệm" để bắt đầu</p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6">
-          <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/50">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Danh sách lợn tiết kiệm</p>
+        <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden mb-6">
+          <div className="px-6 py-3 border-b border-border bg-muted/50">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Danh sách lợn tiết kiệm</p>
           </div>
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-border">
             {goals.map(goal => (
-              <div key={goal.id} className="px-6 py-4 hover:bg-slate-50 transition-colors group">
+              <div key={goal.id} className="px-6 py-4 hover:bg-muted transition-colors group">
                 <div className="flex items-center gap-4">
                   {/* Icon */}
                   <div className={`w-11 h-11 rounded-xl ${goal.bg} flex items-center justify-center shrink-0`}>
@@ -194,18 +194,18 @@ export function PiggyBanks() {
                   {/* Name + progress */}
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/piggy-banks/${goal.id}`)}>
                     <div className="flex items-center gap-2 mb-1.5">
-                      <p className="font-semibold text-slate-900 text-sm">{goal.name}</p>
+                      <p className="font-semibold text-card-foreground text-sm">{goal.name}</p>
                       {goal.targetDate && (
-                        <span className="text-[11px] text-slate-400">đến {goal.targetDate}</span>
+                        <span className="text-[11px] text-muted-foreground">đến {goal.targetDate}</span>
                       )}
-                      <ChevronRight size={14} className="text-slate-300 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <ChevronRight size={14} className="text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 h-2 bg-slate-100 rounded-full">
+                      <div className="flex-1 h-2 bg-muted rounded-full">
                         <div className="h-2 rounded-full transition-all duration-500"
                           style={{ width: `${goal.pct}%`, backgroundColor: goal.hex }} />
                       </div>
-                      <span className="text-xs font-semibold text-slate-500 shrink-0 w-10 text-right">
+                      <span className="text-xs font-semibold text-muted-foreground shrink-0 w-10 text-right">
                         {goal.pct.toFixed(0)}%
                       </span>
                     </div>
@@ -214,20 +214,20 @@ export function PiggyBanks() {
                   {/* Stats */}
                   <div className="hidden md:flex items-center gap-6 text-right shrink-0">
                     <div>
-                      <p className="text-xs text-slate-400">Đã tiết kiệm</p>
+                      <p className="text-xs text-muted-foreground">Đã tiết kiệm</p>
                       <p className="text-sm font-bold" style={{ color: goal.hex }}>{fmt(goal.saved)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-400">Mục tiêu</p>
-                      <p className="text-sm font-bold text-slate-700">{fmt(goal.target)}</p>
+                      <p className="text-xs text-muted-foreground">Mục tiêu</p>
+                      <p className="text-sm font-bold text-foreground">{fmt(goal.target)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-400">Còn lại</p>
-                      <p className="text-sm font-semibold text-slate-500">{fmt(goal.leftToSave)}</p>
+                      <p className="text-xs text-muted-foreground">Còn lại</p>
+                      <p className="text-sm font-semibold text-muted-foreground">{fmt(goal.leftToSave)}</p>
                     </div>
                     {goal.savePerMonth > 0 && (
                       <div>
-                        <p className="text-xs text-slate-400">/ tháng</p>
+                        <p className="text-xs text-muted-foreground">/ tháng</p>
                         <p className="text-sm font-semibold text-purple-600">{fmt(goal.savePerMonth)}</p>
                       </div>
                     )}
@@ -236,11 +236,11 @@ export function PiggyBanks() {
                   {/* Actions */}
                   <div className="flex items-center gap-1 shrink-0">
                     <button onClick={() => { setEditGoal(goal); }}
-                      className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-purple-600 transition-colors" title="Sửa">
+                      className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-purple-600 transition-colors" title="Sửa">
                       <Pencil size={14} />
                     </button>
                     <button onClick={() => handleDelete(goal)}
-                      className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors" title="Xóa">
+                      className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors" title="Xóa">
                       <Trash2 size={14} />
                     </button>
                   </div>
@@ -253,24 +253,24 @@ export function PiggyBanks() {
 
       {/* Account status table */}
       {accountStatus.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/50">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Trạng thái tài khoản</p>
+        <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+          <div className="px-6 py-3 border-b border-border bg-muted/50">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Trạng thái tài khoản</p>
           </div>
           <table className="w-full text-left">
             <thead>
-              <tr className="text-xs text-slate-500 uppercase tracking-wider border-b border-slate-100 bg-slate-50/30">
+              <tr className="text-xs text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/30">
                 <th className="px-6 py-3 font-semibold">Tài khoản</th>
                 <th className="px-6 py-3 font-semibold text-right">Số dư</th>
                 <th className="px-6 py-3 font-semibold text-right">Đã gán vào lợn</th>
                 <th className="px-6 py-3 font-semibold text-right">Còn tự do</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {accountStatus.map(a => (
-                <tr key={a.accountId} className="hover:bg-slate-50">
-                  <td className="px-6 py-3 font-medium text-slate-900 text-sm">{a.name}</td>
-                  <td className="px-6 py-3 text-right text-sm text-slate-700">{fmt(a.balance ?? 0)}</td>
+                <tr key={a.accountId} className="hover:bg-muted">
+                  <td className="px-6 py-3 font-medium text-card-foreground text-sm">{a.name}</td>
+                  <td className="px-6 py-3 text-right text-sm text-foreground">{fmt(a.balance ?? 0)}</td>
                   <td className="px-6 py-3 text-right text-sm text-purple-600 font-semibold">{fmt(a.assigned)}</td>
                   <td className={`px-6 py-3 text-right text-sm font-bold ${a.remaining >= 0 ? "text-green-600" : "text-red-500"}`}>
                     {fmt(a.remaining)}

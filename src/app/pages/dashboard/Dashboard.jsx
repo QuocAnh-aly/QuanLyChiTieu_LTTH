@@ -13,16 +13,16 @@ const CHART_COLORS = ["#f59e0b", "#ec4899", "#3b82f6", "#10b981", "#6366f1", "#8
 
 function SkeletonCard({ gradient }) {
   return (
-    <div className={`rounded-2xl p-6 animate-pulse ${gradient ? "bg-purple-300" : "bg-white border border-slate-200"}`}>
-      <div className={`h-4 rounded mb-4 w-1/2 ${gradient ? "bg-purple-400" : "bg-slate-200"}`} />
-      <div className={`h-10 rounded mb-2 w-3/4 ${gradient ? "bg-purple-400" : "bg-slate-200"}`} />
-      <div className={`h-3 rounded w-1/3 ${gradient ? "bg-purple-400" : "bg-slate-200"}`} />
+    <div className={`rounded-2xl p-6 animate-pulse ${gradient ? "bg-purple-300" : "bg-card border border-border"}`}>
+      <div className={`h-4 rounded mb-4 w-1/2 ${gradient ? "bg-purple-400" : "bg-muted"}`} />
+      <div className={`h-10 rounded mb-2 w-3/4 ${gradient ? "bg-purple-400" : "bg-muted"}`} />
+      <div className={`h-3 rounded w-1/3 ${gradient ? "bg-purple-400" : "bg-muted"}`} />
     </div>
   );
 }
 
 function SkeletonChart() {
-  return <div className="h-[300px] bg-slate-100 rounded-xl animate-pulse" />;
+  return <div className="h-[300px] bg-muted rounded-xl animate-pulse" />;
 }
 
 import { PageLayout } from "../../components/layout/PageLayout";
@@ -69,7 +69,7 @@ export function Dashboard() {
       setMonthlyTrend(trend);
 
       const spending = (data.spendingByCategory || []).map(s => ({
-        name:   s.accountName || s.categoryName || "Other",
+        name:   s.accountName || s.categoryName || "Khác",
         amount: s.amount,
         pct:    s.percentage ?? 0,
       }));
@@ -99,7 +99,7 @@ export function Dashboard() {
       });
       setRecentTransactions(recent);
     } catch (error) {
-      console.error("Error fetching dashboard data:", error);
+      console.error("Lỗi khi tải dữ liệu tổng quan:", error);
       setHasError(true);
       toast.error("Không thể tải dữ liệu tổng quan");
     } finally {
@@ -123,19 +123,19 @@ export function Dashboard() {
           <SkeletonCard />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white rounded-2xl p-6 border border-slate-200"><SkeletonChart /></div>
-          <div className="bg-white rounded-2xl p-6 border border-slate-200"><SkeletonChart /></div>
+          <div className="bg-card rounded-2xl p-6 border border-border"><SkeletonChart /></div>
+          <div className="bg-card rounded-2xl p-6 border border-border"><SkeletonChart /></div>
         </div>
-        <div className="bg-white rounded-2xl p-6 border border-slate-200">
-          <div className="h-6 bg-slate-200 rounded w-48 mb-6 animate-pulse" />
+        <div className="bg-card rounded-2xl p-6 border border-border">
+          <div className="h-6 bg-muted rounded w-48 mb-6 animate-pulse" />
           {[1, 2, 3].map(i => (
-            <div key={i} className="flex items-center gap-4 py-4 border-b border-slate-100 last:border-0">
-              <div className="w-12 h-12 rounded-full bg-slate-200 animate-pulse shrink-0" />
+            <div key={i} className="flex items-center gap-4 py-4 border-b border-border last:border-0">
+              <div className="w-12 h-12 rounded-full bg-accent animate-pulse shrink-0" />
               <div className="flex-1">
-                <div className="h-4 bg-slate-200 rounded w-1/3 mb-2 animate-pulse" />
-                <div className="h-3 bg-slate-100 rounded w-1/4 animate-pulse" />
+                <div className="h-4 bg-muted rounded w-1/3 mb-2 animate-pulse" />
+                <div className="h-3 bg-muted rounded w-1/4 animate-pulse" />
               </div>
-              <div className="h-5 bg-slate-200 rounded w-20 animate-pulse" />
+              <div className="h-5 bg-muted rounded w-20 animate-pulse" />
             </div>
           ))}
         </div>
@@ -147,7 +147,7 @@ export function Dashboard() {
     return (
       <PageLayout title="Tổng quan" subtitle="Không thể tải dữ liệu">
         <div className="flex flex-col items-center justify-center min-h-[400px]">
-          <p className="text-slate-500 mb-4">Không thể tải dữ liệu tổng quan.</p>
+          <p className="text-muted-foreground mb-4">Không thể tải dữ liệu tổng quan.</p>
           <button
             onClick={() => fetchDashboardData()}
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
@@ -168,7 +168,7 @@ export function Dashboard() {
         <button
           onClick={() => fetchDashboardData(true)}
           disabled={isRefreshing}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors text-slate-600"
+          className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-lg hover:bg-muted transition-colors text-muted-foreground"
           title="Làm mới"
         >
           <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
@@ -188,25 +188,25 @@ export function Dashboard() {
           <p className="text-purple-100 text-sm">Trên tất cả tài khoản</p>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border border-slate-200">
+        <div className="bg-card rounded-2xl p-6 border border-border">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-slate-600">Thu nhập</span>
-            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+            <span className="text-muted-foreground">Thu nhập</span>
+            <div className="w-10 h-10 rounded-full bg-green-500/15 flex items-center justify-center">
               <ArrowUpRight size={20} className="text-green-600" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-slate-900 mb-2">{fmt(summary.monthlyIncome)}</p>
+          <p className="text-3xl font-bold text-card-foreground mb-2">{fmt(summary.monthlyIncome)}</p>
           <p className="text-green-600 text-sm">Tháng này</p>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border border-slate-200">
+        <div className="bg-card rounded-2xl p-6 border border-border">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-slate-600">Chi tiêu</span>
-            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+            <span className="text-muted-foreground">Chi tiêu</span>
+            <div className="w-10 h-10 rounded-full bg-red-500/15 flex items-center justify-center">
               <ArrowDownRight size={20} className="text-red-600" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-slate-900 mb-2">{fmt(summary.monthlyExpense)}</p>
+          <p className="text-3xl font-bold text-card-foreground mb-2">{fmt(summary.monthlyExpense)}</p>
           <p className={`text-sm font-medium ${netPositive ? "text-green-600" : "text-red-500"}`}>
             Dòng tiền ròng: {netPositive ? "+" : ""}{fmt(summary.netCashFlow)}
           </p>
@@ -215,16 +215,16 @@ export function Dashboard() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-2xl p-6 border border-slate-200">
-          <h2 className="text-xl font-bold text-slate-900 mb-6">Thu nhập và Chi tiêu</h2>
+        <div className="bg-card rounded-2xl p-6 border border-border">
+          <h2 className="text-xl font-bold text-card-foreground mb-6">Thu nhập và Chi tiêu</h2>
           {monthlyTrend.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={monthlyTrend}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="month" stroke="#64748b" tick={{ fontSize: 12 }} />
-                <YAxis stroke="#64748b" tick={{ fontSize: 12 }} tickFormatter={fmtShort} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                <XAxis dataKey="month" stroke="var(--color-muted-foreground)" tick={{ fontSize: 12 }} />
+                <YAxis stroke="var(--color-muted-foreground)" tick={{ fontSize: 12 }} tickFormatter={fmtShort} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#fff", border: "1px solid #e2e8f0", borderRadius: "8px" }}
+                  contentStyle={{ backgroundColor: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: "8px", color: "var(--color-card-foreground)" }}
                   formatter={(value, name) => [
                     fmt(value),
                     name === "income" ? "Thu nhập" : "Chi tiêu",
@@ -236,12 +236,12 @@ export function Dashboard() {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[300px] flex items-center justify-center text-slate-400">Không có dữ liệu xu hướng</div>
+            <div className="h-[300px] flex items-center justify-center text-muted-foreground">Không có dữ liệu xu hướng</div>
           )}
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border border-slate-200">
-          <h2 className="text-xl font-bold text-slate-900 mb-6">Chi tiêu theo danh mục</h2>
+        <div className="bg-card rounded-2xl p-6 border border-border">
+          <h2 className="text-xl font-bold text-card-foreground mb-6">Chi tiêu theo danh mục</h2>
           {categorySpending.length > 0 ? (
             <>
               <ResponsiveContainer width="100%" height={220}>
@@ -261,7 +261,7 @@ export function Dashboard() {
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ backgroundColor: "#fff", border: "1px solid #e2e8f0", borderRadius: "8px" }}
+                    contentStyle={{ backgroundColor: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: "8px", color: "var(--color-card-foreground)" }}
                     formatter={(value) => [fmt(value), "Số tiền"]}
                   />
                 </PieChart>
@@ -271,26 +271,26 @@ export function Dashboard() {
                   <div key={s.name} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
-                      <span className="text-slate-600 truncate max-w-[140px]">{s.name}</span>
+                      <span className="text-muted-foreground truncate max-w-[140px]">{s.name}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-slate-400 text-xs">{s.pct.toFixed(1)}%</span>
-                      <span className="font-semibold text-slate-700">{fmt(s.amount)}</span>
+                      <span className="text-muted-foreground text-xs">{s.pct.toFixed(1)}%</span>
+                      <span className="font-semibold text-foreground">{fmt(s.amount)}</span>
                     </div>
                   </div>
                 ))}
               </div>
             </>
           ) : (
-            <div className="h-[300px] flex items-center justify-center text-slate-400">Không có dữ liệu chi tiêu</div>
+            <div className="h-[300px] flex items-center justify-center text-muted-foreground">Không có dữ liệu chi tiêu</div>
           )}
         </div>
       </div>
 
       {/* Recent Transactions */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200">
+      <div className="bg-card rounded-2xl p-6 border border-border">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-slate-900">Giao dịch gần đây</h2>
+          <h2 className="text-xl font-bold text-card-foreground">Giao dịch gần đây</h2>
           <Link
             to="/transactions"
             className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors"
@@ -300,24 +300,24 @@ export function Dashboard() {
           </Link>
         </div>
         {recentTransactions.length === 0 ? (
-          <p className="text-center text-slate-400 py-8">Không có giao dịch gần đây</p>
+          <p className="text-center text-muted-foreground py-8">Không có giao dịch gần đây</p>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-border">
             {recentTransactions.map((t) => {
-              const iconBg    = t.isTransfer ? "bg-blue-50"    : t.isIncome ? "bg-green-100" : "bg-red-50";
+              const iconBg    = t.isTransfer ? "bg-blue-500/10" : t.isIncome ? "bg-green-500/15"  : "bg-red-500/10";
               const Icon      = t.isTransfer ? ArrowLeftRight   : t.isIncome ? ArrowUpRight   : ArrowDownRight;
-              const iconCls   = t.isTransfer ? "text-blue-500"  : t.isIncome ? "text-green-600" : "text-red-500";
-              const amtCls    = t.isTransfer ? "text-blue-600"  : t.isIncome ? "text-green-600" : "text-slate-900";
+              const iconCls   = t.isTransfer ? "text-blue-400"  : t.isIncome ? "text-green-400" : "text-red-400";
+              const amtCls    = t.isTransfer ? "text-blue-400"  : t.isIncome ? "text-green-400" : "text-foreground";
               const amtPrefix = t.isIncome ? "+" : t.isTransfer ? "" : "-";
               return (
-                <div key={t.id} className="flex items-center justify-between py-4 hover:bg-slate-50 px-2 rounded-lg transition-colors">
+                <div key={t.id} className="flex items-center justify-between py-4 hover:bg-muted px-2 rounded-lg transition-colors">
                   <div className="flex items-center gap-4">
                     <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}>
                       <Icon size={18} className={iconCls} />
                     </div>
                     <div>
-                      <p className="font-semibold text-slate-900 text-sm">{t.description || "—"}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                      <p className="font-semibold text-card-foreground text-sm">{t.description || "—"}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {t.categoryName} · {t.transactionDate ? format(new Date(t.transactionDate), "dd/MM/yyyy") : ""}
                       </p>
                     </div>

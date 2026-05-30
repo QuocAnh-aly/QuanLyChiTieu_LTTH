@@ -33,8 +33,8 @@ const MONTHLY_FACTOR = {
 };
 
 const STATUS_CONFIG = {
-  inactive:         { icon: MinusCircle, cls: "text-slate-400 bg-slate-100",         label: "~" },
-  not_expected:     { icon: Clock,       cls: "text-slate-400 bg-slate-100",         label: "Không cần" },
+  inactive:         { icon: MinusCircle, cls: "text-muted-foreground bg-muted",         label: "~" },
+  not_expected:     { icon: Clock,       cls: "text-muted-foreground bg-muted",         label: "Không cần" },
   expected_unpaid:  { icon: AlertCircle, cls: "text-yellow-700 bg-yellow-100",       label: "Chưa trả" },
   paid:             { icon: CheckCircle2, cls: "text-green-700 bg-green-100",        label: "Đã trả" },
 };
@@ -173,34 +173,34 @@ export function Subscriptions() {
           <p className="text-3xl font-bold mb-1">{fmt(totalMonthly)}</p>
           <p className="text-purple-200 text-xs">{activeBills.length} hóa đơn đang hoạt động</p>
         </div>
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+        <div className="bg-card rounded-2xl p-5 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-1">
-            <p className="text-slate-500 text-xs font-medium">Tổng hóa đơn</p>
-            <Layers size={18} className="text-slate-300" />
+            <p className="text-muted-foreground text-xs font-medium">Tổng hóa đơn</p>
+            <Layers size={18} className="text-muted-foreground" />
           </div>
-          <p className="text-3xl font-bold text-slate-900 mb-1">{bills.length}</p>
-          <p className="text-slate-400 text-xs">{bills.filter(b => !b.active).length} đang tắt</p>
+          <p className="text-3xl font-bold text-card-foreground mb-1">{bills.length}</p>
+          <p className="text-muted-foreground text-xs">{bills.filter(b => !b.active).length} đang tắt</p>
         </div>
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+        <div className="bg-card rounded-2xl p-5 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-1">
-            <p className="text-slate-500 text-xs font-medium">Sắp đến hạn (7 ngày)</p>
-            <CalendarClock size={18} className="text-slate-300" />
+            <p className="text-muted-foreground text-xs font-medium">Sắp đến hạn (7 ngày)</p>
+            <CalendarClock size={18} className="text-muted-foreground" />
           </div>
-          <p className={`text-3xl font-bold mb-1 ${dueSoon > 0 ? "text-orange-500" : "text-slate-900"}`}>{dueSoon}</p>
-          <p className="text-slate-400 text-xs">hóa đơn cần thanh toán</p>
+          <p className={`text-3xl font-bold mb-1 ${dueSoon > 0 ? "text-orange-500" : "text-card-foreground"}`}>{dueSoon}</p>
+          <p className="text-muted-foreground text-xs">hóa đơn cần thanh toán</p>
         </div>
       </div>
 
       {/* Bills list */}
       {isLoading ? (
         <div className="space-y-3">
-          {[1,2,3].map(i => <div key={i} className="h-16 bg-slate-100 rounded-2xl animate-pulse" />)}
+          {[1,2,3].map(i => <div key={i} className="h-16 bg-muted rounded-2xl animate-pulse" />)}
         </div>
       ) : bills.length === 0 ? (
-        <div className="py-20 flex flex-col items-center justify-center bg-white rounded-2xl border border-dashed border-slate-300">
+        <div className="py-20 flex flex-col items-center justify-center bg-card rounded-2xl border border-dashed border-border">
           <Receipt size={48} className="text-slate-200 mb-4" />
-          <p className="font-medium text-slate-500">Chưa có hóa đơn nào</p>
-          <p className="text-sm text-slate-400 mt-1">Nhấn "Thêm hóa đơn" để bắt đầu</p>
+          <p className="font-medium text-muted-foreground">Chưa có hóa đơn nào</p>
+          <p className="text-sm text-muted-foreground mt-1">Nhấn "Thêm hóa đơn" để bắt đầu</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -211,19 +211,19 @@ export function Subscriptions() {
             }, 0);
 
             return (
-              <div key={groupName || "__no_group__"} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div key={groupName || "__no_group__"} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
                 {/* Group header */}
-                <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <div className="px-6 py-3 border-b border-border bg-muted/60 flex items-center justify-between">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                     {groupName || "Không có nhóm"}
                   </p>
-                  <p className="text-xs text-slate-400 font-medium">
+                  <p className="text-xs text-muted-foreground font-medium">
                     ~{fmt(groupMonthly)}/tháng
                   </p>
                 </div>
 
                 {/* Rows */}
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-border">
                   {groupBills.map(bill => {
                     const nextDate  = bill.nextExpectedMatch ? parseISO(bill.nextExpectedMatch) : null;
                     const daysUntil = nextDate ? differenceInDays(nextDate, today) : null;
@@ -231,28 +231,28 @@ export function Subscriptions() {
 
                     return (
                       <div key={bill.billId}
-                        className={`px-4 py-3.5 hover:bg-slate-50 transition-colors flex items-center gap-3 group ${!bill.active ? "opacity-60" : ""}`}>
+                        className={`px-4 py-3.5 hover:bg-muted transition-colors flex items-center gap-3 group ${!bill.active ? "opacity-60" : ""}`}>
                         {/* Drag handle (visual only) */}
-                        <GripVertical size={16} className="text-slate-300 shrink-0 cursor-grab" />
+                        <GripVertical size={16} className="text-muted-foreground shrink-0 cursor-grab" />
 
                         {/* Icon */}
-                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${bill.active ? "bg-purple-100" : "bg-slate-100"}`}>
-                          <Receipt size={16} className={bill.active ? "text-purple-600" : "text-slate-400"} />
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${bill.active ? "bg-purple-100" : "bg-muted"}`}>
+                          <Receipt size={16} className={bill.active ? "text-purple-600" : "text-muted-foreground"} />
                         </div>
 
                         {/* Name + freq */}
                         <div className="flex-1 min-w-0 cursor-pointer"
                           onClick={() => navigate(`/subscriptions/${bill.billId}`)}>
                           <div className="flex items-center gap-2 mb-0.5">
-                            <p className="font-semibold text-slate-900 text-sm truncate">{bill.name}</p>
+                            <p className="font-semibold text-card-foreground text-sm truncate">{bill.name}</p>
                             {!bill.active && (
-                              <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">Tắt</span>
+                              <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-medium">Tắt</span>
                             )}
                             {isExpired && (
                               <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-medium">Hết hạn</span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-400">
+                          <p className="text-xs text-muted-foreground">
                             {FREQ_LABELS[bill.repeatFreq] ?? bill.repeatFreq}
                             {bill.skip > 0 ? ` · bỏ ${bill.skip} chu kỳ` : ""}
                           </p>
@@ -260,8 +260,8 @@ export function Subscriptions() {
 
                         {/* Amount range */}
                         <div className="hidden md:block text-right shrink-0">
-                          <p className="text-xs text-slate-400 mb-0.5">Khoảng tiền</p>
-                          <p className="text-sm font-semibold text-slate-700">
+                          <p className="text-xs text-muted-foreground mb-0.5">Khoảng tiền</p>
+                          <p className="text-sm font-semibold text-foreground">
                             {fmt(bill.amountMin)} – {fmt(bill.amountMax)}
                           </p>
                         </div>
@@ -273,24 +273,24 @@ export function Subscriptions() {
 
                         {/* Next expected */}
                         <div className="hidden md:block text-right shrink-0 w-28">
-                          <p className="text-xs text-slate-400 mb-0.5">Tiếp theo</p>
+                          <p className="text-xs text-muted-foreground mb-0.5">Tiếp theo</p>
                           {nextDate ? (
-                            <p className={`text-xs font-semibold ${daysUntil !== null && daysUntil <= 7 ? "text-orange-500" : "text-slate-700"}`}>
+                            <p className={`text-xs font-semibold ${daysUntil !== null && daysUntil <= 7 ? "text-orange-500" : "text-foreground"}`}>
                               {format(nextDate, "dd/MM/yyyy", { locale: vi })}
                             </p>
                           ) : (
-                            <p className="text-xs text-slate-400">—</p>
+                            <p className="text-xs text-muted-foreground">—</p>
                           )}
                         </div>
 
                         {/* Actions */}
                         <div className="flex items-center gap-1 shrink-0">
                           <button onClick={() => setEditBill(bill)}
-                            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-purple-600 transition-colors" title="Sửa">
+                            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-purple-600 transition-colors" title="Sửa">
                             <Pencil size={14} />
                           </button>
                           <button onClick={() => handleDelete(bill)}
-                            className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors" title="Xóa">
+                            className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors" title="Xóa">
                             <Trash2 size={14} />
                           </button>
                         </div>
@@ -300,10 +300,10 @@ export function Subscriptions() {
                 </div>
 
                 {/* Group subtotal */}
-                <div className="px-6 py-2 bg-slate-50/40 border-t border-slate-100 flex justify-end gap-8 text-xs">
-                  <span className="text-slate-400">
+                <div className="px-6 py-2 bg-muted/40 border-t border-border flex justify-end gap-8 text-xs">
+                  <span className="text-muted-foreground">
                     Tổng nhóm (ước tính/tháng):&nbsp;
-                    <span className="font-bold text-slate-700">{fmt(groupMonthly)}</span>
+                    <span className="font-bold text-foreground">{fmt(groupMonthly)}</span>
                   </span>
                 </div>
               </div>
@@ -312,8 +312,8 @@ export function Subscriptions() {
 
           {/* Grand total */}
           {sortedGroups.length > 1 && (
-            <div className="bg-slate-50 rounded-xl border border-slate-200 px-6 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+            <div className="bg-muted rounded-xl border border-border px-6 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <TrendingDown size={16} className="text-purple-500" />
                 Tổng ước tính hàng tháng
               </div>

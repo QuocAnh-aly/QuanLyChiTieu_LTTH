@@ -59,8 +59,8 @@ export function ObjectGroups() {
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Nhóm đối tượng</h1>
-          <p className="text-slate-500 mt-1">Quản lý người liên hệ, đối tác, cửa hàng hoặc người nhận/trả tiền</p>
+          <h1 className="text-3xl font-bold text-card-foreground">Nhóm đối tượng</h1>
+          <p className="text-muted-foreground mt-1">Quản lý người liên hệ, đối tác, cửa hàng hoặc người nhận/trả tiền</p>
         </div>
         <button
           onClick={openCreate}
@@ -74,29 +74,29 @@ export function ObjectGroups() {
       {/* Search */}
       <div className="flex gap-3 mb-6">
         <div className="relative flex-1 max-w-sm">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Tìm kiếm đối tượng..."
-            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full pl-9 pr-4 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
         {filtered.length === 0 ? (
-          <div className="py-16 text-center text-slate-400">
+          <div className="py-16 text-center text-muted-foreground">
             <Users size={48} className="mx-auto mb-4 opacity-30" />
-            <p className="text-slate-900 font-bold text-lg mb-1">Chưa có đối tượng nào</p>
-            <p className="text-slate-500">Quản lý những người và công ty bạn thường xuyên giao dịch.</p>
+            <p className="text-card-foreground font-bold text-lg mb-1">Chưa có đối tượng nào</p>
+            <p className="text-muted-foreground">Quản lý những người và công ty bạn thường xuyên giao dịch.</p>
           </div>
         ) : (
           <table className="w-full text-left">
             <thead>
-              <tr className="text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50">
+              <tr className="text-xs uppercase tracking-wider text-muted-foreground border-b border-border bg-muted">
                 <th className="px-6 py-4 font-semibold">Tên đối tượng</th>
                 <th className="px-6 py-4 font-semibold">Loại</th>
                 <th className="px-6 py-4 font-semibold">Vai trò</th>
@@ -104,9 +104,9 @@ export function ObjectGroups() {
                 <th className="px-6 py-4 font-semibold text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {filtered.map(obj => (
-                <tr key={obj.id} className="hover:bg-slate-50 transition-colors">
+                <tr key={obj.id} className="hover:bg-muted transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
@@ -114,7 +114,7 @@ export function ObjectGroups() {
                       }`}>
                         {obj.type === 'company' ? <Building2 size={18} /> : <Users size={18} />}
                       </div>
-                      <span className="font-semibold text-slate-900">{obj.name}</span>
+                      <span className="font-semibold text-card-foreground">{obj.name}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -131,21 +131,21 @@ export function ObjectGroups() {
                       {obj.role === 'payer' ? 'Người trả tiền' : 'Người nhận tiền'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-slate-500 max-w-xs truncate">
-                    {obj.notes || <span className="italic text-slate-300">—</span>}
+                  <td className="px-6 py-4 text-sm text-muted-foreground max-w-xs truncate">
+                    {obj.notes || <span className="italic text-muted-foreground">—</span>}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => openEdit(obj)}
-                        className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors"
+                        className="p-1.5 text-muted-foreground hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors"
                         title="Sửa"
                       >
                         <Pencil size={16} />
                       </button>
                       <button
                         onClick={() => handleDelete(obj)}
-                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                        className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
                         title="Xóa"
                       >
                         <Trash2 size={16} />
@@ -162,13 +162,13 @@ export function ObjectGroups() {
       {/* Create / Edit modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4">
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg mx-4">
             {/* Modal header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-              <h2 className="text-lg font-bold text-slate-900">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <h2 className="text-lg font-bold text-card-foreground">
                 {editingObj ? 'Chỉnh sửa đối tượng' : 'Thêm đối tượng mới'}
               </h2>
-              <button onClick={closeModal} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
+              <button onClick={closeModal} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">
                 <X size={18} />
               </button>
             </div>
@@ -177,7 +177,7 @@ export function ObjectGroups() {
             <div className="px-6 py-5 space-y-5">
               {/* Name */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
                   Tên đối tượng <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -186,7 +186,7 @@ export function ObjectGroups() {
                   value={form.name}
                   onChange={(e) => { setForm(f => ({ ...f, name: e.target.value })); setFormError(''); }}
                   placeholder="VD: Nguyễn Văn A, Shopee, Công ty XYZ..."
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
                 {formError && <p className="text-red-500 text-xs mt-1">{formError}</p>}
               </div>
@@ -194,7 +194,7 @@ export function ObjectGroups() {
               {/* Type + Role */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Loại</label>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">Loại</label>
                   <div className="flex gap-2">
                     {[
                       { value: 'person',  label: 'Cá nhân', Icon: Users,     active: 'bg-orange-100 border-orange-400 text-orange-700' },
@@ -204,7 +204,7 @@ export function ObjectGroups() {
                         key={value}
                         onClick={() => setForm(f => ({ ...f, type: value }))}
                         className={`flex-1 flex flex-col items-center gap-1 py-2.5 rounded-lg border-2 transition-all text-xs font-semibold ${
-                          form.type === value ? active : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                          form.type === value ? active : 'border-border text-muted-foreground hover:border-border'
                         }`}
                       >
                         <Icon size={18} />
@@ -215,7 +215,7 @@ export function ObjectGroups() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Vai trò</label>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">Vai trò</label>
                   <div className="flex gap-2">
                     {[
                       { value: 'payer', label: 'Trả tiền', active: 'bg-green-100 border-green-400 text-green-700' },
@@ -225,7 +225,7 @@ export function ObjectGroups() {
                         key={value}
                         onClick={() => setForm(f => ({ ...f, role: value }))}
                         className={`flex-1 py-2.5 rounded-lg border-2 transition-all text-xs font-semibold ${
-                          form.role === value ? active : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                          form.role === value ? active : 'border-border text-muted-foreground hover:border-border'
                         }`}
                       >
                         {label}
@@ -237,20 +237,20 @@ export function ObjectGroups() {
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Ghi chú</label>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">Ghi chú</label>
                 <textarea
                   value={form.notes}
                   onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))}
                   placeholder="Thêm ghi chú tùy chọn..."
                   rows={3}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                  className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                 />
               </div>
             </div>
 
             {/* Modal footer */}
-            <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-200">
-              <button onClick={closeModal} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800">
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-border">
+              <button onClick={closeModal} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
                 Hủy
               </button>
               <button

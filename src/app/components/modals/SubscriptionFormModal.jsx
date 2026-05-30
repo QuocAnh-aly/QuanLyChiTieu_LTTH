@@ -90,31 +90,31 @@ export function SubscriptionFormModal({ isOpen, onClose, onSave, bill = null }) 
         <div className="px-6 py-4 border-b border-slate-700 flex justify-between items-center bg-[#2c323c]">
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-semibold text-slate-200 flex items-center gap-2">
-              <Receipt className="text-slate-400" size={24} />
-              Subscriptions <span className="text-sm font-normal text-slate-400 ml-2">{isEdit ? "Edit subscription" : "Create new subscription"}</span>
+              <Receipt className="text-muted-foreground" size={24} />
+              Hóa đơn định kỳ <span className="text-sm font-normal text-muted-foreground ml-2">{isEdit ? "Sửa" : "Tạo mới"}</span>
             </h2>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-200">
+          <button onClick={onClose} className="text-muted-foreground hover:text-slate-200">
             <X size={20} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-[#2c323c] p-6 text-sm text-slate-300">
+        <div className="flex-1 overflow-y-auto bg-[#2c323c] p-6 text-sm text-muted-foreground">
           <form id="subscription-form" onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Mandatory Fields */}
               <div>
-                <h3 className="font-semibold text-slate-200 mb-6 border-b border-[#315c81] pb-2 text-base">Mandatory fields</h3>
+                <h3 className="font-semibold text-slate-200 mb-6 border-b border-[#315c81] pb-2 text-base">Trường bắt buộc</h3>
                 
                 <div className="space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-36 font-medium text-slate-300 text-right shrink-0">Name</label>
+                    <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0">Tên</label>
                     <input type="text" value={name} onChange={e => setName(e.target.value)} required
-                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" placeholder="Name" />
+                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" placeholder="Tên hóa đơn" />
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-36 font-medium text-slate-300 text-right shrink-0">Currency</label>
+                    <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0">Tiền tệ</label>
                     <select value={selectedCurrency} onChange={e => setSelectedCurrency(e.target.value)}
                       className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200">
                       {currencies?.map(c => (
@@ -124,25 +124,25 @@ export function SubscriptionFormModal({ isOpen, onClose, onSave, bill = null }) 
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-36 font-medium text-slate-300 text-right shrink-0">Minimum amount</label>
+                    <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0">Số tiền tối thiểu</label>
                     <input type="number" value={amountMin} onChange={e => setAmountMin(e.target.value)} required min="0" step="1000"
                       className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" />
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-36 font-medium text-slate-300 text-right shrink-0">Maximum amount</label>
+                    <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0">Số tiền tối đa</label>
                     <input type="number" value={amountMax} onChange={e => setAmountMax(e.target.value)} required min="0" step="1000"
                       className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" />
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-36 font-medium text-slate-300 text-right shrink-0">Date</label>
+                    <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0">Ngày</label>
                     <input type="date" value={date} onChange={e => setDate(e.target.value)} required
                       className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200 [color-scheme:dark]" />
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-36 font-medium text-slate-300 text-right shrink-0">Repeats</label>
+                    <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0">Lặp lại</label>
                     <select value={repeatFreq} onChange={e => setRepeatFreq(e.target.value)} required
                       className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200">
                       {FREQ_OPTIONS.map(o => (
@@ -152,11 +152,11 @@ export function SubscriptionFormModal({ isOpen, onClose, onSave, bill = null }) 
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-36 font-medium text-slate-300 text-right shrink-0 mt-2">Skip</label>
+                    <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0 mt-2">Bỏ qua</label>
                     <div className="flex-1">
                       <input type="number" value={skip} onChange={e => setSkip(e.target.value)} min="0"
                         className="w-full bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" />
-                      <p className="text-xs text-slate-500 mt-1">Use the skip field to create bi-monthly (skip = 1) or other custom intervals.</p>
+                      <p className="text-xs text-muted-foreground mt-1">Dùng để tạo lịch cách quãng (skip=1: 2 tháng/lần).</p>
                     </div>
                   </div>
                 </div>
@@ -164,56 +164,56 @@ export function SubscriptionFormModal({ isOpen, onClose, onSave, bill = null }) 
 
               {/* Optional Fields */}
               <div className="bg-[#22272e] p-6 rounded-lg border border-slate-700">
-                <h3 className="font-semibold text-slate-200 mb-6 border-b border-slate-600 pb-2 text-base">Optional fields</h3>
+                <h3 className="font-semibold text-slate-200 mb-6 border-b border-slate-600 pb-2 text-base">Trường tùy chọn</h3>
                 
                 <div className="space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-32 font-medium text-slate-300 text-right shrink-0 mt-2">End date</label>
+                    <label className="sm:w-32 font-medium text-muted-foreground text-right shrink-0 mt-2">Ngày kết thúc</label>
                     <div className="flex-1">
                       <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
                         className="w-full bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200 [color-scheme:dark]" />
-                      <p className="text-xs text-slate-500 mt-1">Optional field. The subscription is expected to end on this date.</p>
+                      <p className="text-xs text-muted-foreground mt-1">Không bắt buộc. Ngày kết thúc dự kiến.</p>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-32 font-medium text-slate-300 text-right shrink-0 mt-2">Extension date</label>
+                    <label className="sm:w-32 font-medium text-muted-foreground text-right shrink-0 mt-2">Ngày gia hạn</label>
                     <div className="flex-1">
                       <input type="date" value={extensionDate} onChange={e => setExtensionDate(e.target.value)}
                         className="w-full bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200 [color-scheme:dark]" />
-                      <p className="text-xs text-slate-500 mt-1">Optional field. The subscription must be extended (or cancelled) on or before this date.</p>
+                      <p className="text-xs text-muted-foreground mt-1">Không bắt buộc. Ngày phải gia hạn hoặc hủy.</p>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-32 font-medium text-slate-300 text-right shrink-0 mt-2">Notes</label>
+                    <label className="sm:w-32 font-medium text-muted-foreground text-right shrink-0 mt-2">Ghi chú</label>
                     <div className="flex-1">
                       <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
-                        className="w-full bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200 resize-y" placeholder="Notes"></textarea>
-                      <p className="text-xs text-slate-500 mt-1">This field supports <a href="#" className="text-[#60a5fa] hover:underline">Markdown</a>.</p>
+                        className="w-full bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200 resize-y" placeholder="Ghi chú"></textarea>
+                      <p className="text-xs text-muted-foreground mt-1">Hỗ trợ <a href="#" className="text-[#60a5fa] hover:underline">Markdown</a>.</p>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-32 font-medium text-slate-300 text-right shrink-0 mt-2">Attachments</label>
+                    <label className="sm:w-32 font-medium text-muted-foreground text-right shrink-0 mt-2">Tệp đính kèm</label>
                     <div className="flex-1">
-                      <input type="file" className="text-slate-400 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-[#3e4551] file:text-slate-200 hover:file:bg-[#4b5563] text-sm" />
-                      <p className="text-xs text-slate-500 mt-1">Maximum file size: 2 MB</p>
+                      <input type="file" className="text-muted-foreground file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-[#3e4551] file:text-slate-200 hover:file:bg-[#4b5563] text-sm" />
+                      <p className="text-xs text-muted-foreground mt-1">Kích thước tối đa: 2 MB</p>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-32 font-medium text-slate-300 text-right shrink-0">Group</label>
+                    <label className="sm:w-32 font-medium text-muted-foreground text-right shrink-0">Nhóm</label>
                     <input type="text" value={objectGroup} onChange={e => setObjectGroup(e.target.value)}
-                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" placeholder="Group" />
+                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" placeholder="Nhóm" />
                   </div>
                   
                   {isEdit && (
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                      <label className="sm:w-32 font-medium text-slate-300 text-right shrink-0">Active</label>
+                      <label className="sm:w-32 font-medium text-muted-foreground text-right shrink-0">Kích hoạt</label>
                       <label className="flex items-center gap-2 cursor-pointer flex-1">
                         <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} className="rounded border-slate-600 bg-[#1e2329] text-[#315c81] focus:ring-[#315c81]" />
-                        <span className="text-slate-300">Active</span>
+                        <span className="text-muted-foreground">Kích hoạt</span>
                       </label>
                     </div>
                   )}
@@ -224,22 +224,22 @@ export function SubscriptionFormModal({ isOpen, onClose, onSave, bill = null }) 
 
             {/* Options */}
             <div className="mt-8 bg-[#22272e] p-6 rounded-lg border border-slate-700">
-              <h3 className="font-semibold text-slate-200 mb-4 border-b border-slate-600 pb-2 text-base">Options</h3>
+              <h3 className="font-semibold text-slate-200 mb-4 border-b border-slate-600 pb-2 text-base">Tùy chọn</h3>
               <div className="flex items-center gap-4">
-                <label className="sm:w-36 font-medium text-slate-300 text-right shrink-0">Return here</label>
+                <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0">Quay lại đây</label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={returnHere} onChange={e => setReturnHere(e.target.checked)} className="rounded border-slate-600 bg-[#1e2329] text-[#315c81] focus:ring-[#315c81]" />
-                  <span className="text-slate-300">After storing, return here to create another one.</span>
+                  <span className="text-muted-foreground">Sau khi lưu, quay lại để tạo tiếp.</span>
                 </label>
               </div>
               <div className="mt-6 flex justify-end gap-3 pb-2">
                 <button type="button" onClick={onClose}
-                  className="px-5 py-2.5 border border-slate-600 text-slate-300 rounded hover:bg-slate-700 transition-colors">
-                  Cancel
+                  className="px-5 py-2.5 border border-slate-600 text-muted-foreground rounded hover:bg-slate-700 transition-colors">
+                  Hủy
                 </button>
                 <button type="submit" disabled={!canSubmit} form="subscription-form"
                   className="px-5 py-2.5 bg-[#2ea043] text-white rounded hover:bg-[#3fb950] disabled:opacity-50 transition-colors">
-                  {isEdit ? "Update subscription" : "Store new subscription"}
+                  {isEdit ? "Cập nhật" : "Lưu mới"}
                 </button>
               </div>
             </div>

@@ -29,21 +29,21 @@ export function QuickTransferModal({ accounts, onClose, onTransfer }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-card rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-slate-900">Chuyển khoản nhanh</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={22} /></button>
+          <h2 className="text-xl font-bold text-card-foreground">Chuyển khoản nhanh</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-muted-foreground"><X size={22} /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* From → To visual */}
           <div className="flex items-center gap-3">
             <div className="flex-1">
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Từ</label>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Từ</label>
               <select
                 value={fromId}
                 onChange={(e) => setFromId(e.target.value)}
-                className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 required
               >
                 <option value="">Chọn</option>
@@ -52,20 +52,20 @@ export function QuickTransferModal({ accounts, onClose, onTransfer }) {
                 ))}
               </select>
               {fromAccount && (
-                <p className="text-xs text-slate-400 mt-1">${fromAccount.balance.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1">${fromAccount.balance.toLocaleString()}</p>
               )}
             </div>
 
-            <div className="pt-5 text-slate-400">
+            <div className="pt-5 text-muted-foreground">
               <ArrowRight size={20} />
             </div>
 
             <div className="flex-1">
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Sang</label>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Sang</label>
               <select
                 value={toId}
                 onChange={(e) => setToId(e.target.value)}
-                className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 required
               >
                 <option value="">Chọn</option>
@@ -74,22 +74,22 @@ export function QuickTransferModal({ accounts, onClose, onTransfer }) {
                 ))}
               </select>
               {toAccount && (
-                <p className="text-xs text-slate-400 mt-1">${toAccount.balance.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1">${toAccount.balance.toLocaleString()}</p>
               )}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
+            <label className="block text-sm font-semibold text-foreground mb-2">
               Số tiền <span className="text-red-500">*</span>
             </label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-medium">$</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">$</span>
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full pl-8 pr-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-lg font-semibold"
+                className="w-full pl-8 pr-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-lg font-semibold"
                 placeholder="0.00"
                 step="0.01"
                 min="0.01"
@@ -102,19 +102,19 @@ export function QuickTransferModal({ accounts, onClose, onTransfer }) {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Ghi chú (tùy chọn)</label>
+            <label className="block text-sm font-semibold text-foreground mb-2">Ghi chú (tùy chọn)</label>
             <input
               type="text"
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               placeholder="Chuyển khoản này dùng để làm gì?"
             />
           </div>
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}
-              className="flex-1 px-4 py-3 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 font-semibold">
+              className="flex-1 px-4 py-3 border border-border text-foreground rounded-lg hover:bg-muted font-semibold">
               Hủy
             </button>
             <button type="submit" disabled={loading || fromId === toId}
