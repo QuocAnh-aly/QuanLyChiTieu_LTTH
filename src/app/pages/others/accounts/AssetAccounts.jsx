@@ -326,7 +326,6 @@ export function AssetAccounts() {
         </>
       }
     >
-
       {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl p-6 text-white">
@@ -358,11 +357,13 @@ export function AssetAccounts() {
         </div>
 
         <div
-          onClick={() => navigate('/accounts/liabilities')}
+          onClick={() => navigate("/accounts/liabilities")}
           className="bg-card rounded-2xl p-6 border border-border cursor-pointer hover:border-red-400 hover:shadow-md transition-all"
         >
           <div className="flex items-center justify-between mb-4">
-            <span className="text-muted-foreground text-sm font-medium">Nợ</span>
+            <span className="text-muted-foreground text-sm font-medium">
+              Nợ
+            </span>
             <div className="w-10 h-10 rounded-full bg-red-500/15 flex items-center justify-center">
               <ArrowDownRight size={20} className="text-red-600" />
             </div>
@@ -376,9 +377,121 @@ export function AssetAccounts() {
         </div>
       </div>
 
+      {/* Charts row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Balance Trend */}
+        <div className="lg:col-span-2 bg-card rounded-2xl p-6 border border-border">
+          <h2 className="text-lg font-bold text-card-foreground mb-6">
+            Xu hướng số dư
+          </h2>
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={balanceHistory}>
+              <defs>
+                <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#9333ea" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#9333ea" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="var(--color-border)"
+              />
+              <XAxis
+                dataKey="month"
+                stroke="var(--color-muted-foreground)"
+                tick={{ fontSize: 12 }}
+              />
+              <YAxis
+                stroke="var(--color-muted-foreground)"
+                tick={{ fontSize: 12 }}
+                tickFormatter={fmtShort}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "var(--color-card)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "10px",
+                }}
+                formatter={(val) => [fmt(val), "Số dư"]}
+              />
+              <Area
+                type="monotone"
+                dataKey="balance"
+                stroke="#9333ea"
+                strokeWidth={2.5}
+                fillOpacity={1}
+                fill="url(#colorBalance)"
+                dot={{ r: 4, fill: "#9333ea" }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Asset breakdown pie */}
+        {pieData.length > 0 ? (
+          <div className="bg-card rounded-2xl p-6 border border-border">
+            <h2 className="text-lg font-bold text-card-foreground mb-4">
+              Cơ cấu tài sản
+            </h2>
+            <ResponsiveContainer width="100%" height={160}>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={45}
+                  outerRadius={75}
+                  paddingAngle={4}
+                  dataKey="value"
+                >
+                  {pieData.map((_, i) => (
+                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "var(--color-card)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: "10px",
+                  }}
+                  formatter={(val) => [fmt(val), ""]}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="mt-3 space-y-2">
+              {pieData.slice(0, 4).map((d, i) => (
+                <div
+                  key={d.name}
+                  className="flex items-center justify-between text-xs"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <div
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{
+                        backgroundColor: PIE_COLORS[i % PIE_COLORS.length],
+                      }}
+                    />
+                    <span className="text-muted-foreground truncate max-w-[90px]">
+                      {d.name}
+                    </span>
+                  </div>
+                  <span className="font-semibold text-foreground">
+                    {fmt(d.value)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-card rounded-2xl p-6 border border-border flex items-center justify-center text-muted-foreground text-sm">
+            Không có dữ liệu tài sản
+          </div>
+        )}
+      </div>
+
       {/* Balance distribution bar */}
       {accounts.length > 1 && totalAssets > 0 && (
-        <div className="bg-card rounded-2xl p-6 border border-border mb-6">
+        <div className="bg-card rounded-2xl p-6 border border-border mt-5mb-6">
           <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
             Phân bổ số dư
           </h2>
@@ -456,10 +569,7 @@ export function AssetAccounts() {
       {isLoading ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="h-48 rounded-2xl bg-accent animate-pulse"
-            />
+            <div key={i} className="h-48 rounded-2xl bg-accent animate-pulse" />
           ))}
         </div>
       ) : filteredAccounts.length === 0 ? (
@@ -599,12 +709,24 @@ export function AssetAccounts() {
             <table className="w-full text-left">
               <thead>
                 <tr className="text-xs uppercase tracking-wider text-muted-foreground border-b border-border bg-muted">
-                  <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">Tên tài khoản</th>
-                  <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">Loại</th>
-                  <th className="px-3 sm:px-6 py-3 font-semibold text-center whitespace-nowrap">Tiền tệ</th>
-                  <th className="px-3 sm:px-6 py-3 font-semibold text-right whitespace-nowrap">Số dư ban đầu</th>
-                  <th className="px-3 sm:px-6 py-3 font-semibold text-right whitespace-nowrap">Số dư hiện tại</th>
-                  <th className="px-3 sm:px-6 py-3 font-semibold text-right whitespace-nowrap">Thay đổi</th>
+                  <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">
+                    Tên tài khoản
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">
+                    Loại
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 font-semibold text-center whitespace-nowrap">
+                    Tiền tệ
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 font-semibold text-right whitespace-nowrap">
+                    Số dư ban đầu
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 font-semibold text-right whitespace-nowrap">
+                    Số dư hiện tại
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 font-semibold text-right whitespace-nowrap">
+                    Thay đổi
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -695,10 +817,18 @@ export function AssetAccounts() {
           <table className="w-full text-left">
             <thead>
               <tr className="text-xs uppercase tracking-wider text-muted-foreground border-b border-border bg-muted">
-                <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">Mô tả</th>
-                <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">Danh mục</th>
-                <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">Ngày</th>
-                <th className="px-3 sm:px-6 py-3 font-semibold text-right whitespace-nowrap">Số tiền</th>
+                <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">
+                  Mô tả
+                </th>
+                <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">
+                  Danh mục
+                </th>
+                <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">
+                  Ngày
+                </th>
+                <th className="px-3 sm:px-6 py-3 font-semibold text-right whitespace-nowrap">
+                  Số tiền
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -742,8 +872,14 @@ export function AssetAccounts() {
                           <div
                             className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}
                           >
-                            <TxIcon size={12} className={iconCls + " sm:hidden"} />
-                            <TxIcon size={14} className={iconCls + " hidden sm:block"} />
+                            <TxIcon
+                              size={12}
+                              className={iconCls + " sm:hidden"}
+                            />
+                            <TxIcon
+                              size={14}
+                              className={iconCls + " hidden sm:block"}
+                            />
                           </div>
                           <span className="font-medium text-card-foreground text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">
                             {t.description || "—"}
@@ -790,112 +926,11 @@ export function AssetAccounts() {
         </div>
       </div>
 
-      {/* Charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Balance Trend */}
-        <div className="lg:col-span-2 bg-card rounded-2xl p-6 border border-border">
-          <h2 className="text-lg font-bold text-card-foreground mb-6">
-            Xu hướng số dư
-          </h2>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={balanceHistory}>
-              <defs>
-                <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#9333ea" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#9333ea" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-              <XAxis dataKey="month" stroke="var(--color-muted-foreground)" tick={{ fontSize: 12 }} />
-              <YAxis
-                stroke="var(--color-muted-foreground)"
-                tick={{ fontSize: 12 }}
-                tickFormatter={fmtShort}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "var(--color-card)",
-                  border: "1px solid var(--color-border)",
-                  borderRadius: "10px",
-                }}
-                formatter={(val) => [fmt(val), "Số dư"]}
-              />
-              <Area
-                type="monotone"
-                dataKey="balance"
-                stroke="#9333ea"
-                strokeWidth={2.5}
-                fillOpacity={1}
-                fill="url(#colorBalance)"
-                dot={{ r: 4, fill: "#9333ea" }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Asset breakdown pie */}
-        {pieData.length > 0 ? (
-          <div className="bg-card rounded-2xl p-6 border border-border">
-            <h2 className="text-lg font-bold text-card-foreground mb-4">
-              Cơ cấu tài sản
-            </h2>
-            <ResponsiveContainer width="100%" height={160}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={45}
-                  outerRadius={75}
-                  paddingAngle={4}
-                  dataKey="value"
-                >
-                  {pieData.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--color-card)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: "10px",
-                  }}
-                  formatter={(val) => [fmt(val), ""]}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="mt-3 space-y-2">
-              {pieData.slice(0, 4).map((d, i) => (
-                <div
-                  key={d.name}
-                  className="flex items-center justify-between text-xs"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <div
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{
-                        backgroundColor: PIE_COLORS[i % PIE_COLORS.length],
-                      }}
-                    />
-                    <span className="text-muted-foreground truncate max-w-[90px]">
-                      {d.name}
-                    </span>
-                  </div>
-                  <span className="font-semibold text-foreground">
-                    {fmt(d.value)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="bg-card rounded-2xl p-6 border border-border flex items-center justify-center text-muted-foreground text-sm">
-            Không có dữ liệu tài sản
-          </div>
-        )}
-      </div>
-
-      <AddWalletModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={handleAddWallet} />
+      <AddWalletModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={handleAddWallet}
+      />
       {editingWallet && (
         <EditWalletModal
           wallet={editingWallet}
