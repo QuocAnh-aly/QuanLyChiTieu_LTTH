@@ -78,45 +78,51 @@ export function SubscriptionFormModal({ isOpen, onClose, onSave, bill = null }) 
       returnHere,
     });
     if (returnHere && !isEdit) {
-      // Clear fields to let user add another
       setName(""); setAmountMin(""); setAmountMax(""); setNotes("");
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-[#2c323c] rounded-lg w-full max-w-full sm:max-w-6xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl border border-slate-700" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-card rounded-2xl w-full max-w-full sm:max-w-6xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+        
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-700 flex justify-between items-center bg-[#2c323c]">
+        <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-card sticky top-0 z-10">
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-semibold text-slate-200 flex items-center gap-2">
-              <Receipt className="text-muted-foreground" size={24} />
-              Hóa đơn định kỳ <span className="text-sm font-normal text-muted-foreground ml-2">{isEdit ? "Sửa" : "Tạo mới"}</span>
+            <div className="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center">
+              <Receipt className="text-purple-600" size={20} />
+            </div>
+            <h2 className="text-xl font-bold text-foreground">
+              Hóa đơn định kỳ
+              <span className="text-sm font-normal text-muted-foreground ml-2">{isEdit ? "Sửa" : "Tạo mới"}</span>
             </h2>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-slate-200">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">
             <X size={20} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-[#2c323c] p-6 text-sm text-muted-foreground">
+        <div className="flex-1 overflow-y-auto p-6">
           <form id="subscription-form" onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Mandatory Fields */}
-              <div>
-                <h3 className="font-semibold text-slate-200 mb-6 border-b border-[#315c81] pb-2 text-base">Trường bắt buộc</h3>
-                
-                <div className="space-y-4">
+              <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
+                <div className="px-4 py-3 border-b border-border bg-muted/50">
+                  <h3 className="font-semibold text-foreground">Trường bắt buộc</h3>
+                </div>
+                <div className="p-4 space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0">Tên</label>
+                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0">
+                      Tên <span className="text-red-500">*</span>
+                    </label>
                     <input type="text" value={name} onChange={e => setName(e.target.value)} required
-                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" placeholder="Tên hóa đơn" />
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Tên hóa đơn" />
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0">Tiền tệ</label>
+                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0">Tiền tệ</label>
                     <select value={selectedCurrency} onChange={e => setSelectedCurrency(e.target.value)}
-                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200">
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card">
                       {currencies?.map(c => (
                         <option key={c.code} value={c.code}>{c.name} ({c.symbol})</option>
                       ))}
@@ -124,27 +130,27 @@ export function SubscriptionFormModal({ isOpen, onClose, onSave, bill = null }) 
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0">Số tiền tối thiểu</label>
+                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0">Số tiền tối thiểu</label>
                     <input type="number" value={amountMin} onChange={e => setAmountMin(e.target.value)} required min="0" step="1"
-                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" />
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0">Số tiền tối đa</label>
+                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0">Số tiền tối đa</label>
                     <input type="number" value={amountMax} onChange={e => setAmountMax(e.target.value)} required min="0" step="1"
-                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" />
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0">Ngày</label>
+                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0">Ngày</label>
                     <input type="date" value={date} onChange={e => setDate(e.target.value)} required
-                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200 [color-scheme:dark]" />
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0">Lặp lại</label>
+                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0">Lặp lại</label>
                     <select value={repeatFreq} onChange={e => setRepeatFreq(e.target.value)} required
-                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200">
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card">
                       {FREQ_OPTIONS.map(o => (
                         <option key={o.value} value={o.value}>{o.label}</option>
                       ))}
@@ -152,10 +158,10 @@ export function SubscriptionFormModal({ isOpen, onClose, onSave, bill = null }) 
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0 mt-2">Bỏ qua</label>
+                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">Bỏ qua</label>
                     <div className="flex-1">
                       <input type="number" value={skip} onChange={e => setSkip(e.target.value)} min="0"
-                        className="w-full bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" />
+                        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                       <p className="text-xs text-muted-foreground mt-1">Dùng để tạo lịch cách quãng (skip=1: 2 tháng/lần).</p>
                     </div>
                   </div>
@@ -163,90 +169,98 @@ export function SubscriptionFormModal({ isOpen, onClose, onSave, bill = null }) 
               </div>
 
               {/* Optional Fields */}
-              <div className="bg-[#22272e] p-6 rounded-lg border border-slate-700">
-                <h3 className="font-semibold text-slate-200 mb-6 border-b border-slate-600 pb-2 text-base">Trường tùy chọn</h3>
-                
-                <div className="space-y-4">
+              <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
+                <div className="px-4 py-3 border-b border-border bg-muted/50">
+                  <h3 className="font-semibold text-foreground">Trường tùy chọn</h3>
+                </div>
+                <div className="p-4 space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-32 font-medium text-muted-foreground text-right shrink-0 mt-2">Ngày kết thúc</label>
+                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">Ngày kết thúc</label>
                     <div className="flex-1">
                       <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-                        className="w-full bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200 [color-scheme:dark]" />
+                        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                       <p className="text-xs text-muted-foreground mt-1">Không bắt buộc. Ngày kết thúc dự kiến.</p>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-32 font-medium text-muted-foreground text-right shrink-0 mt-2">Ngày gia hạn</label>
+                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">Ngày gia hạn</label>
                     <div className="flex-1">
                       <input type="date" value={extensionDate} onChange={e => setExtensionDate(e.target.value)}
-                        className="w-full bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200 [color-scheme:dark]" />
+                        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                       <p className="text-xs text-muted-foreground mt-1">Không bắt buộc. Ngày phải gia hạn hoặc hủy.</p>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-32 font-medium text-muted-foreground text-right shrink-0 mt-2">Ghi chú</label>
+                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">Ghi chú</label>
                     <div className="flex-1">
                       <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
-                        className="w-full bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200 resize-y" placeholder="Ghi chú"></textarea>
-                      <p className="text-xs text-muted-foreground mt-1">Hỗ trợ <a href="#" className="text-[#60a5fa] hover:underline">Markdown</a>.</p>
+                        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y" placeholder="Ghi chú"></textarea>
+                      <p className="text-xs text-muted-foreground mt-1">Hỗ trợ <a href="#" className="text-purple-600 hover:underline">Markdown</a>.</p>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-32 font-medium text-muted-foreground text-right shrink-0 mt-2">Tệp đính kèm</label>
+                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">Tệp đính kèm</label>
                     <div className="flex-1">
-                      <input type="file" className="text-muted-foreground file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-[#3e4551] file:text-slate-200 hover:file:bg-[#4b5563] text-sm" />
+                      <div className="flex items-center gap-3">
+                        <label className="cursor-pointer bg-muted hover:bg-muted text-foreground px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+                          Chọn tệp
+                          <input type="file" className="hidden" />
+                        </label>
+                        <span className="text-sm text-muted-foreground">Chưa chọn tệp</span>
+                      </div>
                       <p className="text-xs text-muted-foreground mt-1">Kích thước tối đa: 2 MB</p>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-32 font-medium text-muted-foreground text-right shrink-0">Nhóm</label>
+                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0">Nhóm</label>
                     <input type="text" value={objectGroup} onChange={e => setObjectGroup(e.target.value)}
-                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" placeholder="Nhóm" />
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Nhóm" />
                   </div>
                   
                   {isEdit && (
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                      <label className="sm:w-32 font-medium text-muted-foreground text-right shrink-0">Kích hoạt</label>
+                      <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0">Kích hoạt</label>
                       <label className="flex items-center gap-2 cursor-pointer flex-1">
-                        <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} className="rounded border-slate-600 bg-[#1e2329] text-[#315c81] focus:ring-[#315c81]" />
-                        <span className="text-muted-foreground">Kích hoạt</span>
+                        <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} className="rounded border-border text-purple-600 focus:ring-purple-500" />
+                        <span className="text-sm text-muted-foreground">Kích hoạt</span>
                       </label>
                     </div>
                   )}
-
                 </div>
               </div>
             </div>
 
-            {/* Options */}
-            <div className="mt-8 bg-[#22272e] p-6 rounded-lg border border-slate-700">
-              <h3 className="font-semibold text-slate-200 mb-4 border-b border-slate-600 pb-2 text-base">Tùy chọn</h3>
-              <div className="flex items-center gap-4">
-                <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0">Quay lại đây</label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={returnHere} onChange={e => setReturnHere(e.target.checked)} className="rounded border-slate-600 bg-[#1e2329] text-[#315c81] focus:ring-[#315c81]" />
-                  <span className="text-muted-foreground">Sau khi lưu, quay lại để tạo tiếp.</span>
-                </label>
+            {/* Options + Submit */}
+            <div className="mt-6 bg-card border border-border rounded-lg overflow-hidden shadow-sm">
+              <div className="px-4 py-3 border-b border-border bg-muted/50">
+                <h3 className="font-semibold text-foreground">Tùy chọn</h3>
               </div>
-              <div className="mt-6 flex justify-end gap-3 pb-2">
-                <button type="button" onClick={onClose}
-                  className="px-5 py-2.5 border border-slate-600 text-muted-foreground rounded hover:bg-slate-700 transition-colors">
-                  Hủy
-                </button>
-                <button type="submit" disabled={!canSubmit} form="subscription-form"
-                  className="px-5 py-2.5 bg-[#2ea043] text-white rounded hover:bg-[#3fb950] disabled:opacity-50 transition-colors">
-                  {isEdit ? "Cập nhật" : "Lưu mới"}
-                </button>
+              <div className="p-4">
+                <div className="flex items-center gap-4">
+                  <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0">Quay lại đây</label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={returnHere} onChange={e => setReturnHere(e.target.checked)} className="rounded border-border text-purple-600 focus:ring-purple-500" />
+                    <span className="text-sm text-muted-foreground">Sau khi lưu, quay lại để tạo tiếp.</span>
+                  </label>
+                </div>
+                <div className="mt-4 flex justify-end gap-3">
+                  <button type="button" onClick={onClose}
+                    className="px-5 py-2.5 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold text-sm">
+                    Hủy
+                  </button>
+                  <button type="submit" disabled={!canSubmit} form="subscription-form"
+                    className="px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-sm disabled:opacity-50">
+                    {isEdit ? "Cập nhật" : "Lưu mới"}
+                  </button>
+                </div>
               </div>
             </div>
-
           </form>
         </div>
-
       </div>
     </div>
   );

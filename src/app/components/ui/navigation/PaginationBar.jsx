@@ -58,7 +58,7 @@ export default function PaginationBar({
   onPageChange,
   pageSize = 10,
   onPageSizeChange,
-  pageSizeOptions = [10, 20, 50],
+  pageSizeOptions = [5, 10, 20],
 }) {
   if (totalPages <= 1 && totalCount <= 0) return null;
 

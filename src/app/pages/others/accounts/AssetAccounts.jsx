@@ -156,7 +156,7 @@ export function AssetAccounts() {
     const [recentTxs, setRecentTxs] = useState([]);
   const [txWalletFilter, setTxWalletFilter] = useState("all");
   const [accountPage, setAccountPage] = useState(1);
-  const [accountPageSize, setAccountPageSize] = useState(12);
+  const [accountPageSize, setAccountPageSize] = useState(10);
   const [displayAccounts, setDisplayAccounts] = useState([]);
   const [accountTotalCount, setAccountTotalCount] = useState(0);
   const [accountTotalPages, setAccountTotalPages] = useState(1);
@@ -169,7 +169,12 @@ export function AssetAccounts() {
     try {
       if (!silent) setIsLoading(true);
       else setIsRefreshing(true);
-      const data = await walletApi.getSummary({ page: accountPage, pageSize: accountPageSize });
+      const data = await walletApi.getSummary({ 
+        page: accountPage, 
+        pageSize: accountPageSize,
+        search: search || undefined,
+        sortBy: sortBy !== 'default' ? sortBy : undefined
+      });
       setSummary({
         totalAssets: data.totalAssets ?? 0,
         totalLiabilities: data.totalLiabilities ?? 0,
@@ -184,6 +189,7 @@ export function AssetAccounts() {
       setDisplayAccounts(paginatedMapped);
       setAccountTotalCount(data.totalCount ?? 0);
       setAccountTotalPages(data.totalPages ?? 1);
+      // Cập nhật lại isLoading nếu search/sort thay đổi mà fetchWallets chưa chạy
       setBalanceHistory(buildBalanceHistory(allMapped));
     } catch (error) {
       console.error("Lỗi khi tải dữ liệu ví:", error);
@@ -192,7 +198,12 @@ export function AssetAccounts() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [accountPage, accountPageSize]);
+  }, [accountPage, accountPageSize, search, sortBy]);
+
+  // Reset về trang 1 khi search/sort thay đổi
+  useEffect(() => {
+    setAccountPage(1);
+  }, [search, sortBy]);
 
   const fetchTransactions = useCallback(async () => {
     try {
@@ -308,16 +319,6 @@ export function AssetAccounts() {
       toast.error("Chuyển khoản thất bại");
     }
   };
-
-  // Client-side search/sort on full accounts list (for details table & pie)
-  const filteredAccounts = accounts
-    .filter((a) => a.name.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => {
-      if (sortBy === "balance-desc") return b.balance - a.balance;
-      if (sortBy === "balance-asc") return a.balance - b.balance;
-      if (sortBy === "name") return a.name.localeCompare(b.name);
-      return 0;
-    });
 
   const totalAssets = summary.totalAssets + summary.totalSavings;
 
@@ -480,26 +481,7 @@ export function AssetAccounts() {
                   outerRadius={100}
                   paddingAngle={3}
                   dataKey="value"
-                  label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-                    const RADIAN = Math.PI / 180;
-                    const radius = outerRadius + 16;
-                    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                    return (
-                      <text
-                        x={x}
-                        y={y}
-                        textAnchor={x > cx ? "start" : "end"}
-                        dominantBaseline="central"
-                        fill="var(--color-muted-foreground)"
-                        fontSize={11}
-                        fontWeight={500}
-                      >
-                        {(percent * 100).toFixed(0)}%
-                      </text>
-                    );
-                  }}
-                  labelLine={{ stroke: "var(--color-muted-foreground)", strokeWidth: 1 }}
+
                 >
                   {pieData.map((_, i) => (
                     <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
@@ -636,7 +618,7 @@ export function AssetAccounts() {
             <div key={i} className="h-48 rounded-2xl bg-accent animate-pulse" />
           ))}
         </div>
-      ) : filteredAccounts.length === 0 ? (
+      ) : accounts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 mb-8 bg-card rounded-2xl border border-dashed border-border">
           <WalletIcon size={48} className="text-muted-foreground mb-4" />
           <p className="text-muted-foreground font-medium">
@@ -810,7 +792,7 @@ export function AssetAccounts() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filteredAccounts.map((acc) => {
+                {accounts.map((acc) => {
                   const diff = acc.balance - acc.initialBalance;
                   const diffPct =
                     acc.initialBalance !== 0

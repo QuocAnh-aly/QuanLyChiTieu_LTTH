@@ -59,14 +59,18 @@ public class AccountController : BaseController
         }
     }
 
-    // GET api/accounts/wallet-summary
+    // GET api/accounts/wallet-summary?page=1&pageSize=12&search=…&sortBy=balance-desc
     [HttpGet("wallet-summary")]
-    public async Task<IActionResult> GetWalletSummary([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    public async Task<IActionResult> GetWalletSummary(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] string? search = null,
+        [FromQuery] string? sortBy = null)
     {
         if (pageSize <= 0 || pageSize > 100) pageSize = 50;
         if (page <= 0) page = 1;
 
-        var result = await _accountService.GetWalletSummaryAsync(GetUserId(), page, pageSize);
+        var result = await _accountService.GetWalletSummaryAsync(GetUserId(), page, pageSize, search, sortBy);
         return Ok(result);
     }
 

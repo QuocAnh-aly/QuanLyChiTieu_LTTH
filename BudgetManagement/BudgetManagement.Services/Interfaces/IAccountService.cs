@@ -13,6 +13,6 @@ public interface IAccountService
     Task<AccountDto> UpdateAsync(int userId, int accountId, UpdateAccountDto request);
     Task<bool> DeleteAsync(int userId, int accountId);
 
-    // Dashboard summary
-    Task<WalletSummaryDto> GetWalletSummaryAsync(int userId, int page = 1, int pageSize = 50);
+    // Dashboard summary — with optional server-side search & sort
+    Task<WalletSummaryDto> GetWalletSummaryAsync(int userId, int page = 1, int pageSize = 50, string? search = null, string? sortBy = null);
 }

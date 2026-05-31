@@ -124,32 +124,50 @@ public class AccountService : IAccountService
         return await _accountRepo.DeleteAsync(accountId);
     }
 
-    public async Task<WalletSummaryDto> GetWalletSummaryAsync(int userId, int page = 1, int pageSize = 50)
+    public async Task<WalletSummaryDto> GetWalletSummaryAsync(int userId, int page = 1, int pageSize = 50, string? search = null, string? sortBy = null)
     {
         var allAccounts = (await _accountRepo.GetByUserIdAsync(userId)).ToList();
 
-        // Tổng Assets (Checking, Business Cash...)
+        // 1. Tính tổng từ FULL list (không filter) để summary luôn chính xác
         var totalAssets = allAccounts
             .Where(a => a.TypeId == TypeAssets && a.IsActive == true)
             .Sum(a => a.Balance ?? 0);
 
-        // Tổng Liabilities (Credit Card, Loan...) → balance âm nên lấy Math.Abs
         var totalLiabilities = allAccounts
             .Where(a => a.TypeId == TypeLiabilities && a.IsActive == true)
             .Sum(a => Math.Abs(a.Balance ?? 0));
 
-        // Tổng Savings/Equity
         var totalSavings = allAccounts
             .Where(a => a.TypeId == TypeEquity && a.IsActive == true)
             .Sum(a => a.Balance ?? 0);
 
-        // All accounts (unpaginated) for pie chart & balance distribution
-        var allDto = allAccounts
+        // 2. Lấy danh sách hiển thị (Assets, Liabilities, Equity)
+        var displayAccounts = allAccounts
             .Where(a => a.TypeId is TypeAssets or TypeLiabilities or TypeEquity)
-            .Select(MapToDto)
             .ToList();
 
-        // Paginated accounts for card grid
+        // 3. Apply search filter (server-side)
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchLower = search.ToLower();
+            displayAccounts = displayAccounts
+                .Where(a => a.Name.ToLower().Contains(searchLower))
+                .ToList();
+        }
+
+        // 4. Apply sorting (server-side)
+        displayAccounts = sortBy switch
+        {
+            "balance-desc" => displayAccounts.OrderByDescending(a => a.Balance).ThenBy(a => a.AccountId).ToList(),
+            "balance-asc"  => displayAccounts.OrderBy(a => a.Balance).ThenBy(a => a.AccountId).ToList(),
+            "name"         => displayAccounts.OrderBy(a => a.Name).ThenBy(a => a.AccountId).ToList(),
+            _              => displayAccounts.OrderBy(a => a.TypeId).ThenBy(a => a.Name).ToList(),
+        };
+
+        // 5. Map to DTO
+        var allDto = displayAccounts.Select(MapToDto).ToList();
+
+        // 6. Paginate cho card grid
         var paginated = allDto
             .Skip((page - 1) * pageSize)
             .Take(pageSize)

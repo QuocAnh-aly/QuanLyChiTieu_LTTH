@@ -58,6 +58,22 @@ public class XxxService : IXxxService
 - Repository: build query with `.CountAsync()` for total, then `.Skip().Take()` for items
 - Service: wraps `PaginatedResult<Entity>` into `PaginatedResult<Dto>` using `.Select(MapToDto)`
 - Controller: accept `[FromQuery] int page = 1, [FromQuery] int pageSize = 50` with clamping (`pageSize > 100 → 50`, `page <= 0 → 1`)
+- For search/filter/sort endpoints: accept `search`, `sortBy`, `filterStatus` query params — apply server-side before pagination
+
+### Wallet Summary (Server-side Search/Sort)
+- `AccountController.GetWalletSummary` accepts `search`, `sortBy`, `page`, `pageSize`
+- Returns `AllAccounts` (full list for charts/totals) + `Accounts` (paginated + filtered)
+- Sort options: `balance-desc`, `balance-asc`, `name`, `default` (TypeId → Name)
+
+### Budget Search/Filter/Sort (Server-side)
+- `BudgetController.GetExpenseBudgets` accepts `search`, `filterStatus`, `sortBy`
+- `filterStatus`: `all`, `under-budget` (under 80%), `over-budget` (exceeded)
+- Sort options: `name`, `spent-desc`, `progress`, `deadline`
+
+### PaginationBar Defaults
+- Default `pageSizeOptions`: `[5, 10, 20]`
+- Default page size: `5`
+- Pages using custom defaults: `AssetAccounts` → `accountPageSize=10`
 
 ---
 

@@ -1,4 +1,4 @@
-import { X, PiggyBank } from "lucide-react";
+import { X, PiggyBank, Landmark } from "lucide-react";
 import { useState, useEffect } from "react";
 import { walletApi } from "../../api/walletApi";
 import { useSettings } from "../../context/SettingsContext";
@@ -81,51 +81,55 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-[#2c323c] rounded-lg w-full max-w-full sm:max-w-6xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl border border-slate-700" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-card rounded-2xl w-full max-w-full sm:max-w-6xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+        
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-700 flex justify-between items-center bg-[#2c323c]">
+        <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-card sticky top-0 z-10">
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-semibold text-slate-200 flex items-center gap-2">
-              <PiggyBank className="text-muted-foreground" size={24} />
-              Lợn tiết kiệm <span className="text-sm font-normal text-muted-foreground ml-2">{isEdit ? "Sửa" : "Tạo mới"}</span>
+            <div className="w-9 h-9 rounded-lg bg-green-100 flex items-center justify-center">
+              <PiggyBank className="text-green-600" size={20} />
+            </div>
+            <h2 className="text-xl font-bold text-foreground">
+              Lợn tiết kiệm
+              <span className="text-sm font-normal text-muted-foreground ml-2">{isEdit ? "Sửa" : "Tạo mới"}</span>
             </h2>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-slate-200">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">
             <X size={20} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-[#2c323c] p-6 text-sm text-muted-foreground">
-          {/* Info Banner */}
-          <div className="bg-[#3e4551] rounded text-sm p-3 mb-6 text-muted-foreground border border-slate-600 flex items-center gap-1">
-            Xin lỗi, không có văn bản giải thích cho <a href="#" className="underline text-blue-400">trang này</a>. Tuy nhiên, biểu tượng ở góc trên bên phải có thể cho bạn biết thêm.
-          </div>
-
+        <div className="flex-1 overflow-y-auto p-6">
           <form id="piggybank-form" onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Mandatory Fields */}
-              <div>
-                <h3 className="font-semibold text-slate-200 mb-6 border-b border-[#315c81] pb-2 text-base">Trường bắt buộc</h3>
-                
-                <div className="space-y-4">
+              <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
+                <div className="px-4 py-3 border-b border-border bg-muted/50">
+                  <h3 className="font-semibold text-foreground">Trường bắt buộc</h3>
+                </div>
+                <div className="p-4 space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0">Tên</label>
+                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0">
+                      Tên <span className="text-red-500">*</span>
+                    </label>
                     <input type="text" value={name} onChange={e => setName(e.target.value)} required
-                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" placeholder="Tên mục tiêu" />
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Tên mục tiêu" />
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0">Số tiền mục tiêu</label>
+                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0">
+                      Số tiền mục tiêu <span className="text-red-500">*</span>
+                    </label>
                     <input type="number" value={targetAmount} onChange={e => setTargetAmount(e.target.value)} required min="1" step="1"
-                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" />
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0 mt-2">Tiền tệ</label>
+                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">Tiền tệ</label>
                     <div className="flex-1">
                       <select value={selectedCurrency} onChange={e => setSelectedCurrency(e.target.value)}
-                        className="w-full bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200">
+                        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card">
                         {currencies?.map(c => (
                           <option key={c.code} value={c.code}>{c.name} ({c.symbol})</option>
                         ))}
@@ -135,12 +139,12 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0 mt-2">Lưu vào tài khoản</label>
+                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">Lưu vào tài khoản</label>
                     <div className="flex-1">
-                      <select multiple size={8} value={selectedAccounts} onChange={handleAccountChange} required
-                        className="w-full bg-[#1e2329] border border-[#315c81] rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200">
+                      <select multiple size={6} value={selectedAccounts} onChange={handleAccountChange} required
+                        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card">
                         {accounts.map(a => (
-                          <option key={a.accountId} value={a.accountId} className="p-1 hover:bg-[#315c81]">
+                          <option key={a.accountId} value={a.accountId} className="py-1 hover:bg-purple-50">
                             {a.name}
                           </option>
                         ))}
@@ -152,70 +156,82 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
               </div>
 
               {/* Optional Fields */}
-              <div className="bg-[#22272e] p-6 rounded-lg border border-slate-700">
-                <h3 className="font-semibold text-slate-200 mb-6 border-b border-slate-600 pb-2 text-base">Trường tùy chọn</h3>
-                
-                <div className="space-y-4">
+              <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
+                <div className="px-4 py-3 border-b border-border bg-muted/50">
+                  <h3 className="font-semibold text-foreground">Trường tùy chọn</h3>
+                </div>
+                <div className="p-4 space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-32 font-medium text-muted-foreground text-right shrink-0">Ngày mục tiêu</label>
+                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0">Ngày mục tiêu</label>
                     <input type="date" value={targetDate} onChange={e => setTargetDate(e.target.value)}
-                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200 [color-scheme:dark]" />
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-32 font-medium text-muted-foreground text-right shrink-0 mt-2">Ghi chú</label>
+                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">Ghi chú</label>
                     <div className="flex-1">
                       <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={4}
-                        className="w-full bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200 resize-y" placeholder="Ghi chú"></textarea>
-                      <p className="text-xs text-muted-foreground mt-1">Hỗ trợ <a href="#" className="text-[#60a5fa] hover:underline">Markdown</a>.</p>
+                        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y" placeholder="Ghi chú"></textarea>
+                      <p className="text-xs text-muted-foreground mt-1">Hỗ trợ <a href="#" className="text-purple-600 hover:underline">Markdown</a>.</p>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-32 font-medium text-muted-foreground text-right shrink-0 mt-2">Tệp đính kèm</label>
+                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">Tệp đính kèm</label>
                     <div className="flex-1">
-                      <input type="file" className="text-muted-foreground file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-[#3e4551] file:text-slate-200 hover:file:bg-[#4b5563] text-sm" />
+                      <div className="flex items-center gap-3">
+                        <label className="cursor-pointer bg-muted hover:bg-muted text-foreground px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+                          Chọn tệp
+                          <input type="file" className="hidden" />
+                        </label>
+                        <span className="text-sm text-muted-foreground">Chưa chọn tệp</span>
+                      </div>
                       <p className="text-xs text-muted-foreground mt-1">Kích thước tối đa: 2 MB</p>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-32 font-medium text-muted-foreground text-right shrink-0">Nhóm</label>
+                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0">Nhóm</label>
                     <input type="text" value={objectGroup} onChange={e => setObjectGroup(e.target.value)}
-                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" placeholder="Nhóm" />
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Nhóm" />
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 hidden">
-                    <label className="sm:w-32 font-medium text-muted-foreground text-right shrink-0">Tiết kiệm hàng tháng</label>
+                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0">Tiết kiệm hàng tháng</label>
                     <input type="number" value={monthly} onChange={e => setMonthly(e.target.value)} min="0" step="1"
-                      className="flex-1 bg-[#1e2329] border border-slate-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500 text-slate-200" />
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                   </div>
-
                 </div>
               </div>
             </div>
 
-            {/* Options */}
-            <div className="mt-8 bg-[#22272e] p-6 rounded-lg border border-slate-700">
-              <h3 className="font-semibold text-slate-200 mb-4 border-b border-slate-600 pb-2 text-base">Tùy chọn</h3>
-              <div className="flex items-center gap-4">
-                <label className="sm:w-36 font-medium text-muted-foreground text-right shrink-0">Quay lại đây</label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={returnHere} onChange={e => setReturnHere(e.target.checked)} className="rounded border-slate-600 bg-[#1e2329] text-[#315c81] focus:ring-[#315c81]" />
-                  <span className="text-muted-foreground">Sau khi lưu, quay lại để tạo tiếp.</span>
-                </label>
+            {/* Options + Submit */}
+            <div className="mt-6 bg-card border border-border rounded-lg overflow-hidden shadow-sm">
+              <div className="px-4 py-3 border-b border-border bg-muted/50">
+                <h3 className="font-semibold text-foreground">Tùy chọn</h3>
               </div>
-              <div className="mt-6 flex justify-end gap-3 pb-2">
-                <button type="submit" disabled={!canSubmit} form="piggybank-form"
-                  className="px-5 py-2.5 bg-[#2ea043] text-white rounded hover:bg-[#3fb950] disabled:opacity-50 transition-colors">
-                  {isEdit ? "Cập nhật" : "Lưu mới"}
-                </button>
+              <div className="p-4">
+                <div className="flex items-center gap-4">
+                  <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0">Quay lại đây</label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={returnHere} onChange={e => setReturnHere(e.target.checked)} className="rounded border-border text-purple-600 focus:ring-purple-500" />
+                    <span className="text-sm text-muted-foreground">Sau khi lưu, quay lại để tạo tiếp.</span>
+                  </label>
+                </div>
+                <div className="mt-4 flex justify-end gap-3">
+                  <button type="button" onClick={onClose}
+                    className="px-5 py-2.5 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold text-sm">
+                    Hủy
+                  </button>
+                  <button type="submit" disabled={!canSubmit} form="piggybank-form"
+                    className="px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-sm disabled:opacity-50">
+                    {isEdit ? "Cập nhật" : "Lưu mới"}
+                  </button>
+                </div>
               </div>
             </div>
-
           </form>
         </div>
-
       </div>
     </div>
   );

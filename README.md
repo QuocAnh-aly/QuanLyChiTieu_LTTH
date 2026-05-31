@@ -20,8 +20,10 @@
 - **Savings goals** — Piggy bank-style savings tracking with target amounts
 - **Recurring transactions** — Auto-generated journal entries on schedule
 - **Bills management** — Track and manage recurring bills
-- **Pagination** — Server-side paginated responses with PaginatedResult DTO + UI controls (prev/next, page numbers)
+- **Pagination** — Server-side paginated responses with PaginatedResult DTO + UI controls (prev/next, page numbers, page size selector)
+- **Server-side search/sort** — Search and sort accounts/budgets on backend
 - **Source Account** — Link debt creation to bank accounts or create assets by transferring from existing accounts
+- **Modal design** — All forms use consistent shadcn/ui design system with purple accent
 
 ### Automation
 - **Rules engine** — Create if-then rules with triggers and actions
@@ -198,11 +200,11 @@ cd BudgetManagement && dotnet test BudgetManagement.Tests/BudgetManagement.Tests
 | POST | `/api/auth/signup` | Register |
 | GET | `/api/accounts?page=1&pageSize=50` | List accounts (paginated) |
 | GET | `/api/accounts/type/{typeId}?page=1&pageSize=50` | Filter by type (1=Asset, 4=Revenue, 5=Expense) — paginated |
-| GET | `/api/accounts/wallet-summary` | Balance summary |
+| GET | `/api/accounts/wallet-summary?search=&sortBy=balance-desc&page=1&pageSize=5` | Balance summary (server-side search/sort) |
 | GET/POST/PUT/DELETE | `/api/accounts/{id}` | Account CRUD |
 | POST | `/api/accounts` | Create account (optional `SourceAccountId` for source transactions) |
 | GET/POST/PUT/DELETE | `/api/transactions/{id}` | Transaction CRUD |
-| GET | `/api/budgets/expense?page=1&pageSize=50` | List expense budgets (paginated) |
+| GET | `/api/budgets/expense?page=1&pageSize=50&search=&filterStatus=all&sortBy=name` | List expense budgets (paginated + server-side search/filter/sort) |
 | GET | `/api/budgets/savings` | List savings goals |
 | GET | `/api/bills?page=1&pageSize=50` | List bills (paginated) |
 | GET | `/api/recurring?page=1&pageSize=50` | List recurring transactions (paginated) |
@@ -223,7 +225,7 @@ cd BudgetManagement && dotnet test BudgetManagement.Tests/BudgetManagement.Tests
 | `PasswordStrengthValidatorTests.cs` | 27 | Validation rules, edge cases |
 | `AccountServiceTests.cs` | 25 | CRUD, auth, WalletSummary, **pagination** |
 | `CurrencyServiceTests.cs` | 25 | CRUD, primary rules, constraints |
-| `BudgetServiceTests.cs` | 11 | CRUD, **pagination**, savings goals |
+| `BudgetServiceTests.cs` | 11 | CRUD, **pagination**, savings goals, server-side search/filter/sort |
 | `BillServiceTests.cs` | 10 | CRUD, **pagination**, rescan |
 | `RecurringServiceTests.cs` | 11 | CRUD, **pagination**, process due |
 | `PaginatedResultTests.cs` | 9 | **PaginatedResult** computed properties |

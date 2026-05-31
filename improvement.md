@@ -364,3 +364,9 @@ Nếu `request.Balance <= 0` (sau Abs) → `400 BadRequest`.
 | Documentation | ✅ Complete | AI_GUIDE, improvement, guidelines |
 | Log Service | ❌ Unused | Scaffolding only |
 | Mobile responsiveness | ⚠️ Partial | Basic responsive |
+| **Server-side search/sort (Ví)** | ✅ Complete | AssetAccounts + AccountController |
+| **Server-side pagination (Budgets)** | ✅ Complete | BudgetController + BudgetService |
+| **Modal form redesign** | ✅ Complete | Tất cả modals về shadcn/ui design system |
+| **PaginationBar pageSize** | ✅ Complete | Options: [5, 10, 20] |
+| **Transfer bug fix** | ✅ Complete | QuickTransferModal + SQL fix script |
+| **Pie chart label cleanup** | ✅ Complete | Bỏ % labels bị clip |
