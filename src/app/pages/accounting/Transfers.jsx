@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { AddTransactionModal } from "../../components/modals/AddTransactionModal";
 import { EditTransactionModal } from "../../components/modals/EditTransactionModal";
 import { useSettings } from "../../context/SettingsContext";
+import { useNotifications } from "../../context/NotificationContext";
 
 function mapTx(t) {
   const details       = t.details || [];
@@ -49,6 +50,7 @@ import { PageLayout } from "../../components/layout/PageLayout";
 
 export function Transfers() {
   const { fmt } = useSettings();
+  const { addNotification } = useNotifications();
 
   const [allTx,      setAllTx]      = useState([]);
   const [isLoading,  setIsLoading]  = useState(true);
@@ -108,18 +110,18 @@ export function Transfers() {
   }, [filtered]);
 
   const handleAdd = async (data) => {
-    try { await transactionApi.create(data); await loadData(true); toast.success("Đã chuyển tiền!"); }
-    catch { toast.error("Không thể thực hiện chuyển khoản"); }
+    try { await transactionApi.create(data); await loadData(true); toast.success("Đã chuyển tiền!"); addNotification({ type: 'success', title: 'Chuyển khoản', message: 'Đã thực hiện chuyển tiền giữa các ví', link: '/transactions/transfers' }); }
+    catch { toast.error("Không thể thực hiện chuyển khoản"); addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể thực hiện chuyển khoản' }); }
   };
   const handleSaveEdit = async (data) => {
     if (!editTarget) return;
-    try { await transactionApi.update(editTarget.journalId, data); setEditTarget(null); await loadData(true); toast.success("Đã cập nhật!"); }
-    catch { toast.error("Không thể cập nhật"); }
+    try { await transactionApi.update(editTarget.journalId, data); setEditTarget(null); await loadData(true); toast.success("Đã cập nhật!"); addNotification({ type: 'success', title: 'Đã cập nhật', message: 'Chuyển khoản đã được cập nhật' }); }
+    catch { toast.error("Không thể cập nhật"); addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể cập nhật chuyển khoản' }); }
   };
   const handleDelete = async (id, desc) => {
     if (!window.confirm(`Xóa giao dịch "${desc || 'này'}"?`)) return;
-    try { await transactionApi.delete(id); await loadData(true); toast.success("Đã xóa!"); }
-    catch { toast.error("Không thể xóa"); }
+    try { await transactionApi.delete(id); await loadData(true); toast.success("Đã xóa!"); addNotification({ type: 'warning', title: 'Đã xóa', message: `Đã xóa chuyển khoản "${desc || ''}"` }); }
+    catch { toast.error("Không thể xóa"); addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể xóa chuyển khoản' }); }
   };
 
   return (
@@ -136,7 +138,7 @@ export function Transfers() {
       actions={
         <>
           <button onClick={() => loadData(true)} disabled={isRefresh}
-            className="p-2.5 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 text-slate-600 transition-colors">
+            className="p-2.5 border border-border bg-card rounded-lg hover:bg-muted text-muted-foreground transition-colors">
             <RefreshCw size={18} className={isRefresh ? "animate-spin" : ""} />
           </button>
           <button onClick={() => setIsAddOpen(true)}
@@ -152,109 +154,110 @@ export function Transfers() {
         {PRESETS.map(p => (
           <button key={p.key} onClick={() => { setPreset(p.key); setShowCustom(false); }}
             className={`px-3.5 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-              preset === p.key ? "bg-blue-500 text-white border-blue-500" : "border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600"
+              preset === p.key ? "bg-blue-500 text-white border-blue-500" : "border-border text-muted-foreground hover:border-blue-300 hover:text-blue-600"
             }`}>
             {p.label}
           </button>
         ))}
         <button onClick={() => { setPreset("custom"); setShowCustom(true); }}
           className={`px-3.5 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-            preset === "custom" ? "bg-blue-500 text-white border-blue-500" : "border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600"
+            preset === "custom" ? "bg-blue-500 text-white border-blue-500" : "border-border text-muted-foreground hover:border-blue-300 hover:text-blue-600"
           }`}>
           Tùy chỉnh
         </button>
         {showCustom && (
           <div className="flex items-center gap-2 ml-1">
             <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)}
-              className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
-            <span className="text-slate-400 text-sm">đến</span>
+              className="px-3 py-1.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            <span className="text-muted-foreground text-sm">đến</span>
             <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)}
-              className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+              className="px-3 py-1.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
           </div>
         )}
       </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex items-center gap-4">
+        <div className="bg-card rounded-xl p-5 border border-border shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
             <ArrowLeftRight size={22} className="text-blue-600" />
           </div>
           <div>
-            <p className="text-xs text-slate-500 font-medium">Tổng chuyển khoản</p>
+            <p className="text-xs text-muted-foreground font-medium">Tổng chuyển khoản</p>
             <p className="text-2xl font-bold text-blue-600">{fmt(totalTransferred)}</p>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-            <ArrowRight size={20} className="text-slate-600" />
+        <div className="bg-card rounded-xl p-5 border border-border shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center shrink-0">
+            <ArrowRight size={20} className="text-muted-foreground" />
           </div>
           <div>
-            <p className="text-xs text-slate-500 font-medium">Số lần chuyển</p>
-            <p className="text-2xl font-bold text-slate-900">{transfers.length}</p>
+            <p className="text-xs text-muted-foreground font-medium">Số lần chuyển</p>
+            <p className="text-2xl font-bold text-card-foreground">{transfers.length}</p>
           </div>
         </div>
       </div>
 
       {/* Transaction table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex items-center gap-3">
+      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-border bg-muted/50 flex items-center gap-3">
           <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg text-sm bg-card focus:outline-none focus:ring-2 focus:ring-blue-400"
               placeholder="Tìm kiếm mô tả hoặc tên ví..." />
           </div>
         </div>
 
         {isLoading ? (
-          <div className="p-8 space-y-3">{[...Array(5)].map((_, i) => (
-            <div key={i} className="h-12 bg-slate-100 rounded-xl animate-pulse" />
+          <div className="p-4 sm:p-8 space-y-3">{[...Array(5)].map((_, i) => (
+            <div key={i} className="h-12 bg-muted rounded-xl animate-pulse" />
           ))}</div>
         ) : filtered.length === 0 ? (
-          <div className="py-16 text-center">
+          <div className="py-12 sm:py-16 text-center">
             <ArrowLeftRight size={40} className="mx-auto mb-3 text-slate-200" />
-            <p className="font-medium text-slate-500">Không có giao dịch chuyển khoản nào</p>
-            <p className="text-sm text-slate-400 mt-1">Thử thay đổi khoảng thời gian</p>
+            <p className="font-medium text-muted-foreground">Không có giao dịch chuyển khoản nào</p>
+            <p className="text-sm text-muted-foreground mt-1">Thử thay đổi khoảng thời gian</p>
           </div>
         ) : (
-          <table className="w-full text-left">
+          <div className="overflow-x-auto">
+          <table className="w-full text-left min-w-[600px]">
             <thead>
-              <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
-                <th className="px-6 py-3 font-semibold">Mô tả</th>
-                <th className="px-6 py-3 font-semibold">Từ ví</th>
-                <th className="px-6 py-3 font-semibold">Sang ví</th>
-                <th className="px-6 py-3 font-semibold">Giờ</th>
-                <th className="px-6 py-3 font-semibold text-right">Số tiền</th>
-                <th className="px-6 py-3 w-20"></th>
+              <tr className="bg-muted text-muted-foreground text-xs uppercase tracking-wider border-b border-border">
+                <th className="px-3 sm:px-6 py-3 font-semibold">Mô tả</th>
+                <th className="px-3 sm:px-6 py-3 font-semibold">Từ ví</th>
+                <th className="px-3 sm:px-6 py-3 font-semibold">Sang ví</th>
+                <th className="px-3 sm:px-6 py-3 font-semibold">Giờ</th>
+                <th className="px-3 sm:px-6 py-3 font-semibold text-right">Số tiền</th>
+                <th className="px-3 sm:px-6 py-3 w-16 sm:w-20"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {[...grouped.entries()].map(([dateKey, txs]) => {
                 const dayTotal = txs.reduce((s, t) => s + t.totalAmount, 0);
                 return (
                   <>
-                    <tr key={`hdr-${dateKey}`} className="bg-slate-50/80">
-                      <td colSpan={4} className="px-6 py-2">
-                        <span className="text-xs font-bold text-slate-500 capitalize">
+                    <tr key={`hdr-${dateKey}`} className="bg-muted/80">
+                      <td colSpan={4} className="px-3 sm:px-6 py-2">
+                        <span className="text-xs font-bold text-muted-foreground capitalize">
                           {format(new Date(dateKey), "EEEE, dd/MM/yyyy", { locale: vi })}
                         </span>
                       </td>
-                      <td className="px-6 py-2 text-right">
+                      <td className="px-3 sm:px-6 py-2 text-right">
                         <span className="text-xs font-bold text-blue-600">{fmt(dayTotal)}</span>
                       </td>
                       <td />
                     </tr>
                     {txs.map(t => (
-                      <tr key={t.journalId} className="hover:bg-slate-50 transition-colors group">
-                        <td className="px-6 py-3.5">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-                              <ArrowLeftRight size={15} className="text-blue-500" />
+                      <tr key={t.journalId} className="hover:bg-muted transition-colors group">
+                        <td className="px-3 sm:px-6 py-3 sm:py-3.5">
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                              <ArrowLeftRight size={13} className="text-blue-500" />
                             </div>
                             <div>
-                              <p className="font-medium text-slate-900 text-sm">
-                                {t.description || <span className="italic text-slate-400">Không có mô tả</span>}
+                              <p className="font-medium text-card-foreground text-xs sm:text-sm">
+                                {t.description || <span className="italic text-muted-foreground">Không có mô tả</span>}
                               </p>
                               {t.tags && (
                                 <div className="flex gap-1 mt-0.5 flex-wrap">
@@ -266,27 +269,27 @@ export function Transfers() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-3.5 text-xs text-slate-600 font-medium">{t.sourceAccount}</td>
-                        <td className="px-6 py-3.5">
+                        <td className="px-3 sm:px-6 py-3 sm:py-3.5 text-xs text-muted-foreground font-medium">{t.sourceAccount}</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-3.5">
                           <div className="flex items-center gap-1.5 text-xs">
                             <ArrowRight size={12} className="text-blue-400 shrink-0" />
                             <span className="text-blue-600 font-semibold">{t.destAccount}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-3.5 text-xs text-slate-400">
+                        <td className="px-3 sm:px-6 py-3 sm:py-3.5 text-xs text-muted-foreground whitespace-nowrap">
                           {format(new Date(t.transactionDate), "HH:mm")}
                         </td>
-                        <td className="px-6 py-3.5 text-right font-bold text-sm text-blue-600">
+                        <td className="px-3 sm:px-6 py-3 sm:py-3.5 text-right font-bold text-xs sm:text-sm text-blue-600 whitespace-nowrap">
                           {fmt(t.totalAmount)}
                         </td>
-                        <td className="px-6 py-3.5">
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all justify-end">
+                        <td className="px-3 sm:px-6 py-3 sm:py-3.5">
+                          <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all justify-end">
                             <button onClick={() => setEditTarget(t)}
-                              className="p-1.5 rounded hover:bg-purple-50 text-slate-400 hover:text-purple-600">
+                              className="p-1.5 rounded hover:bg-purple-50 text-muted-foreground hover:text-purple-600">
                               <Pencil size={14} />
                             </button>
                             <button onClick={() => handleDelete(t.journalId, t.description)}
-                              className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-500">
+                              className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500">
                               <Trash2 size={14} />
                             </button>
                           </div>
@@ -298,6 +301,7 @@ export function Transfers() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

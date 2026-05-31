@@ -6,6 +6,11 @@ public interface ITransactionService
 {
     Task<IEnumerable<TransactionDto>> GetByUserAsync(int userId, int page, int pageSize);
     Task<IEnumerable<TransactionDto>> GetByDateRangeAsync(int userId, DateTime from, DateTime to);
+
+    // Lấy giao dịch theo khoảng thời gian và tài khoản
+    Task<IEnumerable<TransactionDto>> GetByDateRangeAndAccountAsync(
+        int userId, DateTime from, DateTime to, int accountId);
+
     Task<TransactionDto> GetByIdAsync(int userId, int journalId);
 
     // Tạo giao dịch kép: debit + credit

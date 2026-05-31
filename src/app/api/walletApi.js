@@ -1,8 +1,8 @@
 import axiosClient from './axiosClient';
 
 export const walletApi = {
-  getSummary() {
-    return axiosClient.get('/api/accounts/wallet-summary');
+  getSummary(params = {}) {
+    return axiosClient.get('/api/accounts/wallet-summary', { params });
   },
 
   getAll(params = {}) {

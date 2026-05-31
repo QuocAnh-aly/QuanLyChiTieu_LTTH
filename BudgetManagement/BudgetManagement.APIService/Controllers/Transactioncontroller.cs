@@ -36,6 +36,17 @@ public class TransactionController : BaseController
         return Ok(result);
     }
 
+    // GET api/transactions/range/account?accountId=X&from=...&to=...
+    [HttpGet("range/account")]
+    public async Task<IActionResult> GetByDateRangeAndAccount(
+        [FromQuery] int accountId,
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to)
+    {
+        var result = await _transactionService.GetByDateRangeAndAccountAsync(GetUserId(), from, to, accountId);
+        return Ok(result);
+    }
+
     // GET api/transactions/{id}
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
@@ -51,7 +62,7 @@ public class TransactionController : BaseController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { message = ex.Message });
         }
     }
 
@@ -84,7 +95,7 @@ public class TransactionController : BaseController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { message = ex.Message });
         }
     }
 
@@ -103,7 +114,7 @@ public class TransactionController : BaseController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { message = ex.Message });
         }
     }
 
@@ -119,10 +130,9 @@ public class TransactionController : BaseController
         catch (KeyNotFoundException ex)
         {
             return NotFound(new { message = ex.Message });
-        }
-        catch (UnauthorizedAccessException ex)
+        }        catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { message = ex.Message });
         }
     }
 }

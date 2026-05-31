@@ -1,3 +1,4 @@
+using BudgetManagement.Dto;
 using BudgetManagement.Entities;
 using BudgetManagement.Repository.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -10,11 +11,34 @@ public class AccountRepository : BaseRepository<Account>, IAccountRepository
 
     public async Task<IEnumerable<Account>> GetByUserIdAsync(int userId)
         => await _dbSet
-            .Where(a => a.UserId == userId && a.IsActive == true)
+            .Where(a => a.UserId == userId && a.IsActive == true && !(a.TypeId == 3 && a.Name == "Initial"))
             .Include(a => a.AccountType)
             .OrderBy(a => a.TypeId)
             .ThenBy(a => a.Name)
             .ToListAsync();
+
+    public async Task<PaginatedResult<Account>> GetByUserIdPagedAsync(int userId, int page, int pageSize)
+    {
+        var query = _dbSet
+            .Where(a => a.UserId == userId && a.IsActive == true)
+            .Include(a => a.AccountType)
+            .OrderBy(a => a.TypeId)
+            .ThenBy(a => a.Name);
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return new PaginatedResult<Account>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
 
     public async Task<IEnumerable<Account>> GetByUserAndTypeAsync(int userId, int typeId)
         => await _dbSet
@@ -22,6 +46,28 @@ public class AccountRepository : BaseRepository<Account>, IAccountRepository
             .Include(a => a.AccountType)
             .OrderBy(a => a.Name)
             .ToListAsync();
+
+    public async Task<PaginatedResult<Account>> GetByUserAndTypePagedAsync(int userId, int typeId, int page, int pageSize)
+    {
+        var query = _dbSet
+            .Where(a => a.UserId == userId && a.TypeId == typeId && a.IsActive == true)
+            .Include(a => a.AccountType)
+            .OrderBy(a => a.Name);
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return new PaginatedResult<Account>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
 
     public async Task<Account?> GetWithDetailsAsync(int accountId)
         => await _dbSet

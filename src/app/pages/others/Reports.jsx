@@ -108,20 +108,20 @@ export function Reports() {
   const hasAnyData = incomeTotal > 0 || expenseTotal > 0 || monthlyData.some(r => r.income > 0 || r.expense > 0);
 
   return (
-    <div className="p-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+    <div className="p-4 sm:p-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Báo cáo phân tích</h1>
-          <p className="text-slate-500 mt-1">Cái nhìn toàn cảnh về tình hình tài chính của bạn</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground">Báo cáo phân tích</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Cái nhìn toàn cảnh về tình hình tài chính của bạn</p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
-            <Calendar size={16} className="text-slate-400" />
+          <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2 shadow-sm">
+            <Calendar size={16} className="text-muted-foreground" />
             <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
-              className="text-sm font-medium text-slate-700 bg-transparent focus:outline-none"
+              className="text-sm font-medium text-foreground bg-transparent focus:outline-none"
             >
               <option value="this_month">Tháng này</option>
               <option value="last_month">Tháng trước</option>
@@ -132,7 +132,7 @@ export function Reports() {
           <button
             onClick={fetchAll}
             disabled={loading}
-            className="p-2.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-60"
+            className="p-2.5 bg-card border border-border rounded-lg text-muted-foreground hover:bg-muted transition-colors shadow-sm disabled:opacity-60"
             title="Làm mới"
           >
             <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
@@ -141,7 +141,7 @@ export function Reports() {
       </div>
 
       {error && (
-        <div className="mb-6 flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+        <div className="mb-6 flex items-start gap-3 p-4 bg-destructive/10 border border-destructive/30 rounded-xl text-red-700">
           <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold">Không tải được dữ liệu</p>
@@ -152,28 +152,28 @@ export function Reports() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
+        <div className="bg-card rounded-2xl p-6 border border-border shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-emerald-500/15 flex items-center justify-center">
             <TrendingUp size={24} className="text-emerald-600" />
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-500">Tổng thu</p>
-            <p className="text-2xl font-bold text-slate-900">{fmt(incomeTotal)}</p>
+            <p className="text-sm font-medium text-muted-foreground">Tổng thu</p>
+            <p className="text-2xl font-bold text-card-foreground">{fmt(incomeTotal)}</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center">
+        <div className="bg-card rounded-2xl p-6 border border-border shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-rose-500/15 flex items-center justify-center">
             <TrendingDown size={24} className="text-rose-600" />
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-500">Tổng chi</p>
-            <p className="text-2xl font-bold text-slate-900">{fmt(expenseTotal)}</p>
+            <p className="text-sm font-medium text-muted-foreground">Tổng chi</p>
+            <p className="text-2xl font-bold text-card-foreground">{fmt(expenseTotal)}</p>
           </div>
         </div>
 
         <div className="bg-gradient-to-br from-purple-600 to-indigo-700 rounded-2xl p-6 shadow-sm flex items-center gap-4 text-white relative overflow-hidden">
-          <div className="absolute right-0 top-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-10 -mt-10" />
+          <div className="absolute right-0 top-0 w-32 h-32 bg-card opacity-10 rounded-full -mr-10 -mt-10" />
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center relative z-10">
             <DollarSign size={24} className="text-white" />
           </div>
@@ -185,24 +185,24 @@ export function Reports() {
       </div>
 
       {!loading && !error && !hasAnyData ? (
-        <div className="py-16 text-center bg-white rounded-2xl border border-slate-200 shadow-sm">
-          <Calendar size={48} className="mx-auto text-slate-300 mb-4" />
-          <p className="text-slate-900 font-bold text-lg mb-1">Chưa có giao dịch nào trong khoảng thời gian này</p>
-          <p className="text-slate-500 font-medium">Đổi sang khoảng khác hoặc thêm giao dịch để xem báo cáo.</p>
+        <div className="py-16 text-center bg-card rounded-2xl border border-border shadow-sm">
+          <Calendar size={48} className="mx-auto text-muted-foreground mb-4" />
+          <p className="text-card-foreground font-bold text-lg mb-1">Chưa có giao dịch nào trong khoảng thời gian này</p>
+          <p className="text-muted-foreground font-medium">Đổi sang khoảng khác hoặc thêm giao dịch để xem báo cáo.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
           {/* Bar Chart: Income vs Expense */}
-          <div className="xl:col-span-2 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900 mb-6">Biến động Thu - Chi theo tháng</h2>
+          <div className="xl:col-span-2 bg-card rounded-2xl p-6 border border-border shadow-sm">
+            <h2 className="text-lg font-bold text-card-foreground mb-6">Biến động Thu - Chi theo tháng</h2>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#64748b" }} dy={10} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }} dy={10} />
                   <YAxis
                     axisLine={false} tickLine={false}
-                    tick={{ fontSize: 12, fill: "#64748b" }}
+                    tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }}
                     tickFormatter={(value) => {
                       const n = Number(value);
                       if (!n) return "0";
@@ -213,7 +213,7 @@ export function Reports() {
                     }}
                   />
                   <Tooltip
-                    cursor={{ fill: "#f8fafc" }}
+                    cursor={{ fill: "var(--color-muted)" }}
                     contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)" }}
                     formatter={(value, name) => [fmt(value), name]}
                   />
@@ -226,10 +226,10 @@ export function Reports() {
           </div>
 
           {/* Pie Chart: Expenses by Category */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col">
-            <h2 className="text-lg font-bold text-slate-900 mb-2">Cơ cấu chi tiêu</h2>
+          <div className="bg-card rounded-2xl p-6 border border-border shadow-sm flex flex-col">
+            <h2 className="text-lg font-bold text-card-foreground mb-2">Cơ cấu chi tiêu</h2>
             {categoryData.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center text-sm text-slate-400">
+              <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
                 Chưa có dữ liệu chi tiêu.
               </div>
             ) : (
@@ -260,11 +260,11 @@ export function Reports() {
                     <div key={index} className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
-                        <span className="text-slate-600 truncate">{item.name}</span>
+                        <span className="text-muted-foreground truncate">{item.name}</span>
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0">
-                        <span className="font-semibold text-slate-900">{fmt(item.value)}</span>
-                        <span className="text-slate-400 text-xs w-10 text-right">
+                        <span className="font-semibold text-card-foreground">{fmt(item.value)}</span>
+                        <span className="text-muted-foreground text-xs w-10 text-right">
                           {expenseTotal > 0 ? Math.round((item.value / expenseTotal) * 100) : 0}%
                         </span>
                       </div>

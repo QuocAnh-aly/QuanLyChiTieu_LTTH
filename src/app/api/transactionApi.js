@@ -11,6 +11,11 @@ export const transactionApi = {
     return axiosClient.get(url, { params: { from, to } });
   },
 
+  getByRangeAndAccount(accountId, from, to) {
+    const url = '/api/transactions/range/account';
+    return axiosClient.get(url, { params: { accountId, from, to } });
+  },
+
   getById(id) {
     const url = `/api/transactions/${id}`;
     return axiosClient.get(url);

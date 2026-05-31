@@ -12,6 +12,7 @@ import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 import { piggyBankApi } from "../../api/piggyBankApi";
 import { toast } from "sonner";
+import { useNotifications } from "../../context/NotificationContext";
 import { AddMoneyModal } from "../../components/modals/AddMoneyModal";
 import { RemoveMoneyModal } from "../../components/modals/RemoveMoneyModal";
 import { PiggyBankFormModal } from "../../components/modals/PiggyBankFormModal";
@@ -25,7 +26,7 @@ const COLOR_MAP = {
   pink:    { bg: "bg-pink-100",    text: "text-pink-600",    hex: "#ec4899", grad: "from-pink-500 to-pink-700" },
   indigo:  { bg: "bg-indigo-100",  text: "text-indigo-600",  hex: "#6366f1", grad: "from-indigo-500 to-indigo-700" },
   emerald: { bg: "bg-emerald-100", text: "text-emerald-600", hex: "#10b981", grad: "from-emerald-500 to-emerald-700" },
-  slate:   { bg: "bg-slate-100",   text: "text-slate-600",   hex: "#64748b", grad: "from-slate-500 to-slate-700" },
+  slate:   { bg: "bg-muted",   text: "text-muted-foreground",   hex: "#64748b", grad: "from-slate-500 to-slate-700" },
 };
 
 function buildChartData(events) {
@@ -45,9 +46,9 @@ const CustomTooltip = ({ active, payload, label, fmt }) => {
   if (!active || !payload?.length) return null;
   const d = payload[0];
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-lg px-3 py-2 text-xs">
-      <p className="font-semibold text-slate-700 mb-1">{label}</p>
-      <p className="text-slate-500">Tích lũy: <span className="font-bold text-slate-900">{fmt(d.value)}</span></p>
+    <div className="bg-card border border-border rounded-xl shadow-lg px-3 py-2 text-xs">
+      <p className="font-semibold text-foreground mb-1">{label}</p>
+      <p className="text-muted-foreground">Tích lũy: <span className="font-bold text-card-foreground">{fmt(d.value)}</span></p>
     </div>
   );
 };
@@ -82,13 +83,19 @@ export function PiggyBankDetail() {
 
   useEffect(() => { load(); }, [load]);
 
+  const { addNotification } = useNotifications();
+
   const handleAddMoney = async ({ amount, notes }) => {
     try {
       await piggyBankApi.addMoney(id, { amount, notes });
       await load();
       setAddOpen(false);
       toast.success(`Đã nạp ${fmt(amount)}!`);
-    } catch { toast.error("Không thể nạp tiền"); }
+      addNotification({ type: 'success', title: 'Đã nạp tiền', message: `${fmt(amount)} đã được nạp vào "${goal?.title}"`, link: `/piggy-banks/${id}` });
+    } catch {
+      toast.error("Không thể nạp tiền");
+      addNotification({ type: 'error', title: 'Không thể nạp tiền', message: `Nạp tiền vào "${goal?.title}" thất bại` });
+    }
   };
 
   const handleRemoveMoney = async ({ amount, notes }) => {
@@ -97,7 +104,11 @@ export function PiggyBankDetail() {
       await load();
       setRemoveOpen(false);
       toast.success(`Đã rút ${fmt(amount)}.`);
-    } catch { toast.error("Không thể rút tiền"); }
+      addNotification({ type: 'warning', title: 'Đã rút tiền', message: `${fmt(amount)} đã được rút từ "${goal?.title}"`, link: `/piggy-banks/${id}` });
+    } catch {
+      toast.error("Không thể rút tiền");
+      addNotification({ type: 'error', title: 'Không thể rút tiền', message: `Rút tiền từ "${goal?.title}" thất bại` });
+    }
   };
 
   const handleUpdate = async (data) => {
@@ -106,7 +117,11 @@ export function PiggyBankDetail() {
       await load();
       setEditOpen(false);
       toast.success("Đã cập nhật!");
-    } catch { toast.error("Không thể cập nhật"); }
+      addNotification({ type: 'success', title: 'Đã cập nhật lợn tiết kiệm', message: `"${goal?.title}" đã được cập nhật`, link: `/piggy-banks/${id}` });
+    } catch {
+      toast.error("Không thể cập nhật");
+      addNotification({ type: 'error', title: 'Lỗi cập nhật', message: `Không thể cập nhật "${goal?.title}"` });
+    }
   };
 
   const handleReset = async () => {
@@ -115,7 +130,11 @@ export function PiggyBankDetail() {
       await piggyBankApi.resetHistory(id);
       await load();
       toast.success("Đã đặt lại lịch sử.");
-    } catch { toast.error("Không thể đặt lại lịch sử"); }
+      addNotification({ type: 'warning', title: 'Đã đặt lại lịch sử', message: `Lịch sử giao dịch của "${goal?.title}" đã được đặt lại` });
+    } catch {
+      toast.error("Không thể đặt lại lịch sử");
+      addNotification({ type: 'error', title: 'Lỗi đặt lại', message: 'Không thể đặt lại lịch sử giao dịch' });
+    }
   };
 
   const handleDelete = async () => {
@@ -123,26 +142,30 @@ export function PiggyBankDetail() {
     try {
       await piggyBankApi.delete(id);
       toast.success(`Đã xóa "${goal?.title}".`);
+      addNotification({ type: 'success', title: 'Đã xóa lợn tiết kiệm', message: `"${goal?.title}" đã được xóa` });
       navigate("/piggy-banks");
-    } catch { toast.error("Không thể xóa"); }
+    } catch {
+      toast.error("Không thể xóa");
+      addNotification({ type: 'error', title: 'Lỗi xóa', message: 'Không thể xóa lợn tiết kiệm' });
+    }
   };
 
   if (isLoading) {
     return (
       <div className="p-8 space-y-4">
-        <div className="h-8 w-48 bg-slate-100 rounded-lg animate-pulse" />
-        <div className="h-32 bg-slate-100 rounded-2xl animate-pulse" />
+        <div className="h-8 w-48 bg-muted rounded-lg animate-pulse" />
+        <div className="h-32 bg-muted rounded-2xl animate-pulse" />
         <div className="grid grid-cols-4 gap-4">
-          {[1,2,3,4].map(i => <div key={i} className="h-24 bg-slate-100 rounded-2xl animate-pulse" />)}
+          {[1,2,3,4].map(i => <div key={i} className="h-24 bg-muted rounded-2xl animate-pulse" />)}
         </div>
-        <div className="h-64 bg-slate-100 rounded-2xl animate-pulse" />
+        <div className="h-64 bg-muted rounded-2xl animate-pulse" />
       </div>
     );
   }
 
   if (!goal) {
     return (
-      <div className="p-8 text-center text-slate-400">
+      <div className="p-8 text-center text-muted-foreground">
         <PiggyBank size={48} className="mx-auto mb-3 text-slate-200" />
         <p>Không tìm thấy lợn tiết kiệm</p>
         <button onClick={() => navigate("/piggy-banks")} className="mt-3 text-purple-600 text-sm hover:underline">
@@ -169,25 +192,25 @@ export function PiggyBankDetail() {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto">
 
       {/* Back + header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/piggy-banks")}
-            className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+            className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-muted-foreground transition-colors">
             <ArrowLeft size={20} />
           </button>
-          <div className={`w-11 h-11 rounded-xl ${c.bg} flex items-center justify-center`}>
+          <div className={`w-11 h-11 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}>
             <PiggyBank size={22} className={c.text} />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">{goal.title}</h1>
-            {goal.notes && <p className="text-sm text-slate-400 mt-0.5">{goal.notes}</p>}
+          <div className="min-w-0">
+            <h1 className="text-xl md:text-2xl font-bold text-card-foreground truncate">{goal.title}</h1>
+            {goal.notes && <p className="text-sm text-muted-foreground mt-0.5 truncate">{goal.notes}</p>}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setAddOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium text-sm transition-colors">
             <Plus size={16} /> Nạp tiền
@@ -197,11 +220,11 @@ export function PiggyBankDetail() {
             <Minus size={16} /> Rút tiền
           </button>
           <button onClick={() => setEditOpen(true)}
-            className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-purple-600 transition-colors" title="Sửa">
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-purple-600 transition-colors" title="Sửa">
             <Pencil size={18} />
           </button>
           <button onClick={handleDelete}
-            className="p-2 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors" title="Xóa">
+            className="p-2 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors" title="Xóa">
             <Trash2 size={18} />
           </button>
         </div>
@@ -220,7 +243,7 @@ export function PiggyBankDetail() {
           </div>
         </div>
         <div className="w-full h-3 bg-white/20 rounded-full mb-2">
-          <div className="h-3 bg-white rounded-full transition-all duration-700"
+          <div className="h-3 bg-card rounded-full transition-all duration-700"
             style={{ width: `${pct}%` }} />
         </div>
         <div className="flex justify-between text-xs text-white/80">
@@ -231,45 +254,45 @@ export function PiggyBankDetail() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+        <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-slate-500">Còn lại</p>
-            <Target size={16} className="text-slate-300" />
+            <p className="text-xs text-muted-foreground">Còn lại</p>
+            <Target size={16} className="text-muted-foreground" />
           </div>
-          <p className="text-xl font-bold text-slate-900">{fmt(left)}</p>
+          <p className="text-xl font-bold text-card-foreground">{fmt(left)}</p>
         </div>
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+        <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-slate-500">/ tháng</p>
-            <TrendingUp size={16} className="text-slate-300" />
+            <p className="text-xs text-muted-foreground">/ tháng</p>
+            <TrendingUp size={16} className="text-muted-foreground" />
           </div>
-          <p className="text-xl font-bold text-slate-900">{goal.savePerMonth > 0 ? fmt(goal.savePerMonth) : "—"}</p>
+          <p className="text-xl font-bold text-card-foreground">{goal.savePerMonth > 0 ? fmt(goal.savePerMonth) : "—"}</p>
         </div>
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+        <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-slate-500">Ngày mục tiêu</p>
-            <Calendar size={16} className="text-slate-300" />
+            <p className="text-xs text-muted-foreground">Ngày mục tiêu</p>
+            <Calendar size={16} className="text-muted-foreground" />
           </div>
-          <p className="text-xl font-bold text-slate-900 text-sm">{goal.targetDate ?? "—"}</p>
+          <p className="text-xl font-bold text-card-foreground text-sm">{goal.targetDate ?? "—"}</p>
         </div>
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+        <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-slate-500">Số lần giao dịch</p>
-            <PiggyBank size={16} className="text-slate-300" />
+            <p className="text-xs text-muted-foreground">Số lần giao dịch</p>
+            <PiggyBank size={16} className="text-muted-foreground" />
           </div>
-          <p className="text-xl font-bold text-slate-900">{events.length}</p>
+          <p className="text-xl font-bold text-card-foreground">{events.length}</p>
         </div>
       </div>
 
       {/* Chart */}
       {chartData.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6">
+        <div className="bg-card rounded-2xl border border-border shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm font-bold text-slate-700">Lịch sử tích lũy</p>
+            <p className="text-sm font-bold text-foreground">Lịch sử tích lũy</p>
           </div>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={chartData} margin={{ top: 5, right: 16, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
               <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} axisLine={false} />
               <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} axisLine={false}
                 tickFormatter={v => (v >= 1_000_000 ? `${(v/1_000_000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}K` : v)} />
@@ -283,9 +306,9 @@ export function PiggyBankDetail() {
       )}
 
       {/* Events table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Lịch sử giao dịch</p>
+      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="px-6 py-3 border-b border-border bg-muted/50 flex items-center justify-between">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Lịch sử giao dịch</p>
           {events.length > 0 && (
             <button onClick={handleReset}
               className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-600 transition-colors">
@@ -295,31 +318,32 @@ export function PiggyBankDetail() {
         </div>
 
         {events.length === 0 ? (
-          <div className="py-14 flex flex-col items-center text-slate-300">
+          <div className="py-14 flex flex-col items-center text-muted-foreground">
             <PiggyBank size={36} className="mb-3" />
             <p className="text-sm">Chưa có giao dịch nào</p>
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="text-xs text-slate-500 uppercase tracking-wider bg-slate-50/30">
-                <th className="px-6 py-3 font-semibold">Ngày</th>
-                <th className="px-6 py-3 font-semibold">Loại</th>
-                <th className="px-6 py-3 font-semibold">Ghi chú</th>
-                <th className="px-6 py-3 font-semibold text-right">Số tiền</th>
+              <tr className="text-xs text-muted-foreground uppercase tracking-wider bg-muted/30">
+                <th className="px-4 md:px-6 py-3 font-semibold">Ngày</th>
+                <th className="px-4 md:px-6 py-3 font-semibold">Loại</th>
+                <th className="px-4 md:px-6 py-3 font-semibold hidden md:table-cell">Ghi chú</th>
+                <th className="px-4 md:px-6 py-3 font-semibold text-right">Số tiền</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {[...events].reverse().map(e => {
                 const isAdd = e.amount > 0;
                 return (
-                  <tr key={e.eventId} className="hover:bg-slate-50">
-                    <td className="px-6 py-3 text-sm text-slate-600">
+                  <tr key={e.eventId} className="hover:bg-muted">
+                    <td className="px-4 md:px-6 py-3 text-sm text-muted-foreground whitespace-nowrap">
                       {e.eventDate
                         ? format(parseISO(e.eventDate), "dd/MM/yyyy HH:mm", { locale: vi })
                         : "—"}
                     </td>
-                    <td className="px-6 py-3">
+                    <td className="px-4 md:px-6 py-3">
                       <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full ${
                         isAdd ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
                       }`}>
@@ -327,8 +351,8 @@ export function PiggyBankDetail() {
                         {isAdd ? "Nạp tiền" : "Rút tiền"}
                       </span>
                     </td>
-                    <td className="px-6 py-3 text-sm text-slate-500">{e.notes || "—"}</td>
-                    <td className={`px-6 py-3 text-sm font-bold text-right ${isAdd ? "text-green-600" : "text-orange-500"}`}>
+                    <td className="px-4 md:px-6 py-3 text-sm text-muted-foreground hidden md:table-cell">{e.notes || "—"}</td>
+                    <td className={`px-4 md:px-6 py-3 text-sm font-bold text-right ${isAdd ? "text-green-600" : "text-orange-500"} whitespace-nowrap`}>
                       {isAdd ? "+" : ""}{fmt(Math.abs(e.amount))}
                     </td>
                   </tr>
@@ -336,6 +360,7 @@ export function PiggyBankDetail() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

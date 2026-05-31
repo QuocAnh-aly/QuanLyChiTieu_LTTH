@@ -1,5 +1,12 @@
-import { X, Landmark, Users, PiggyBank, CreditCard, Wallet } from "lucide-react";
+import { X, Landmark, Users, PiggyBank, CreditCard, Wallet, DollarSign, Euro, JapaneseYen } from "lucide-react";
 import { useState, useEffect } from "react";
+
+const CURRENCIES = [
+  { code: "VND", symbol: "₫", label: "Việt Nam Đồng", Icon: DollarSign },
+  { code: "USD", symbol: "$", label: "US Dollar",       Icon: DollarSign },
+  { code: "EUR", symbol: "€", label: "Euro",            Icon: Euro },
+  { code: "JPY", symbol: "¥", label: "Japanese Yen",    Icon: JapaneseYen },
+];
 
 const ACCOUNT_TYPES = [
   {
@@ -68,12 +75,14 @@ export function EditWalletModal({ wallet, onClose, onSave }) {
   const [selectedKey, setSelectedKey] = useState(() => ICON_TO_KEY[wallet.iconName] || 'default');
   const [name,        setName]        = useState(wallet.name || '');
   const [cardNumber,  setCardNumber]  = useState(wallet.cardNumber || '');
+  const [currency,    setCurrency]    = useState(wallet.currencyCode || 'VND');
   const [error,       setError]       = useState('');
 
   useEffect(() => {
     setSelectedKey(ICON_TO_KEY[wallet.iconName] || 'default');
     setName(wallet.name || '');
     setCardNumber(wallet.cardNumber || '');
+    setCurrency(wallet.currencyCode || 'VND');
     setError('');
   }, [wallet]);
 
@@ -85,6 +94,10 @@ export function EditWalletModal({ wallet, onClose, onSave }) {
     if (!name.trim()) { setError('Tên tài khoản không được để trống'); return; }
 
     const updates = { name: name.trim() };
+
+    if (currency !== wallet.currencyCode) {
+      updates.currencyCode = currency;
+    }
 
     if (selected && selected.iconName !== wallet.iconName) {
       updates.iconName     = selected.iconName;
@@ -101,12 +114,12 @@ export function EditWalletModal({ wallet, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="bg-card rounded-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
 
         {/* Header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200 sticky top-0 bg-white rounded-t-2xl z-10">
-          <h2 className="text-lg font-bold text-slate-900">Sửa tài khoản</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
+        <div className="flex justify-between items-center px-6 py-4 border-b border-border sticky top-0 bg-card rounded-t-2xl z-10">
+          <h2 className="text-lg font-bold text-card-foreground">Sửa tài khoản</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">
             <X size={18} />
           </button>
         </div>
@@ -116,7 +129,7 @@ export function EditWalletModal({ wallet, onClose, onSave }) {
 
             {/* Account type */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Loại tài khoản</label>
+              <label className="block text-sm font-semibold text-foreground mb-2">Loại tài khoản</label>
               <div className="grid grid-cols-1 gap-2">
                 {ACCOUNT_TYPES.map(type => {
                   const isActive = selectedKey === type.key;
@@ -128,7 +141,7 @@ export function EditWalletModal({ wallet, onClose, onSave }) {
                       className={`flex items-center gap-4 px-4 py-3 rounded-xl border-2 text-left transition-all ${
                         isActive
                           ? 'border-purple-500 bg-purple-50'
-                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                          : 'border-border hover:border-border hover:bg-muted'
                       }`}
                     >
                       <div
@@ -138,13 +151,13 @@ export function EditWalletModal({ wallet, onClose, onSave }) {
                         <type.Icon size={18} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`font-semibold text-sm ${isActive ? 'text-purple-700' : 'text-slate-800'}`}>
+                        <p className={`font-semibold text-sm ${isActive ? 'text-purple-700' : 'text-foreground'}`}>
                           {type.label}
                         </p>
-                        <p className="text-xs text-slate-400">{type.desc}</p>
+                        <p className="text-xs text-muted-foreground">{type.desc}</p>
                       </div>
                       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                        isActive ? 'border-purple-500' : 'border-slate-300'
+                        isActive ? 'border-purple-500' : 'border-border'
                       }`}>
                         {isActive && <div className="w-2 h-2 rounded-full bg-purple-500" />}
                       </div>
@@ -156,7 +169,7 @@ export function EditWalletModal({ wallet, onClose, onSave }) {
 
             {/* Account name */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              <label className="block text-sm font-semibold text-foreground mb-1.5">
                 Tên tài khoản <span className="text-red-500">*</span>
               </label>
               <input
@@ -164,22 +177,54 @@ export function EditWalletModal({ wallet, onClose, onSave }) {
                 type="text"
                 value={name}
                 onChange={e => { setName(e.target.value); setError(''); }}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
               {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+            </div>
+
+            {/* Currency */}
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-2">
+                Loại tiền tệ
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {CURRENCIES.map(c => {
+                  const isActive = currency === c.code;
+                  return (
+                    <button
+                      key={c.code}
+                      type="button"
+                      onClick={() => setCurrency(c.code)}
+                      className={`flex flex-col items-center gap-1 px-2 py-3 rounded-xl border-2 text-center transition-all ${
+                        isActive
+                          ? 'border-purple-500 bg-purple-50'
+                          : 'border-border hover:border-border hover:bg-muted'
+                      }`}
+                    >
+                      <c.Icon size={18} className={isActive ? 'text-purple-600' : 'text-muted-foreground'} />
+                      <span className={`text-xs font-bold ${isActive ? 'text-purple-700' : 'text-muted-foreground'}`}>
+                        {c.code}
+                      </span>
+                      <span className={`text-[10px] ${isActive ? 'text-purple-500' : 'text-muted-foreground'}`}>
+                        {c.symbol}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Card number — credit only */}
             {showCard && (
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Số thẻ (4 số cuối)</label>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">Số thẻ (4 số cuối)</label>
                 <input
                   type="text"
                   value={cardNumber}
                   onChange={e => setCardNumber(e.target.value)}
                   placeholder="VD: •••• 1234"
                   maxLength={9}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
             )}
@@ -197,11 +242,11 @@ export function EditWalletModal({ wallet, onClose, onSave }) {
           </div>
 
           {/* Footer */}
-          <div className="flex gap-3 px-6 py-4 border-t border-slate-200">
+          <div className="flex gap-3 px-6 py-4 border-t border-border">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-semibold text-sm"
+              className="flex-1 px-4 py-2.5 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold text-sm"
             >
               Hủy
             </button>

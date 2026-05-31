@@ -22,6 +22,7 @@ public class TransactionService : ITransactionService
         _journalRepo   = journalRepo;
         _accountRepo   = accountRepo;
         _budgetService = budgetService;
+        
     }
 
     public async Task<IEnumerable<TransactionDto>> GetByUserAsync(int userId, int page, int pageSize)
@@ -33,6 +34,13 @@ public class TransactionService : ITransactionService
     public async Task<IEnumerable<TransactionDto>> GetByDateRangeAsync(int userId, DateTime from, DateTime to)
     {
         var entries = await _journalRepo.GetByDateRangeAsync(userId, from, to);
+        return entries.Select(MapToDto);
+    }
+
+    public async Task<IEnumerable<TransactionDto>> GetByDateRangeAndAccountAsync(
+        int userId, DateTime from, DateTime to, int accountId)
+    {
+        var entries = await _journalRepo.GetByDateRangeAndAccountAsync(userId, from, to, accountId);
         return entries.Select(MapToDto);
     }
 
@@ -53,13 +61,13 @@ public class TransactionService : ITransactionService
         if (!string.IsNullOrWhiteSpace(request.ExpenseCategoryName))
         {
             var expenseAcct =
-                await _accountRepo.FindByUserAndNameAsync(userId, TypeExpense, request.ExpenseCategoryName)
+                await _accountRepo.GetByIdAsync(request.DebitAccountId)
                 ?? await _accountRepo.CreateAsync(new Account
                 {
                     UserId    = userId,
                     TypeId    = TypeExpense,
                     Name      = request.ExpenseCategoryName,
-                    IconName  = "ShoppingCart",
+                    IconName  = "ShoppingBag",
                     Color     = "red",
                     Balance   = 0,
                     IsActive  = true,
@@ -68,17 +76,17 @@ public class TransactionService : ITransactionService
             request.DebitAccountId = expenseAcct.AccountId;
         }
 
-        // Thu nhập: tự tìm hoặc tạo Revenue account theo tên danh mục
+        // Thu nhập: tự tìm hoặc tạo Revenue account
         if (!string.IsNullOrWhiteSpace(request.IncomeCategoryName))
         {
             var revenueAcct =
-                await _accountRepo.FindByUserAndNameAsync(userId, TypeRevenue, request.IncomeCategoryName)
+                await _accountRepo.GetByIdAsync(request.CreditAccountId)
                 ?? await _accountRepo.CreateAsync(new Account
                 {
                     UserId    = userId,
                     TypeId    = TypeRevenue,
                     Name      = request.IncomeCategoryName,
-                    IconName  = "TrendingUp",
+                    IconName  = "DollarSign",
                     Color     = "green",
                     Balance   = 0,
                     IsActive  = true,
@@ -202,8 +210,9 @@ public class TransactionService : ITransactionService
     private async Task UpdateAccountBalanceAsync(Account account, decimal delta)
     {
         // typeId 1 (Assets) hoặc 5 (Expense): debit = tăng
-        // typeId 2,3,4 (Liabilities, Equity, Revenue): credit = tăng
-        var normalBalanceFactor = account.TypeId is 1 or 5 ? 1 : -1;
+        // typeId 2 (Liabilities): cũng debit = tăng vì balance đang âm (nợ)
+        // typeId 3,4 (Equity, Revenue): credit = tăng
+        var normalBalanceFactor = account.TypeId is 1 or 2 or 5 ? 1 : -1;
         await _accountRepo.UpdateBalanceAsync(account.AccountId, delta * normalBalanceFactor);
     }
 

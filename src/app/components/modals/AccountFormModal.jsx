@@ -1,5 +1,6 @@
-import { X, Check } from "lucide-react";
+import { X, Check, Landmark } from "lucide-react";
 import { useState, useEffect } from "react";
+import { accountApi } from "../../api/accountApi";
 
 const COLOR_OPTIONS = [
   { value: 'blue',    label: 'Xanh dương', from: '#3b82f6', to: '#1d4ed8'  },
@@ -43,10 +44,30 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
     balance: '',
     initialBalance: '',
     notes: '',
+    sourceAccountId: '',
   });
 
   const [form,  setForm]  = useState(blankForm);
   const [error, setError] = useState('');
+  const [sourceAccounts, setSourceAccounts] = useState([]);
+  const [loadingSources, setLoadingSources] = useState(false);
+
+  // Fetch asset accounts for source selection (chỉ khi tạo mới và là Liability)
+  useEffect(() => {
+    if (!isOpen || isEdit || !isLiability) return;
+    const fetchSources = async () => {
+      setLoadingSources(true);
+      try {
+        const data = await accountApi.getByType(1, { page: 1, pageSize: 100 });
+        setSourceAccounts(data.items || data || []);
+      } catch {
+        setSourceAccounts([]);
+      } finally {
+        setLoadingSources(false);
+      }
+    };
+    fetchSources();
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -58,6 +79,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
         balance:        account.balance        != null ? String(Math.abs(account.balance))        : '',
         initialBalance: account.initialBalance != null ? String(Math.abs(account.initialBalance)) : '',
         notes:          account.notes || '',
+        sourceAccountId: '',
       });
     } else {
       setForm(blankForm());
@@ -78,6 +100,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
     if (!name) { setError('Tên không được để trống'); return; }
 
     const col  = COLOR_MAP[form.color] || COLOR_MAP.blue;
+    const hasSource = form.sourceAccountId && !isEdit;
     const data = {
       name,
       color:        form.color,
@@ -88,10 +111,24 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
     };
 
     if (isLiability) {
-      data.balance        = -(parseFloat(form.balance)        || 0);
-      data.initialBalance = -(parseFloat(form.initialBalance) || parseFloat(form.balance) || 0);
+      const amount = parseFloat(form.balance) || 0;
+      if (hasSource) {
+        // Gán nợ vào tài khoản bank: gửi balance dương, controller tạo transaction
+        data.sourceAccountId = parseInt(form.sourceAccountId);
+        data.balance = amount; // Positive amount, controller xử lý
+        data.initialBalance = 0;
+      } else {
+        data.balance        = -amount;
+        data.initialBalance = -(parseFloat(form.initialBalance) || amount);
+      }
     } else {
-      data.balance = parseFloat(form.balance) || 0;
+      const amount = parseFloat(form.balance) || 0;
+      if (hasSource && amount > 0) {
+        data.balance = amount;
+        data.sourceAccountId = parseInt(form.sourceAccountId);
+      } else {
+        data.balance = amount;
+      }
     }
 
     if (isExpense) data.cardNumber = form.cardNumber.trim() || null;
@@ -105,15 +142,15 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto"
+        className="bg-card rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 sticky top-0 bg-white rounded-t-2xl z-10">
-          <h2 className="text-lg font-bold text-slate-900">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-card rounded-t-2xl z-10">
+          <h2 className="text-lg font-bold text-card-foreground">
             {TITLES[isEdit ? 'edit' : 'create'][typeId]}
           </h2>
-          <button type="button" onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
+          <button type="button" onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">
             <X size={18} />
           </button>
         </div>
@@ -122,7 +159,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
           <div className="px-6 py-5 space-y-4">
             {/* Name */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              <label className="block text-sm font-semibold text-foreground mb-1.5">
                 Tên <span className="text-red-500">*</span>
               </label>
               <input
@@ -131,14 +168,14 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
                 value={form.name}
                 onChange={set('name')}
                 placeholder={PLACEHOLDERS[typeId]}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
               {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
             </div>
 
             {/* Color picker */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Màu sắc</label>
+              <label className="block text-sm font-semibold text-foreground mb-2">Màu sắc</label>
               <div className="grid grid-cols-4 gap-2">
                 {COLOR_OPTIONS.map(opt => (
                   <button
@@ -148,11 +185,11 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
                     className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border-2 transition-all ${
                       form.color === opt.value
                         ? 'border-purple-500 bg-purple-50'
-                        : 'border-slate-200 hover:border-slate-300'
+                        : 'border-border hover:border-border'
                     }`}
                   >
                     <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: opt.from }} />
-                    <span className="text-xs text-slate-700">{opt.label}</span>
+                    <span className="text-xs text-foreground">{opt.label}</span>
                   </button>
                 ))}
               </div>
@@ -167,7 +204,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
             {/* Card number — Expense only */}
             {isExpense && (
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
                   Số thẻ (4 số cuối)
                 </label>
                 <input
@@ -176,43 +213,104 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
                   onChange={set('cardNumber')}
                   placeholder="VD: **** 1234"
                   maxLength={9}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
             )}
 
-            {/* Liability: original + remaining */}
-            {isLiability && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Số tiền ban đầu</label>
-                  <input
-                    type="number"
-                    value={form.initialBalance}
-                    onChange={set('initialBalance')}
-                    placeholder="300000000"
-                    min={0}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Dư nợ còn lại</label>
-                  <input
-                    type="number"
-                    value={form.balance}
-                    onChange={set('balance')}
-                    placeholder="250000000"
-                    min={0}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
+            {/* Liability: source account (gán nợ vào tài khoản bank) */}
+            {isLiability && !isEdit && (
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
+                  Gán nợ vào tài khoản <span className="text-muted-foreground font-normal">(tùy chọn)</span>
+                </label>
+                <select
+                  value={form.sourceAccountId}
+                  onChange={e => setForm(f => ({ ...f, sourceAccountId: e.target.value }))}
+                  className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card"
+                >
+                  <option value="">Không gán vào tài khoản</option>
+                  {loadingSources ? (
+                    <option disabled>Đang tải...</option>
+                  ) : sourceAccounts.length === 0 ? (
+                    <option disabled>Không có tài khoản ngân hàng</option>
+                  ) : (
+                    sourceAccounts.map(acc => (
+                      <option key={acc.accountId} value={acc.accountId}>
+                        {acc.name} — {Intl.NumberFormat('vi-VN').format(acc.balance ?? 0)}đ
+                      </option>
+                    ))
+                  )}
+                </select>
+                {form.sourceAccountId && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    <Landmark size={12} className="inline mr-0.5" />
+                    Số tiền vay sẽ được chuyển vào tài khoản này
+                  </p>
+                )}
               </div>
+            )}
+
+            {/* Liability: amount fields */}
+            {isLiability && (
+              <>
+                {form.sourceAccountId ? (
+                  /* Gán nợ vào tài khoản: chỉ cần 1 số tiền */
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">
+                      Số tiền vay / Dư nợ
+                    </label>
+                    <input
+                      type="number"
+                      value={form.balance}
+                      onChange={set('balance')}
+                      placeholder="100000000"
+                      min={0}
+                      className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                    <p className="text-xs text-blue-600 mt-1">
+                      <Landmark size={12} className="inline mr-0.5" />
+                      Số tiền này sẽ được chuyển vào tài khoản đã chọn và ghi nhận là khoản nợ
+                    </p>
+                  </div>
+                ) : (
+                  /* Tạo nợ thông thường: số tiền ban đầu và dư nợ còn lại */
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-1.5">
+                        Số tiền ban đầu
+                      </label>
+                      <input
+                        type="number"
+                        value={form.initialBalance}
+                        onChange={set('initialBalance')}
+                        placeholder="300000000"
+                        min={0}
+                        className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-1.5">
+                        Dư nợ còn lại
+                      </label>
+                      <input
+                        type="number"
+                        value={form.balance}
+                        onChange={set('balance')}
+                        placeholder="250000000"
+                        min={0}
+                        className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Revenue / Expense: single balance */}
             {!isLiability && (
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
                   {isExpense ? 'Dư nợ hiện tại' : 'Tổng đã nhận'}
                 </label>
                 <input
@@ -221,30 +319,30 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
                   onChange={set('balance')}
                   placeholder="0"
                   min={0}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
             )}
 
             {/* Notes (optional for all) */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Ghi chú</label>
+              <label className="block text-sm font-semibold text-foreground mb-1.5">Ghi chú</label>
               <textarea
                 value={form.notes}
                 onChange={set('notes')}
                 placeholder="Thêm ghi chú tùy chọn..."
                 rows={2}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
               />
             </div>
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-200">
+          <div className="flex justify-end gap-3 px-6 py-4 border-t border-border">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800"
+              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               Hủy
             </button>

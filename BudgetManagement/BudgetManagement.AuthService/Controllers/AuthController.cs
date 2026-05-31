@@ -30,6 +30,10 @@ public class AuthController : BaseController
         {
             return Conflict(new { message = ex.Message });
         }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     // POST api/auth/signin
@@ -48,17 +52,17 @@ public class AuthController : BaseController
         }
     }
 
-    // GET api/auth/refresh
-    [HttpGet("refresh")]
-    [AllowAnonymous] // Usually refresh token is passed in header or cookie, but let's assume it's in a header for now
-    public async Task<IActionResult> Refresh([FromHeader(Name = "Authorization")] string authHeader)
+    // POST api/auth/refresh
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequestDto request)
     {
         try
         {
-            var refreshToken = authHeader?.Replace("Bearer ", "");
-            if (string.IsNullOrEmpty(refreshToken)) return BadRequest(new { message = "Refresh token required" });
+            if (string.IsNullOrEmpty(request.RefreshToken))
+                return BadRequest(new { message = "Refresh token required" });
             
-            var result = await _authService.RefreshTokenAsync(refreshToken);
+            var result = await _authService.RefreshTokenAsync(request.RefreshToken);
             return Ok(result);
         }
         catch (UnauthorizedAccessException ex)
@@ -98,6 +102,10 @@ public class AuthController : BaseController
         catch (UnauthorizedAccessException ex)
         {
             return Unauthorized(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
     }
 }

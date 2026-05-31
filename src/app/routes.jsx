@@ -24,8 +24,7 @@ import { Webhooks } from "./pages/accounting/automation/Webhooks";
 
 // Others - Accounts
 import { AssetAccounts } from "./pages/others/accounts/AssetAccounts";
-import { ExpenseAccounts } from "./pages/others/accounts/ExpenseAccounts";
-import { RevenueAccounts } from "./pages/others/accounts/RevenueAccounts";
+
 import { Liabilities } from "./pages/others/accounts/Liabilities";
 
 // Others - Classification
@@ -47,6 +46,7 @@ import { ExchangeRates } from "./pages/options/ExchangeRates";
 import { Administrations } from "./pages/options/Administrations";
 import { SystemSettings } from "./pages/options/SystemSettings";
 
+import { NotificationCenter } from "./pages/notifications/NotificationCenter";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
 
 export const router = createBrowserRouter([
@@ -104,8 +104,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="/accounts/asset" replace /> },
           { path: "asset", element: <AssetAccounts /> },
-          { path: "expense", element: <ExpenseAccounts /> },
-          { path: "revenue", element: <RevenueAccounts /> },
+
           { path: "liabilities", element: <Liabilities /> },
         ],
       },
@@ -119,6 +118,9 @@ export const router = createBrowserRouter([
 
       { path: "reports", element: <Reports /> },
       { path: "export", element: <ExportData /> },
+
+      // ── NOTIFICATIONS ────────────────────────────────────────────────────
+      { path: "notifications", element: <NotificationCenter /> },
 
       // ── OPTIONS ───────────────────────────────────────────────────────────
       { path: "profile", element: <Profile /> },

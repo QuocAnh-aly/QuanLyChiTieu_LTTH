@@ -11,9 +11,9 @@ export const authApi = {
     return axiosClient.post(url, { account, password, user_name: userName, email });
   },
 
-  refresh() {
+  refresh(refreshToken) {
     const url = '/api/auth/refresh';
-    return axiosClient.get(url);
+    return axiosClient.post(url, { refresh_token: refreshToken });
   },
 
   getProfile() {
@@ -26,8 +26,8 @@ export const authApi = {
     return axiosClient.put(url, data);
   },
 
-  changePassword(data) {
+  changePassword({ currentPassword, newPassword }) {
     const url = '/api/auth/password';
-    return axiosClient.put(url, data);
+    return axiosClient.put(url, { old_password: currentPassword, new_password: newPassword });
   },
 };

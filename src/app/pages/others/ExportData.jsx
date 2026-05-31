@@ -90,10 +90,10 @@ export function ExportData() {
   const summaryDataLabel = DATA_TYPES.find(d => d.key === dataType)?.label ?? dataType;
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Xuất dữ liệu</h1>
-        <p className="text-slate-500 mt-1">
+    <div className="p-4 sm:p-8 max-w-5xl mx-auto">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground">Xuất dữ liệu</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
           Trích xuất dữ liệu tài chính của bạn ra các định dạng chuẩn để lưu trữ hoặc phân tích bên ngoài
         </p>
       </div>
@@ -104,8 +104,8 @@ export function ExportData() {
         <div className="lg:col-span-2 space-y-6">
 
           {/* Data Type */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+          <div className="bg-card rounded-2xl p-6 border border-border shadow-sm">
+            <h2 className="text-lg font-bold text-card-foreground mb-4 flex items-center gap-2">
               <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xs">1</span>
               Dữ liệu cần xuất
             </h2>
@@ -114,7 +114,7 @@ export function ExportData() {
                 <label
                   key={key}
                   className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${
-                    dataType === key ? "border-purple-600 bg-purple-50" : "border-slate-200 hover:border-slate-300"
+                    dataType === key ? "border-purple-600 bg-purple-50" : "border-border hover:border-border"
                   }`}
                 >
                   <input
@@ -124,12 +124,12 @@ export function ExportData() {
                   />
                   <div className="flex justify-between items-center mb-2">
                     <div className="flex items-center gap-2">
-                      <Icon size={18} className={dataType === key ? "text-purple-600" : "text-slate-400"} />
-                      <span className="font-bold text-slate-900">{label}</span>
+                      <Icon size={18} className={dataType === key ? "text-purple-600" : "text-muted-foreground"} />
+                      <span className="font-bold text-card-foreground">{label}</span>
                     </div>
                     {dataType === key && <CheckCircle2 size={18} className="text-purple-600" />}
                   </div>
-                  <p className="text-sm text-slate-500">{desc}</p>
+                  <p className="text-sm text-muted-foreground">{desc}</p>
                 </label>
               ))}
             </div>
@@ -137,17 +137,17 @@ export function ExportData() {
 
           {/* Time Range — only relevant for transactions */}
           {showRange && (
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-              <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <div className="bg-card rounded-2xl p-6 border border-border shadow-sm">
+              <h2 className="text-lg font-bold text-card-foreground mb-4 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xs">2</span>
                 Khoảng thời gian
               </h2>
-              <div className="flex items-center gap-4 max-w-sm border border-slate-200 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-purple-500 transition-shadow">
-                <Calendar size={20} className="text-slate-400" />
+              <div className="flex items-center gap-4 max-w-sm border border-border rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-purple-500 transition-shadow">
+                <Calendar size={20} className="text-muted-foreground" />
                 <select
                   value={dateRange}
                   onChange={(e) => setDateRange(e.target.value)}
-                  className="w-full font-medium text-slate-700 bg-transparent focus:outline-none"
+                  className="w-full font-medium text-foreground bg-transparent focus:outline-none"
                 >
                   <option value="this_month">Tháng này</option>
                   <option value="last_month">Tháng trước</option>
@@ -160,8 +160,8 @@ export function ExportData() {
           )}
 
           {/* Format */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+          <div className="bg-card rounded-2xl p-6 border border-border shadow-sm">
+            <h2 className="text-lg font-bold text-card-foreground mb-4 flex items-center gap-2">
               <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xs">{showRange ? 3 : 2}</span>
               Định dạng file
             </h2>
@@ -172,7 +172,7 @@ export function ExportData() {
                   <label
                     key={key}
                     className={`cursor-pointer rounded-xl border-2 p-4 text-center transition-all ${
-                      active ? ring : "border-slate-200 hover:border-slate-300"
+                      active ? ring : "border-border hover:border-border"
                     }`}
                   >
                     <input
@@ -180,14 +180,14 @@ export function ExportData() {
                       checked={active}
                       onChange={() => setFormat(key)}
                     />
-                    <Icon size={32} className={`mx-auto mb-2 ${active ? iconCls : "text-slate-400"}`} />
-                    <span className={`font-bold block ${active ? textCls : "text-slate-700"}`}>{label}</span>
+                    <Icon size={32} className={`mx-auto mb-2 ${active ? iconCls : "text-muted-foreground"}`} />
+                    <span className={`font-bold block ${active ? textCls : "text-foreground"}`}>{label}</span>
                   </label>
                 );
               })}
             </div>
             {format === "excel" && (
-              <p className="text-xs text-slate-400 mt-3">
+              <p className="text-xs text-muted-foreground mt-3">
                 File Excel xuất ở định dạng SpreadsheetML 2003 (.xls). Excel / LibreOffice mở trực tiếp.
               </p>
             )}
@@ -220,7 +220,7 @@ export function ExportData() {
             <button
               onClick={handleExport}
               disabled={isExporting}
-              className="w-full flex items-center justify-center gap-2 py-4 bg-white text-purple-900 font-bold rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 py-4 bg-card text-purple-900 font-bold rounded-xl hover:bg-muted transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isExporting ? (
                 <>

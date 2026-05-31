@@ -8,4 +8,6 @@
   <Project Path="BudgetManagement.LogService/BudgetManagement.LogService.csproj" />
   <Project Path="BudgetManagement.Repository/BudgetManagement.Repository.csproj" />
   <Project Path="BudgetManagement.Services/BudgetManagement.Services.csproj" />
+  <Project Path="BudgetManagement.Tests/BudgetManagement.Tests.csproj" />
+  <Project Path="DbTester/DbTester.csproj" />
 </Solution>

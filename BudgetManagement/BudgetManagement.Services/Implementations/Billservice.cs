@@ -33,6 +33,30 @@ public class BillService : IBillService
         });
     }
 
+    public async Task<PaginatedResult<BillDto>> GetAllPagedAsync(int userId, int page, int pageSize)
+    {
+        var today   = DateTime.Today;
+        var linked  = (await _billRepo.GetLinkedEntriesForUserAsync(userId)).ToList();
+        var byBill  = linked
+            .Where(j => j.BillId.HasValue)
+            .GroupBy(j => j.BillId!.Value)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var result = await _billRepo.GetByUserIdPagedAsync(userId, page, pageSize);
+
+        return new PaginatedResult<BillDto>
+        {
+            Items = result.Items.Select(b =>
+            {
+                var entries = byBill.TryGetValue(b.BillId, out var list) ? list : [];
+                return MapToDto(b, today, entries, false);
+            }).ToList(),
+            TotalCount = result.TotalCount,
+            Page = result.Page,
+            PageSize = result.PageSize
+        };
+    }
+
     public async Task<BillDto> GetByIdAsync(int userId, int billId)
     {
         var bill = await _billRepo.GetByIdAsync(billId)

@@ -21,16 +21,17 @@ import { transactionApi } from "../../api/transactionApi";
 import { useEffect } from "react";
 
 function mapTransaction(t) {
-  const details       = t.details || [];
-  const expenseDetail = details.find(d => d.typeId === 5 && d.debit > 0);
-  const revenueDetail = details.find(d => d.typeId === 4 && d.credit > 0);
-  const isTransfer    = !expenseDetail && !revenueDetail;
-  const isIncome      = !!revenueDetail;
+  const details = t.details || [];
+  const expenseDetail = details.find((d) => d.typeId === 5 && d.debit > 0);
+  const revenueDetail = details.find((d) => d.typeId === 4 && d.credit > 0);
+  const isTransfer = !expenseDetail && !revenueDetail;
+  const isIncome = !!revenueDetail;
 
   let categoryName = "Uncategorized";
-  if (expenseDetail)      categoryName = expenseDetail.accountName  || "Chi tiêu";
-  else if (revenueDetail) categoryName = revenueDetail.accountName  || "Thu nhập";
-  else if (isTransfer)    categoryName = "Chuyển khoản";
+  if (expenseDetail) categoryName = expenseDetail.accountName || "Chi tiêu";
+  else if (revenueDetail)
+    categoryName = revenueDetail.accountName || "Thu nhập";
+  else if (isTransfer) categoryName = "Chuyển khoản";
 
   return { ...t, categoryName, isIncome, isTransfer };
 }
@@ -48,7 +49,7 @@ export function Account() {
     sms: false,
   });
   const [theme, setTheme] = useState("light");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState("VND");
 
   const [userProfile, setUserProfile] = useState({
     fullName: "",
@@ -74,7 +75,10 @@ export function Account() {
         });
 
         // Fetch Transactions
-        const transData = await transactionApi.getAll({ page: 1, pageSize: 50 });
+        const transData = await transactionApi.getAll({
+          page: 1,
+          pageSize: 50,
+        });
         const items = (transData.items || transData || []).map(mapTransaction);
         setTransactions(items);
 
@@ -97,9 +101,9 @@ export function Account() {
   }, []);
 
   const TX_FILTER_TYPES = [
-    { key: "all",      label: "Tất cả" },
-    { key: "income",   label: "Thu nhập" },
-    { key: "expense",  label: "Chi tiêu" },
+    { key: "all", label: "Tất cả" },
+    { key: "income", label: "Thu nhập" },
+    { key: "expense", label: "Chi tiêu" },
     { key: "transfer", label: "Chuyển khoản" },
   ];
 
@@ -109,12 +113,13 @@ export function Account() {
       (t.categoryName || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType =
       filterType === "all" ||
-      (filterType === "income"   && t.isIncome)   ||
-      (filterType === "transfer" && t.isTransfer)  ||
-      (filterType === "expense"  && !t.isIncome && !t.isTransfer);
+      (filterType === "income" && t.isIncome) ||
+      (filterType === "transfer" && t.isTransfer) ||
+      (filterType === "expense" && !t.isIncome && !t.isTransfer);
     const matchesDate =
       !selectedDate ||
-      format(new Date(t.transactionDate), "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd");
+      format(new Date(t.transactionDate), "yyyy-MM-dd") ===
+        format(selectedDate, "yyyy-MM-dd");
 
     return matchesSearch && matchesType && matchesDate;
   });
@@ -158,8 +163,7 @@ export function Account() {
             activeTab === "transactions"
               ? "text-purple-600 border-b-2 border-purple-600"
               : "text-slate-600 hover:text-slate-900"
-          }`}
-        >
+          }`}>
           Giao dịch
         </button>
         <button
@@ -168,8 +172,7 @@ export function Account() {
             activeTab === "settings"
               ? "text-purple-600 border-b-2 border-purple-600"
               : "text-slate-600 hover:text-slate-900"
-          }`}
-        >
+          }`}>
           Cài đặt
         </button>
       </div>
@@ -188,7 +191,8 @@ export function Account() {
                 ${totalIncome.toLocaleString()}
               </p>
               <p className="text-green-600 text-sm mt-1">
-                {filteredTransactions.filter((t) => t.isIncome).length} giao dịch
+                {filteredTransactions.filter((t) => t.isIncome).length} giao
+                dịch
               </p>
             </div>
 
@@ -203,7 +207,12 @@ export function Account() {
                 ${totalExpenses.toLocaleString()}
               </p>
               <p className="text-red-600 text-sm mt-1">
-                {filteredTransactions.filter((t) => !t.isIncome && !t.isTransfer).length} giao dịch
+                {
+                  filteredTransactions.filter(
+                    (t) => !t.isIncome && !t.isTransfer,
+                  ).length
+                }{" "}
+                giao dịch
               </p>
             </div>
 
@@ -246,8 +255,7 @@ export function Account() {
                       filterType === key
                         ? "bg-purple-600 text-white"
                         : "text-slate-600 hover:bg-slate-100"
-                    }`}
-                  >
+                    }`}>
                     {label}
                   </button>
                 ))}
@@ -260,8 +268,7 @@ export function Account() {
                 />
                 <button
                   onClick={() => setShowCalendar(!showCalendar)}
-                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-left bg-white"
-                >
+                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-left bg-white">
                   {selectedDate
                     ? format(selectedDate, "dd/MM/yyyy")
                     : "Chọn ngày"}
@@ -283,8 +290,7 @@ export function Account() {
                           setSelectedDate(undefined);
                           setShowCalendar(false);
                         }}
-                        className="w-full mt-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
-                      >
+                        className="w-full mt-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors">
                         Xóa ngày
                       </button>
                     )}
@@ -315,16 +321,35 @@ export function Account() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredTransactions.map((t) => {
-                    const iconBg  = t.isTransfer ? "bg-blue-50"    : t.isIncome ? "bg-green-100" : "bg-red-50";
-                    const Icon    = t.isTransfer ? ArrowLeftRight   : t.isIncome ? ArrowUpRight   : ArrowDownRight;
-                    const iconCls = t.isTransfer ? "text-blue-500"  : t.isIncome ? "text-green-600" : "text-red-500";
-                    const amtCls  = t.isTransfer ? "text-blue-600"  : t.isIncome ? "text-green-600" : "text-slate-900";
-                    const prefix  = t.isIncome ? "+" : t.isTransfer ? "" : "-";
+                    const iconBg = t.isTransfer
+                      ? "bg-blue-50"
+                      : t.isIncome
+                        ? "bg-green-100"
+                        : "bg-red-50";
+                    const Icon = t.isTransfer
+                      ? ArrowLeftRight
+                      : t.isIncome
+                        ? ArrowUpRight
+                        : ArrowDownRight;
+                    const iconCls = t.isTransfer
+                      ? "text-blue-500"
+                      : t.isIncome
+                        ? "text-green-600"
+                        : "text-red-500";
+                    const amtCls = t.isTransfer
+                      ? "text-blue-600"
+                      : t.isIncome
+                        ? "text-green-600"
+                        : "text-slate-900";
+                    const prefix = t.isIncome ? "+" : t.isTransfer ? "" : "-";
                     return (
-                      <tr key={t.journalId} className="hover:bg-slate-50 transition-colors">
+                      <tr
+                        key={t.journalId}
+                        className="hover:bg-slate-50 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-full ${iconBg} flex items-center justify-center`}>
+                            <div
+                              className={`w-10 h-10 rounded-full ${iconBg} flex items-center justify-center`}>
                               <Icon size={18} className={iconCls} />
                             </div>
                             <span className="font-semibold text-slate-900">
@@ -368,9 +393,7 @@ export function Account() {
                 <Bell size={24} className="text-purple-600" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-900">
-                  Thông báo
-                </h2>
+                <h2 className="text-xl font-bold text-slate-900">Thông báo</h2>
                 <p className="text-sm text-slate-500">
                   Quản lý cách bạn nhận thông báo
                 </p>
@@ -398,20 +421,16 @@ export function Account() {
                   }}
                   className={`w-12 h-6 rounded-full transition-colors ${
                     notifications.email ? "bg-purple-600" : "bg-slate-300"
-                  }`}
-                >
+                  }`}>
                   <div
                     className={`w-5 h-5 bg-white rounded-full transition-transform ${
                       notifications.email ? "translate-x-6" : "translate-x-1"
-                    }`}
-                  ></div>
+                    }`}></div>
                 </button>
               </div>
               <div className="flex items-center justify-between py-3 border-b border-slate-100">
                 <div>
-                  <p className="font-semibold text-slate-900">
-                    Thông báo đẩy
-                  </p>
+                  <p className="font-semibold text-slate-900">Thông báo đẩy</p>
                   <p className="text-sm text-slate-500">
                     Nhận thông báo trên thiết bị của bạn
                   </p>
@@ -428,20 +447,16 @@ export function Account() {
                   }}
                   className={`w-12 h-6 rounded-full transition-colors ${
                     notifications.push ? "bg-purple-600" : "bg-slate-300"
-                  }`}
-                >
+                  }`}>
                   <div
                     className={`w-5 h-5 bg-white rounded-full transition-transform ${
                       notifications.push ? "translate-x-6" : "translate-x-1"
-                    }`}
-                  ></div>
+                    }`}></div>
                 </button>
               </div>
               <div className="flex items-center justify-between py-3">
                 <div>
-                  <p className="font-semibold text-slate-900">
-                    Thông báo SMS
-                  </p>
+                  <p className="font-semibold text-slate-900">Thông báo SMS</p>
                   <p className="text-sm text-slate-500">
                     Nhận cảnh báo qua tin nhắn văn bản
                   </p>
@@ -458,13 +473,11 @@ export function Account() {
                   }}
                   className={`w-12 h-6 rounded-full transition-colors ${
                     notifications.sms ? "bg-purple-600" : "bg-slate-300"
-                  }`}
-                >
+                  }`}>
                   <div
                     className={`w-5 h-5 bg-white rounded-full transition-transform ${
                       notifications.sms ? "translate-x-6" : "translate-x-1"
-                    }`}
-                  ></div>
+                    }`}></div>
                 </button>
               </div>
             </div>
@@ -491,10 +504,11 @@ export function Account() {
                   value={theme}
                   onChange={(e) => {
                     setTheme(e.target.value);
-                    toast.success(`Đã đổi chủ đề sang ${e.target.value === 'light' ? 'Sáng' : e.target.value === 'dark' ? 'Tối' : 'Tự động'}`);
+                    toast.success(
+                      `Đã đổi chủ đề sang ${e.target.value === "light" ? "Sáng" : e.target.value === "dark" ? "Tối" : "Tự động"}`,
+                    );
                   }}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
+                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
                   <option value="light">Sáng</option>
                   <option value="dark">Tối</option>
                   <option value="auto">Tự động</option>
@@ -528,8 +542,7 @@ export function Account() {
                     setCurrency(e.target.value);
                     toast.success(`Currency changed to ${e.target.value}`);
                   }}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
+                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
                   <option value="USD">USD - US Dollar</option>
                   <option value="EUR">EUR - Euro</option>
                   <option value="GBP">GBP - British Pound</option>
@@ -578,7 +591,9 @@ export function Account() {
                 <input
                   type="text"
                   value={userProfile.fullName}
-                  onChange={(e) => setUserProfile({ ...userProfile, fullName: e.target.value })}
+                  onChange={(e) =>
+                    setUserProfile({ ...userProfile, fullName: e.target.value })
+                  }
                   className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
@@ -589,14 +604,15 @@ export function Account() {
                 <input
                   type="email"
                   value={userProfile.email}
-                  onChange={(e) => setUserProfile({ ...userProfile, email: e.target.value })}
+                  onChange={(e) =>
+                    setUserProfile({ ...userProfile, email: e.target.value })
+                  }
                   className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
               <button
                 onClick={handleUpdateProfile}
-                className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
-              >
+                className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold">
                 Lưu thay đổi
               </button>
             </div>

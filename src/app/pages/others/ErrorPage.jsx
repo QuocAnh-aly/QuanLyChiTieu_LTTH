@@ -6,26 +6,26 @@ export function ErrorPage() {
   console.error(error);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center border border-slate-100">
+    <div className="min-h-screen bg-muted flex items-center justify-center p-6 font-sans">
+      <div className="max-w-md w-full bg-card rounded-2xl shadow-xl p-8 text-center border border-border">
         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
           <AlertTriangle size={32} className="text-red-600" />
         </div>
-        <h1 className="text-2xl font-bold text-slate-900 mb-2">Đã xảy ra lỗi!</h1>
-        <p className="text-slate-500 mb-6">
+        <h1 className="text-2xl font-bold text-card-foreground mb-2">Đã xảy ra lỗi!</h1>
+        <p className="text-muted-foreground mb-6">
           Rất xin lỗi, ứng dụng đã gặp sự cố không mong muốn. 
         </p>
         
-        <div className="bg-slate-100 rounded-lg p-4 mb-8 text-left overflow-auto max-h-32">
-          <p className="text-sm font-mono text-slate-700 break-words">
-            {error?.statusText || error?.message || "Unknown error"}
+        <div className="bg-muted rounded-lg p-4 mb-8 text-left overflow-auto max-h-32">
+          <p className="text-sm font-mono text-foreground break-words">
+            {error?.statusText || error?.message || "Lỗi không xác định"}
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <button 
             onClick={() => window.location.reload()}
-            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors"
+            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-muted hover:bg-muted text-foreground rounded-lg font-medium transition-colors"
           >
             <RefreshCw size={18} />
             Thử lại

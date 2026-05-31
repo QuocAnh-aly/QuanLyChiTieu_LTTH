@@ -12,7 +12,7 @@ const TAG_COLORS = {
   pink:    "bg-pink-100    text-pink-700    border-pink-300",
   red:     "bg-red-100     text-red-700     border-red-300",
   green:   "bg-green-100   text-green-700   border-green-300",
-  slate:   "bg-slate-100   text-slate-700   border-slate-300",
+  slate:   "bg-muted   text-foreground   border-border",
 };
 
 export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
@@ -48,7 +48,7 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
 
   const typeLabel = isTransfer ? "Chuyển khoản" : isIncome ? "Thu nhập" : "Chi tiêu";
   const typeBg    = isTransfer ? "bg-blue-100 text-blue-700" : isIncome ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700";
-  const amountCls = isTransfer ? "text-blue-600" : isIncome ? "text-green-600" : "text-slate-900";
+  const amountCls = isTransfer ? "text-blue-600" : isIncome ? "text-green-600" : "text-card-foreground";
   const amountPfx = isIncome ? "+" : isExpense ? "-" : "";
   const Icon      = isTransfer ? ArrowLeftRight : isIncome ? ArrowUpRight : ArrowDownRight;
   const iconBg    = isTransfer ? "bg-blue-100" : isIncome ? "bg-green-100" : "bg-red-100";
@@ -72,18 +72,18 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 sticky top-0 bg-white rounded-t-2xl z-10">
-          <h2 className="text-base font-bold text-slate-900">Sửa giao dịch</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-card rounded-t-2xl z-10">
+          <h2 className="text-base font-bold text-card-foreground">Sửa giao dịch</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">
             <X size={18} />
           </button>
         </div>
 
         {/* Transaction context (read-only) */}
-        <div className="px-5 py-4 bg-slate-50 border-b border-slate-100">
+        <div className="px-5 py-4 bg-muted border-b border-border">
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${iconBg}`}>
               <Icon size={18} className={iconCls} />
@@ -93,13 +93,13 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
                 <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${typeBg}`}>
                   {typeLabel}
                 </span>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-muted-foreground">
                   {transaction.transactionDate
                     ? format(new Date(transaction.transactionDate), "dd/MM/yyyy")
                     : "—"}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 truncate">
+              <p className="text-xs text-muted-foreground truncate">
                 {transaction.sourceAccount} → {transaction.destAccount || transaction.categoryName}
               </p>
             </div>
@@ -113,24 +113,24 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
         <form onSubmit={handleSubmit}>
           <div className="px-5 py-4 space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Mô tả</label>
+              <label className="block text-sm font-semibold text-foreground mb-1.5">Mô tả</label>
               <input
                 autoFocus
                 type="text"
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 placeholder="Thêm mô tả cho giao dịch..."
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Ngày giao dịch</label>
+              <label className="block text-sm font-semibold text-foreground mb-1.5">Ngày giao dịch</label>
               <input
                 type="date"
                 value={date}
                 onChange={e => setDate(e.target.value)}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 required
               />
             </div>
@@ -138,8 +138,8 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
             {/* Tags */}
             {tags && tags.length > 0 && (
               <div>
-                <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-2">
-                  <Tag size={14} className="text-slate-400" /> Nhãn
+                <label className="flex items-center gap-1.5 text-sm font-semibold text-foreground mb-2">
+                  <Tag size={14} className="text-muted-foreground" /> Nhãn
                 </label>
                 <div className="flex flex-wrap gap-1.5">
                   {tags.map(tag => {
@@ -153,7 +153,7 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
                         className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${
                           active
                             ? colorCls
-                            : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                            : "bg-card border-border text-muted-foreground hover:border-border"
                         }`}
                       >
                         {tag.name}
@@ -166,26 +166,26 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
 
             {/* Notes */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Ghi chú</label>
+              <label className="block text-sm font-semibold text-foreground mb-1.5">Ghi chú</label>
               <textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 rows={2}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                 placeholder="Thêm ghi chú chi tiết..."
               />
             </div>
 
-            <p className="text-xs text-slate-400 bg-slate-50 rounded-lg px-3 py-2">
+            <p className="text-xs text-muted-foreground bg-muted rounded-lg px-3 py-2">
               Số tiền và tài khoản không thể thay đổi. Nếu cần, hãy xóa và tạo lại giao dịch.
             </p>
           </div>
 
-          <div className="flex gap-3 px-5 py-4 border-t border-slate-200">
+          <div className="flex gap-3 px-5 py-4 border-t border-border">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-semibold text-sm"
+              className="flex-1 px-4 py-2.5 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold text-sm"
             >
               Hủy
             </button>

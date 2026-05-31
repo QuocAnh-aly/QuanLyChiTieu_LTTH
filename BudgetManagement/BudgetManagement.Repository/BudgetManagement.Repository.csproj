@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BudgetManagement.Entities\BudgetManagement.Entities.csproj" />
+    <ProjectReference Include="..\BudgetManagement.Dto\BudgetManagement.Dto.csproj" />
   </ItemGroup>
 
 </Project>
