@@ -22,6 +22,7 @@ public class TransactionService : ITransactionService
         _journalRepo   = journalRepo;
         _accountRepo   = accountRepo;
         _budgetService = budgetService;
+        
     }
 
     public async Task<IEnumerable<TransactionDto>> GetByUserAsync(int userId, int page, int pageSize)
@@ -60,13 +61,13 @@ public class TransactionService : ITransactionService
         if (!string.IsNullOrWhiteSpace(request.ExpenseCategoryName))
         {
             var expenseAcct =
-                await _accountRepo.FindByUserAndNameAsync(userId, TypeExpense, request.ExpenseCategoryName)
+                await _accountRepo.GetByIdAsync(request.DebitAccountId)
                 ?? await _accountRepo.CreateAsync(new Account
                 {
                     UserId    = userId,
                     TypeId    = TypeExpense,
                     Name      = request.ExpenseCategoryName,
-                    IconName  = "ShoppingCart",
+                    IconName  = "ShoppingBag",
                     Color     = "red",
                     Balance   = 0,
                     IsActive  = true,
@@ -75,17 +76,17 @@ public class TransactionService : ITransactionService
             request.DebitAccountId = expenseAcct.AccountId;
         }
 
-        // Thu nhập: tự tìm hoặc tạo Revenue account theo tên danh mục
+        // Thu nhập: tự tìm hoặc tạo Revenue account
         if (!string.IsNullOrWhiteSpace(request.IncomeCategoryName))
         {
             var revenueAcct =
-                await _accountRepo.FindByUserAndNameAsync(userId, TypeRevenue, request.IncomeCategoryName)
+                await _accountRepo.GetByIdAsync(request.CreditAccountId)
                 ?? await _accountRepo.CreateAsync(new Account
                 {
                     UserId    = userId,
                     TypeId    = TypeRevenue,
                     Name      = request.IncomeCategoryName,
-                    IconName  = "TrendingUp",
+                    IconName  = "DollarSign",
                     Color     = "green",
                     Balance   = 0,
                     IsActive  = true,

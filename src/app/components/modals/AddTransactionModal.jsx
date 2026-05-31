@@ -1,39 +1,95 @@
-import { X, AlertCircle } from "lucide-react";
+import {
+  X,
+  AlertCircle,
+  ShoppingCart,
+  TrendingUp,
+  ArrowLeftRight,
+  Tag,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { walletApi } from "../../api/walletApi";
 import { useCategories } from "../../context/CategoriesContext";
 import { useSettings } from "../../context/SettingsContext";
 
-export function AddTransactionModal({ isOpen, onClose, onAdd, initialType = "expense" }) {
-  const { expenseCategories, incomeSources } = useCategories();
-  const { fmt, currencySymbol }              = useSettings();
+const TX_TYPES = [
+  {
+    key: "expense",
+    label: "Chi tiêu",
+    Icon: ShoppingCart,
+    activeCls: "bg-red-500 text-white",
+  },
+  {
+    key: "income",
+    label: "Thu nhập",
+    Icon: TrendingUp,
+    activeCls: "bg-green-500 text-white",
+  },
+  {
+    key: "transfer",
+    label: "Chuyển khoản",
+    Icon: ArrowLeftRight,
+    activeCls: "bg-blue-500 text-white",
+  },
+];
 
-  const [txType,          setTxType]          = useState(initialType);
-  const [assetAccounts,   setAssetAccounts]   = useState([]);
-  const [walletId,        setWalletId]        = useState("");
-  const [toWalletId,      setToWalletId]      = useState("");
-  const [expenseCategory, setExpenseCategory] = useState("");
-  const [incomeCategory,  setIncomeCategory]  = useState("");
-  const [amount,          setAmount]          = useState("");
-  const [description,     setDescription]     = useState("");
-  const [notes,           setNotes]           = useState("");
-  const [date,            setDate]            = useState(() => new Date().toISOString().slice(0, 10));
-  
-  // Extra fields for the new UI
-  const [foreignAmount, setForeignAmount] = useState("");
-  const [budget, setBudget] = useState("");
-  const [piggyBank, setPiggyBank] = useState("");
-  const [tagsText, setTagsText] = useState("");
-  const [subscription, setSubscription] = useState("");
-  const [interestDate, setInterestDate] = useState("");
+const SUBMIT_CLS = {
+  expense: "bg-red-500   hover:bg-red-600",
+  income: "bg-green-500 hover:bg-green-600",
+  transfer: "bg-blue-500  hover:bg-blue-600",
+};
 
-  const [createAnother,   setCreateAnother]   = useState(false);
+const SUBMIT_LABEL = {
+  expense: "Ghi chi tiêu",
+  income: "Ghi thu nhập",
+  transfer: "Chuyển tiền",
+};
+
+const TAG_COLORS = {
+  blue: "bg-blue-100    text-blue-700    border-blue-300",
+  emerald: "bg-emerald-100 text-emerald-700 border-emerald-300",
+  orange: "bg-orange-100  text-orange-700  border-orange-300",
+  purple: "bg-purple-100  text-purple-700  border-purple-300",
+  pink: "bg-pink-100    text-pink-700    border-pink-300",
+  red: "bg-red-100     text-red-700     border-red-300",
+  green: "bg-green-100   text-green-700   border-green-300",
+  slate: "bg-slate-100   text-slate-700   border-slate-300",
+};
+
+const DEFAULT_CATEGORY = {
+  accountId: 0,
+  name: "",
+};
+
+export function AddTransactionModal({
+  isOpen,
+  onClose,
+  onAdd,
+  initialType = "expense",
+}) {
+  const { expenseCategories, incomeSources, tags } = useCategories();
+  const { fmt, currencySymbol } = useSettings();
+
+  const [txType, setTxType] = useState(initialType);
+  const [assetAccounts, setAssetAccounts] = useState([]);
+  const [walletId, setWalletId] = useState("");
+  const [toWalletId, setToWalletId] = useState("");
+  const [expenseCategory, setExpenseCategory] = useState({ DEFAULT_CATEGORY });
+  const [incomeCategory, setIncomeCategory] = useState({ DEFAULT_CATEGORY });
+  const [showCustomCategory, setShowCustomCategory] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [description, setDescription] = useState("");
+  const [notes, setNotes] = useState("");
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+
+  const [createAnother, setCreateAnother] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
     setTxType(initialType);
-    walletApi.getByType(1)
-      .then(data => setAssetAccounts(data.items || data || []))
+    walletApi
+      .getByType(1)
+      .then((data) => setAssetAccounts(data.items || data || []))
       .catch(() => {});
   }, [isOpen, initialType]);
 
@@ -41,35 +97,63 @@ export function AddTransactionModal({ isOpen, onClose, onAdd, initialType = "exp
 
   const reset = () => {
     setTxType(initialType);
-    setWalletId(""); setToWalletId("");
-    setExpenseCategory(""); setIncomeCategory("");
-    setAmount(""); setDescription(""); setNotes("");
+    setWalletId("");
+    setToWalletId("");
+    setExpenseCategory({ DEFAULT_CATEGORY });
+    setIncomeCategory({ DEFAULT_CATEGORY });
+    setAmount("");
+    setDescription("");
+    setNotes("");
+    setSelectedTags([]);
     setDate(new Date().toISOString().slice(0, 10));
-    setForeignAmount(""); setBudget(""); setPiggyBank("");
-    setTagsText(""); setSubscription(""); setInterestDate("");
+    setShowCustomCategory(false);
+  };
+  const handleTypeChange = (key) => {
+    setTxType(key);
+    setWalletId("");
+    setToWalletId("");
+    setExpenseCategory({ DEFAULT_CATEGORY });
+    setIncomeCategory({ DEFAULT_CATEGORY });
+    setShowCustomCategory(false);
   };
 
-  const sameWalletError = txType === "transfer" && walletId && toWalletId && walletId === toWalletId;
+  const sameWalletError =
+    txType === "transfer" && walletId && toWalletId && walletId === toWalletId;
 
   const canSubmit = (() => {
     if (!walletId || !amount || parseFloat(amount) <= 0) return false;
-    if (txType === "expense")  return !!expenseCategory;
-    if (txType === "income")   return !!incomeCategory;
+    if (txType === "expense") return !!expenseCategory;
+    if (txType === "income") return !!incomeCategory;
     if (txType === "transfer") return !!toWalletId && !sameWalletError;
     return false;
   })();
 
   const buildPayload = () => {
     const base = {
-      amount:          parseFloat(amount),
-      description:     description || null,
-      notes:           notes       || null,
-      tags:            tagsText    || null,
+      amount: parseFloat(amount),
+      description: description || null,
+      notes: notes || null,
       transactionDate: new Date(date).toISOString(),
     };
-    if (txType === "expense") return { ...base, debitAccountId: 0,               creditAccountId: parseInt(walletId), expenseCategoryName: expenseCategory || "Chưa phân loại" };
-    if (txType === "income")  return { ...base, debitAccountId: parseInt(walletId), creditAccountId: 0,               incomeCategoryName:  incomeCategory || "Khác" };
-    return { ...base, debitAccountId: parseInt(toWalletId), creditAccountId: parseInt(walletId) };
+    if (txType === "expense")
+      return {
+        ...base,
+        debitAccountId: expenseCategory.accountId,
+        creditAccountId: parseInt(walletId),
+        expenseCategoryName: expenseCategory.name.trim() || "Chưa phân loại",
+      };
+    if (txType === "income")
+      return {
+        ...base,
+        debitAccountId: parseInt(walletId),
+        creditAccountId: incomeCategory.accountId,
+        incomeCategoryName: incomeCategory.name.trim() || "Khác",
+      };
+    return {
+      ...base,
+      debitAccountId: parseInt(toWalletId),
+      creditAccountId: parseInt(walletId),
+    };
   };
 
   const handleSubmit = (e) => {
@@ -77,330 +161,428 @@ export function AddTransactionModal({ isOpen, onClose, onAdd, initialType = "exp
     if (!canSubmit) return;
     onAdd(buildPayload());
     if (createAnother) {
-      setAmount(""); setDescription(""); setNotes("");
-      setForeignAmount(""); setTagsText("");
+      setAmount("");
+      setDescription("");
+      setNotes("");
     } else {
       reset();
       onClose();
     }
   };
 
+  const toggleTag = (name) => {
+    setSelectedTags((prev) =>
+      prev.includes(name) ? prev.filter((t) => t !== name) : [...prev, name],
+    );
+  };
+
   const walletLabel = (a) => `${a.name} — ${fmt(a.balance ?? 0)}`;
 
-  const headerTitle = txType === "expense" ? "Tạo rút tiền mới" : txType === "income" ? "Tạo tiền gửi mới" : "Tạo chuyển khoản mới";
-
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={onClose}>
-      <div className="bg-muted w-full max-w-full sm:max-w-[1200px] sm:min-h-[80vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
-        
+    <div
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+      onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
+        onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="bg-card px-6 py-4 border-b border-border flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-              <span className="text-muted-foreground">⇄</span> Giao dịch
-            </h2>
-            <span className="text-muted-foreground">|</span>
-            <span className="text-muted-foreground text-sm">
-              <span className="font-bold text-lg mr-1">+</span> {headerTitle}
-            </span>
-          </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted text-muted-foreground">
-            <X size={20} />
+        <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200 sticky top-0 bg-white rounded-t-2xl z-10">
+          <h2 className="text-lg font-bold text-slate-900">Thêm giao dịch</h2>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
+            <X size={18} />
           </button>
         </div>
 
-        {/* Info bar */}
-        <div className="bg-muted px-6 py-3 border-b border-border text-sm text-muted-foreground flex items-center gap-2">
-          Xin lỗi, không có văn bản giải thích bổ sung cho trang này. Tuy nhiên, biểu tượng ở góc trên bên phải có thể cho bạn biết nhiều hơn. <AlertCircle size={14} className="inline"/>
+        {/* Type tabs */}
+        <div className="px-6 pt-4">
+          <div className="flex gap-1 bg-slate-100 rounded-xl p-1">
+            {TX_TYPES.map(({ key, label, Icon, activeCls }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => handleTypeChange(key)}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-sm font-semibold transition-all ${
+                  txType === key
+                    ? activeCls
+                    : "text-slate-500 hover:text-slate-700"
+                }`}>
+                <Icon size={14} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 flex flex-col bg-card m-6 border border-border shadow-sm">
-          
-          <div className="px-6 py-4 border-b border-border">
-            <h3 className="text-lg text-foreground">Thông tin giao dịch</h3>
-          </div>
-
-          <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-6">
-            
-            {/* Left Column */}
-            <div className="space-y-6">
-              
-              {/* Description */}
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Mô tả</label>
-                <div className="flex">
-                  <input
-                    type="text"
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-border rounded-l focus:outline-none focus:border-blue-500 text-sm"
-                    placeholder="Mô tả giao dịch"
-                  />
-                  <button type="button" className="px-3 py-2 border border-l-0 border-border bg-muted rounded-r text-muted-foreground hover:bg-muted">
-                    <span className="text-xs">🗑</span>
-                  </button>
-                </div>
+        <form onSubmit={handleSubmit}>
+          <div className="px-6 py-4 space-y-4">
+            {/* Amount */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                Số tiền <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">
+                  {currencySymbol}
+                </span>
+                <input
+                  autoFocus
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-lg font-semibold"
+                  placeholder="0"
+                  step="1000"
+                  min="0"
+                  required
+                />
               </div>
-
-              {/* Source account */}
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Tài khoản nguồn</label>
-                <div className="flex">
-                  <select
-                    value={walletId}
-                    onChange={e => setWalletId(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-border rounded-l focus:outline-none focus:border-blue-500 text-sm bg-card"
-                  >
-                    <option value="">Chọn tài khoản nguồn</option>
-                    {assetAccounts.map(a => <option key={a.accountId} value={a.accountId}>{walletLabel(a)}</option>)}
-                  </select>
-                  <button type="button" className="px-3 py-2 border border-l-0 border-border bg-muted rounded-r text-muted-foreground hover:bg-muted">
-                    <span className="text-xs">🗑</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Destination account */}
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Tài khoản đích</label>
-                <div className="flex">
-                  <select
-                    value={toWalletId}
-                    onChange={e => {
-                      setToWalletId(e.target.value);
-                      if (e.target.value) setTxType("transfer");
-                    }}
-                    className="flex-1 px-3 py-2 border border-border rounded-l focus:outline-none focus:border-blue-500 text-sm bg-card"
-                  >
-                    <option value="">Chọn tài khoản đích</option>
-                    {assetAccounts.filter(a => String(a.accountId) !== walletId).map(a => <option key={a.accountId} value={a.accountId}>{walletLabel(a)}</option>)}
-                  </select>
-                  <button type="button" className="px-3 py-2 border border-l-0 border-border bg-muted rounded-r text-muted-foreground hover:bg-muted">
-                    <span className="text-xs">🗑</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Date */}
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Ngày</label>
-                <div className="flex">
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={e => setDate(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-border rounded-l focus:outline-none focus:border-blue-500 text-sm"
-                  />
-                  <button type="button" className="px-3 py-2 border border-l-0 border-border bg-muted rounded-r text-muted-foreground hover:bg-muted">
-                    <span className="text-xs">🗑</span>
-                  </button>
-                </div>
-              </div>
-
             </div>
 
-            {/* Right Column */}
-            <div className="space-y-6">
-              
-              {/* Amount */}
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Số tiền</label>
-                <div className="flex">
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={e => setAmount(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-border rounded-l focus:outline-none focus:border-blue-500 text-sm"
-                    placeholder="Số tiền"
-                    step="1"
-                    min="0"
-                    required
-                  />
-                  <button type="button" className="px-3 py-2 border border-l-0 border-border bg-muted rounded-r text-muted-foreground hover:bg-muted">
-                    <span className="text-xs">🗑</span>
-                  </button>
-                </div>
-              </div>
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                Mô tả
+              </label>
+              <input
+                type="text"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder={
+                  txType === "expense"
+                    ? "VD: Mua đồ ăn tối, cà phê sáng..."
+                    : txType === "income"
+                      ? "VD: Lương tháng 5, tiền thưởng..."
+                      : "VD: Chuyển sang ví tiết kiệm..."
+                }
+              />
+            </div>
 
-              {/* Foreign amount */}
-              <div className="flex gap-2">
-                <div className="w-1/4 pt-5">
-                   <select className="w-full px-2 py-2 border border-border rounded focus:outline-none focus:border-blue-500 text-sm bg-card">
-                     <option value=""></option>
-                     <option value="USD">USD</option>
-                     <option value="EUR">EUR</option>
-                   </select>
+            {/* ── EXPENSE ── */}
+            {txType === "expense" && (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                    Thanh toán từ ví <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={walletId}
+                    onChange={(e) => setWalletId(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                    required>
+                    <option value="">Chọn ví thanh toán</option>
+                    {assetAccounts.map((a) => (
+                      <option key={a.accountId} value={a.accountId}>
+                        {walletLabel(a)}
+                      </option>
+                    ))}
+                  </select>
+                  {assetAccounts.length === 0 && (
+                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                      <AlertCircle size={12} /> Chưa có ví. Hãy tạo ví trước.
+                    </p>
+                  )}
                 </div>
-                <div className="flex-1">
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Ngoại tệ</label>
-                  <div className="flex">
-                    <input
-                      type="number"
-                      value={foreignAmount}
-                      onChange={e => setForeignAmount(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-border rounded-l focus:outline-none focus:border-blue-500 text-sm"
-                      placeholder="Số ngoại tệ"
-                    />
-                    <button type="button" className="px-3 py-2 border border-l-0 border-border bg-muted rounded-r text-muted-foreground hover:bg-muted">
-                      <span className="text-xs">🗑</span>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                    Danh mục chi tiêu <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {expenseCategories.map((cat) => (
+                      <button
+                        key={cat.accountId}
+                        type="button"
+                        onClick={() => {
+                          setExpenseCategory({
+                            accountId: cat.accountId,
+                            name: cat.name,
+                          });
+                          setShowCustomCategory(false);
+                        }}
+                        className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
+                          expenseCategory.accountId === cat.accountId &&
+                          expenseCategory.accountId !== 0
+                            ? "border-red-400 bg-red-50 text-red-700"
+                            : "border-slate-200 hover:border-slate-300 text-slate-700"
+                        }`}>
+                        {cat.name}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExpenseCategory({ accountId: 0, name: "" });
+                        setShowCustomCategory(true);
+                      }}
+                      className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
+                        showCustomCategory
+                          ? "border-red-400 bg-red-50 text-red-700"
+                          : "border-slate-200 hover:border-slate-300 text-slate-700"
+                      }`}>
+                      + Danh mục mới
                     </button>
                   </div>
                 </div>
-              </div>
+              </>
+            )}
 
-              {/* Budget */}
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Ngân sách</label>
-                <select
-                  value={budget}
-                  onChange={e => setBudget(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded focus:outline-none focus:border-blue-500 text-sm bg-card"
-                >
-                  <option value="">(không)</option>
-                  <option value="1">Ngân sách gia đình</option>
-                </select>
-              </div>
-
-              {/* Category */}
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Danh mục</label>
-                <div className="flex">
+            {/* ── INCOME ── */}
+            {txType === "income" && (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                    Nhận vào ví <span className="text-red-500">*</span>
+                  </label>
                   <select
-                    value={expenseCategory || incomeCategory}
-                    onChange={e => {
-                      setExpenseCategory(e.target.value);
-                      setIncomeCategory(e.target.value);
-                    }}
-                    className="flex-1 px-3 py-2 border border-border rounded-l focus:outline-none focus:border-blue-500 text-sm bg-card"
-                  >
-                    <option value="">Chọn danh mục</option>
-                    {txType === 'expense' 
-                      ? expenseCategories.map(c => <option key={c.id} value={c.label}>{c.label}</option>)
-                      : incomeSources.map(c => <option key={c.id} value={c.label}>{c.label}</option>)
-                    }
+                    value={walletId}
+                    onChange={(e) => setWalletId(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                    required>
+                    <option value="">Chọn ví nhận</option>
+                    {assetAccounts.map((a) => (
+                      <option key={a.accountId} value={a.accountId}>
+                        {walletLabel(a)}
+                      </option>
+                    ))}
                   </select>
-                  <button type="button" className="px-3 py-2 border border-l-0 border-border bg-muted rounded-r text-muted-foreground hover:bg-muted">
-                    <span className="text-xs">🗑</span>
-                  </button>
+                  {assetAccounts.length === 0 && (
+                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                      <AlertCircle size={12} /> Chưa có ví. Hãy tạo ví trước.
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                    Nguồn thu nhập <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {incomeSources.map((src) => (
+                      <button
+                        key={src.accountId}
+                        type="button"
+                        onClick={() => {
+                          setIncomeCategory({
+                            accountId: src.accountId,
+                            name: src.name,
+                          });
+                          setShowCustomCategory(false);
+                        }}
+                        className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
+                          incomeCategory.accountId === src.accountId &&
+                          incomeCategory.accountId !== 0
+                            ? "border-green-400 bg-green-50 text-green-700"
+                            : "border-slate-200 hover:border-slate-300 text-slate-700"
+                        }`}>
+                        {src.name}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIncomeCategory({ accountId: 0, name: "" });
+                        setShowCustomCategory(true);
+                      }}
+                      className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
+                        showCustomCategory
+                          ? "border-green-400 bg-green-50 text-green-700"
+                          : "border-slate-200 hover:border-slate-300 text-slate-700"
+                      }`}>
+                      + Nguồn thu mới
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ── CUSTOM CATEGORY ── */}
+            {showCustomCategory && (
+              <input
+                type="text"
+                placeholder="Nhập tên mục mới"
+                value={
+                  txType === "expense"
+                    ? expenseCategory.name
+                    : incomeCategory.name
+                }
+                onChange={(e) => {
+                  if (txType === "expense") {
+                    setExpenseCategory({
+                      accountId: 0,
+                      name: e.target.value,
+                    });
+                  }
+                  if (txType === "income") {
+                    setIncomeCategory({
+                      accountId: 0,
+                      name: e.target.value,
+                    });
+                  }
+                }}
+                className="w-full mt-2 px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+              />
+            )}
+
+            {/* ── TRANSFER ── */}
+            {txType === "transfer" && (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                    Từ ví <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={walletId}
+                    onChange={(e) => setWalletId(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                    required>
+                    <option value="">Chọn ví nguồn</option>
+                    {assetAccounts.map((a) => (
+                      <option key={a.accountId} value={a.accountId}>
+                        {walletLabel(a)}
+                      </option>
+                    ))}
+                  </select>
+                  {assetAccounts.length === 0 && (
+                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                      <AlertCircle size={12} /> Chưa có ví. Hãy tạo ví trước.
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                    Sang ví <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={toWalletId}
+                    onChange={(e) => setToWalletId(e.target.value)}
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm ${
+                      sameWalletError
+                        ? "border-red-400 bg-red-50"
+                        : "border-slate-200"
+                    }`}
+                    required>
+                    <option value="">Chọn ví đích</option>
+                    {assetAccounts
+                      .filter((a) => String(a.accountId) !== walletId)
+                      .map((a) => (
+                        <option key={a.accountId} value={a.accountId}>
+                          {walletLabel(a)}
+                        </option>
+                      ))}
+                  </select>
+                  {assetAccounts.length === 0 && (
+                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                      <AlertCircle size={12} /> Chưa có ví. Hãy tạo ví trước.
+                    </p>
+                  )}
+                  {assetAccounts.length === 1 && (
+                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                      <AlertCircle size={12} /> Chỉ có 1 ví. Hãy tạo thêm ví
+                      trước.
+                    </p>
+                  )}
+                  {sameWalletError && (
+                    <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                      <AlertCircle size={12} /> Ví nguồn và ví đích phải khác
+                      nhau.
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Date */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                Ngày giao dịch
+              </label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+              />
+            </div>
+
+            {/* Tags */}
+            {tags && tags.length > 0 && (
+              <div>
+                <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-2">
+                  <Tag size={14} className="text-slate-400" /> Nhãn
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {tags.map((tag) => {
+                    const active = selectedTags.includes(tag.name);
+                    const colorCls = TAG_COLORS[tag.color] || TAG_COLORS.slate;
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => toggleTag(tag.name)}
+                        className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${
+                          active
+                            ? colorCls
+                            : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                        }`}>
+                        {tag.name}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
+            )}
 
-              {/* Piggy bank */}
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Lợn tiết kiệm</label>
-                <select
-                  value={piggyBank}
-                  onChange={e => setPiggyBank(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded focus:outline-none focus:border-blue-500 text-sm bg-card"
-                >
-                  <option value="">(không chọn)</option>
-                  <option value="1">Tiết kiệm mua xe</option>
-                </select>
-              </div>
-
-              {/* Tags */}
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Nhãn</label>
-                <div className="flex">
-                  <input
-                    type="text"
-                    value={tagsText}
-                    onChange={e => setTagsText(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-border rounded-l focus:outline-none focus:border-blue-500 text-sm"
-                    placeholder="Nhãn (phân cách bằng dấu phẩy)"
-                  />
-                  <button type="button" className="px-3 py-2 border border-l-0 border-border bg-muted rounded-r text-muted-foreground hover:bg-muted">
-                    <span className="text-xs">🗑</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Subscription */}
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Định kỳ</label>
-                <select
-                  value={subscription}
-                  onChange={e => setSubscription(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded focus:outline-none focus:border-blue-500 text-sm bg-card"
-                >
-                  <option value="">(không)</option>
-                  <option value="1">Tiền điện hàng tháng</option>
-                </select>
-                <p className="text-xs text-muted-foreground mt-1">Bạn có thể bật thêm tùy chọn giao dịch trong <a href="#" className="text-blue-500">cài đặt</a>.</p>
-              </div>
-
-              {/* Interest date */}
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Ngày tính lãi</label>
-                <div className="flex">
-                  <input
-                    type="date"
-                    value={interestDate}
-                    onChange={e => setInterestDate(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-border rounded-l focus:outline-none focus:border-blue-500 text-sm"
-                  />
-                  <button type="button" className="px-3 py-2 border border-l-0 border-border bg-muted rounded-r text-muted-foreground hover:bg-muted">
-                    <span className="text-xs">🗑</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Attachments */}
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Tệp đính kèm</label>
-                <div className="flex">
-                  <input
-                    type="file"
-                    className="flex-1 px-2 py-1.5 border border-border rounded-l focus:outline-none focus:border-blue-500 text-sm bg-card"
-                  />
-                  <button type="button" className="px-3 py-2 border border-l-0 border-border bg-muted rounded-r text-muted-foreground hover:bg-muted">
-                    <span className="text-xs">🗑</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Ghi chú</label>
-                <textarea
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                  rows={4}
-                  className="w-full px-3 py-2 border border-border rounded focus:outline-none focus:border-blue-500 text-sm resize-none"
-                  placeholder="Ghi chú thêm..."
-                />
-              </div>
-
+            {/* Notes */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                Ghi chú
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm resize-none"
+                placeholder="Thêm ghi chú chi tiết..."
+              />
             </div>
           </div>
-          
-          {/* Footer Actions */}
-          <div className="mt-auto p-4 border-t border-border flex justify-between items-center bg-muted">
-            <button
-              type="button"
-              onClick={() => setCreateAnother(true)}
-              className="px-4 py-2 border border-border bg-card text-foreground rounded shadow-sm hover:bg-muted text-sm font-medium"
-            >
-              Thêm tiếp
-            </button>
-            <div className="flex gap-2">
+
+          {/* Footer */}
+          <div className="px-6 pb-4 border-t border-slate-200 pt-4 space-y-3">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={createAnother}
+                onChange={(e) => setCreateAnother(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 accent-purple-600"
+              />
+              <span className="text-sm text-slate-600">
+                Thêm giao dịch tiếp theo
+              </span>
+            </label>
+
+            <div className="flex gap-3">
               <button
                 type="button"
-                onClick={onClose}
-                className="px-4 py-2 bg-muted text-foreground rounded hover:bg-muted text-sm font-medium"
-              >
+                onClick={() => {
+                  reset();
+                  onClose();
+                }}
+                className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-semibold text-sm">
                 Hủy
               </button>
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium disabled:opacity-50"
-              >
-                Lưu
+                className={`flex-1 px-4 py-2.5 text-white rounded-lg transition-colors font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed ${SUBMIT_CLS[txType]}`}>
+                {SUBMIT_LABEL[txType]}
               </button>
             </div>
           </div>
-
         </form>
       </div>
     </div>

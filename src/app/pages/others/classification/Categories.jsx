@@ -1,61 +1,125 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
-  Coffee, ShoppingBag, Car, Heart, Zap, Home, Smartphone, GraduationCap,
-  Plane, TrendingUp, Target, Wallet, Pizza, Gift, Music, Dumbbell,
-  Briefcase, Star, Tag, DollarSign,
-  Plus, Pencil, Trash2, X, Check, LayoutList, BadgeDollarSign,
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { useCategories } from '../../../context/CategoriesContext';
+  Coffee,
+  ShoppingBag,
+  Car,
+  Heart,
+  Zap,
+  Home,
+  Smartphone,
+  GraduationCap,
+  Plane,
+  TrendingUp,
+  Target,
+  Wallet,
+  Pizza,
+  Gift,
+  Music,
+  Dumbbell,
+  Briefcase,
+  Star,
+  Tag,
+  DollarSign,
+  Plus,
+  Pencil,
+  Trash2,
+  LayoutList,
+  BadgeDollarSign,
+  BriefcaseBusiness,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useCategories } from "../../../context/CategoriesContext";
 
 // ── Icon & Color config ────────────────────────────────────────────────────────
 
 const ICON_MAP = {
-  Coffee, ShoppingBag, Car, Heart, Zap, Home, Smartphone, GraduationCap,
-  Plane, TrendingUp, Target, Wallet, Pizza, Gift, Music, Dumbbell,
-  Briefcase, Star, Tag, DollarSign,
+  Coffee,
+  ShoppingBag,
+  Car,
+  Heart,
+  Zap,
+  Home,
+  Smartphone,
+  GraduationCap,
+  Plane,
+  TrendingUp,
+  Target,
+  Wallet,
+  Pizza,
+  Gift,
+  Music,
+  Dumbbell,
+  Briefcase,
+  Star,
+  Tag,
+  DollarSign,
+  BriefcaseBusiness,
 };
 
 const COLOR_MAP = {
-  orange: { bg: 'bg-orange-100', text: 'text-orange-600', swatch: 'bg-orange-500' },
-  pink:   { bg: 'bg-pink-100',   text: 'text-pink-600',   swatch: 'bg-pink-500'   },
-  blue:   { bg: 'bg-blue-100',   text: 'text-blue-600',   swatch: 'bg-blue-500'   },
-  purple: { bg: 'bg-purple-100', text: 'text-purple-600', swatch: 'bg-purple-500' },
-  yellow: { bg: 'bg-yellow-100', text: 'text-yellow-600', swatch: 'bg-yellow-500' },
-  green:  { bg: 'bg-green-100',  text: 'text-green-600',  swatch: 'bg-green-500'  },
-  red:    { bg: 'bg-red-100',    text: 'text-red-600',    swatch: 'bg-red-500'    },
-  slate:  { bg: 'bg-muted',  text: 'text-muted-foreground',  swatch: 'bg-muted0'  },
-  indigo: { bg: 'bg-indigo-100', text: 'text-indigo-600', swatch: 'bg-indigo-500' },
-  emerald:{ bg: 'bg-emerald-100',text: 'text-emerald-600',swatch: 'bg-emerald-500'},
+  orange: {
+    bg: "bg-orange-100",
+    text: "text-orange-600",
+    swatch: "bg-orange-500",
+  },
+  pink: { bg: "bg-pink-100", text: "text-pink-600", swatch: "bg-pink-500" },
+  blue: { bg: "bg-blue-100", text: "text-blue-600", swatch: "bg-blue-500" },
+  purple: {
+    bg: "bg-purple-100",
+    text: "text-purple-600",
+    swatch: "bg-purple-500",
+  },
+  yellow: {
+    bg: "bg-yellow-100",
+    text: "text-yellow-600",
+    swatch: "bg-yellow-500",
+  },
+  green: { bg: "bg-green-100", text: "text-green-600", swatch: "bg-green-500" },
+  red: { bg: "bg-red-100", text: "text-red-600", swatch: "bg-red-500" },
+  slate: { bg: "bg-slate-100", text: "text-slate-600", swatch: "bg-slate-500" },
+  indigo: {
+    bg: "bg-indigo-100",
+    text: "text-indigo-600",
+    swatch: "bg-indigo-500",
+  },
+  emerald: {
+    bg: "bg-emerald-100",
+    text: "text-emerald-600",
+    swatch: "bg-emerald-500",
+  },
 };
 
 // ── Expense Category Form ──────────────────────────────────────────────────────
 
 function ExpenseCategoryForm({ initial, onSave, onCancel }) {
-  const [label,    setLabel]    = useState(initial?.label    || '');
-  const [iconName, setIconName] = useState(initial?.iconName || 'Coffee');
-  const [color,    setColor]    = useState(initial?.color    || 'orange');
+  const [name, setName] = useState(initial?.name || "");
+  const [iconName, setIconName] = useState(initial?.iconName || "Coffee");
+  const [color, setColor] = useState(initial?.color || "orange");
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!label.trim()) return;
-    onSave({ label: label.trim(), iconName, color });
+    if (!name.trim()) return;
+    onSave({ name: name.trim(), iconName, color });
   };
 
   const IconPreview = ICON_MAP[iconName] || Coffee;
   const { bg, text } = COLOR_MAP[color] || COLOR_MAP.orange;
 
   return (
-    <form onSubmit={handleSubmit} className="bg-muted rounded-xl p-4 space-y-3 border border-border">
+    <form
+      onSubmit={handleSubmit}
+      className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-200">
       {/* Label */}
       <div>
-        <label className="block text-xs font-semibold text-muted-foreground mb-1">Tên danh mục</label>
+        <label className="block text-xs font-semibold text-slate-600 mb-1">
+          Tên danh mục
+        </label>
         <input
           autoFocus
           type="text"
-          value={label}
-          onChange={e => setLabel(e.target.value)}
-          className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+          value={name}
+          onChange={(e) => setLabel(e.target.value)}
+          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           placeholder="Ví dụ: Ăn uống"
           required
         />
@@ -63,7 +127,9 @@ function ExpenseCategoryForm({ initial, onSave, onCancel }) {
 
       {/* Icon picker */}
       <div>
-        <label className="block text-xs font-semibold text-muted-foreground mb-1">Biểu tượng</label>
+        <label className="block text-xs font-semibold text-slate-600 mb-1">
+          Biểu tượng
+        </label>
         <div className="flex flex-wrap gap-1.5">
           {Object.entries(ICON_MAP).map(([name, Icon]) => (
             <button
@@ -72,10 +138,9 @@ function ExpenseCategoryForm({ initial, onSave, onCancel }) {
               onClick={() => setIconName(name)}
               className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
                 iconName === name
-                  ? 'bg-purple-600 text-white ring-2 ring-purple-400'
-                  : 'bg-white border border-border text-muted-foreground hover:border-purple-400'
-              }`}
-            >
+                  ? "bg-purple-600 text-white ring-2 ring-purple-400"
+                  : "bg-white border border-slate-200 text-slate-500 hover:border-purple-300"
+              }`}>
               <Icon size={14} />
             </button>
           ))}
@@ -84,7 +149,9 @@ function ExpenseCategoryForm({ initial, onSave, onCancel }) {
 
       {/* Color picker */}
       <div>
-        <label className="block text-xs font-semibold text-muted-foreground mb-1">Màu sắc</label>
+        <label className="block text-xs font-semibold text-slate-600 mb-1">
+          Màu sắc
+        </label>
         <div className="flex flex-wrap gap-1.5">
           {Object.entries(COLOR_MAP).map(([name, { swatch }]) => (
             <button
@@ -92,7 +159,9 @@ function ExpenseCategoryForm({ initial, onSave, onCancel }) {
               type="button"
               onClick={() => setColor(name)}
               className={`w-7 h-7 rounded-full ${swatch} transition-all ${
-                color === name ? 'ring-2 ring-offset-2 ring-slate-500 scale-110' : 'hover:scale-105'
+                color === name
+                  ? "ring-2 ring-offset-2 ring-slate-500 scale-110"
+                  : "hover:scale-105"
               }`}
             />
           ))}
@@ -101,10 +170,11 @@ function ExpenseCategoryForm({ initial, onSave, onCancel }) {
 
       {/* Preview */}
       <div className="flex items-center gap-2 pt-1">
-        <span className="text-xs text-muted-foreground">Xem trước:</span>
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${bg} ${text}`}>
+        <span className="text-xs text-slate-500">Xem trước:</span>
+        <span
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${bg} ${text}`}>
           <IconPreview size={12} />
-          {label || 'Tên danh mục'}
+          {name || "Tên danh mục"}
         </span>
       </div>
 
@@ -112,15 +182,13 @@ function ExpenseCategoryForm({ initial, onSave, onCancel }) {
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 py-2 border border-border text-muted-foreground rounded-lg text-sm hover:bg-muted transition-colors"
-        >
+          className="flex-1 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm hover:bg-slate-100 transition-colors">
           Hủy
         </button>
         <button
           type="submit"
-          className="flex-1 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors font-semibold"
-        >
-          {initial ? 'Lưu' : 'Thêm'}
+          className="flex-1 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors font-semibold">
+          {initial ? "Lưu" : "Thêm"}
         </button>
       </div>
     </form>
@@ -130,41 +198,101 @@ function ExpenseCategoryForm({ initial, onSave, onCancel }) {
 // ── Income Source Form ─────────────────────────────────────────────────────────
 
 function IncomeSourceForm({ initial, onSave, onCancel }) {
-  const [label, setLabel] = useState(initial?.label || '');
+  const [name, setName] = useState(initial?.name || "");
+  const [iconName, setIconName] = useState(initial?.iconName || "TrendingUp");
+  const [color, setColor] = useState(initial?.color || "green");
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!label.trim()) return;
-    onSave({ label: label.trim() });
+    if (!name.trim()) return;
+    onSave({ name: name.trim(), iconName, color });
   };
 
+  const IconPreview = ICON_MAP[iconName] || Coffee;
+  const { bg, text } = COLOR_MAP[color] || COLOR_MAP.orange;
+
   return (
-    <form onSubmit={handleSubmit} className="bg-muted rounded-xl p-4 space-y-3 border border-border">
+    <form
+      onSubmit={handleSubmit}
+      className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-200">
       <div>
-        <label className="block text-xs font-semibold text-muted-foreground mb-1">Tên nguồn thu</label>
+        <label className="block text-xs font-semibold text-slate-600 mb-1">
+          Tên nguồn thu
+        </label>
         <input
           autoFocus
           type="text"
-          value={label}
-          onChange={e => setLabel(e.target.value)}
-          className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-          placeholder="Ví dụ: Lương, Freelance..."
+          value={name}
+          onChange={(e) => setLabel(e.target.value)}
+          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+          placeholder="Ví dụ: Lương, Thưởng..."
           required
         />
+      </div>
+
+      {/* Icon picker */}
+      <div>
+        <label className="block text-xs font-semibold text-slate-600 mb-1">
+          Biểu tượng
+        </label>
+        <div className="flex flex-wrap gap-1.5">
+          {Object.entries(ICON_MAP).map(([name, Icon]) => (
+            <button
+              key={name}
+              type="button"
+              onClick={() => setIconName(name)}
+              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+                iconName === name
+                  ? "bg-purple-600 text-white ring-2 ring-purple-400"
+                  : "bg-white border border-slate-200 text-slate-500 hover:border-purple-300"
+              }`}>
+              <Icon size={14} />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Color picker */}
+      <div>
+        <label className="block text-xs font-semibold text-slate-600 mb-1">
+          Màu sắc
+        </label>
+        <div className="flex flex-wrap gap-1.5">
+          {Object.entries(COLOR_MAP).map(([name, { swatch }]) => (
+            <button
+              key={name}
+              type="button"
+              onClick={() => setColor(name)}
+              className={`w-7 h-7 rounded-full ${swatch} transition-all ${
+                color === name
+                  ? "ring-2 ring-offset-2 ring-slate-500 scale-110"
+                  : "hover:scale-105"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Preview */}
+      <div className="flex items-center gap-2 pt-1">
+        <span className="text-xs text-slate-500">Xem trước:</span>
+        <span
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${bg} ${text}`}>
+          <IconPreview size={12} />
+          {name || "Tên danh mục"}
+        </span>
       </div>
       <div className="flex gap-2">
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 py-2 border border-border text-muted-foreground rounded-lg text-sm hover:bg-muted transition-colors"
-        >
+          className="flex-1 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm hover:bg-slate-100 transition-colors">
           Hủy
         </button>
         <button
           type="submit"
-          className="flex-1 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors font-semibold"
-        >
-          {initial ? 'Lưu' : 'Thêm'}
+          className="flex-1 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors font-semibold">
+          {initial ? "Lưu" : "Thêm"}
         </button>
       </div>
     </form>
@@ -173,63 +301,66 @@ function IncomeSourceForm({ initial, onSave, onCancel }) {
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
 
-import { PageLayout } from '../../../components/layout/PageLayout';
+import { PageLayout } from "../../../components/layout/PageLayout";
 
 export function Categories() {
   const {
-    expenseCategories, addExpenseCategory, updateExpenseCategory, deleteExpenseCategory,
-    incomeSources,     addIncomeSource,    updateIncomeSource,    deleteIncomeSource,
+    expenseCategories,
+    addExpenseCategory,
+    updateExpenseCategory,
+    deleteExpenseCategory,
+    incomeSources,
+    addIncomeSource,
+    updateIncomeSource,
+    deleteIncomeSource,
   } = useCategories();
 
   const [showAddExpense, setShowAddExpense] = useState(false);
-  const [editExpenseId,  setEditExpenseId]  = useState(null);
-  const [showAddIncome,  setShowAddIncome]  = useState(false);
-  const [editIncomeId,   setEditIncomeId]   = useState(null);
+  const [editExpenseId, setEditExpenseId] = useState(null);
+  const [showAddIncome, setShowAddIncome] = useState(false);
+  const [editIncomeId, setEditIncomeId] = useState(null);
 
   // ── Expense category handlers ──────────────────────────────────────────────
   const handleAddExpense = (data) => {
     addExpenseCategory(data);
     setShowAddExpense(false);
-    toast.success('Đã thêm danh mục');
+    toast.success("Đã thêm danh mục");
   };
 
   const handleUpdateExpense = (id, data) => {
     updateExpenseCategory(id, data);
     setEditExpenseId(null);
-    toast.success('Đã cập nhật danh mục');
+    toast.success("Đã cập nhật danh mục");
   };
 
-  const handleDeleteExpense = (id, label) => {
+  const handleDeleteExpense = (id, name) => {
     deleteExpenseCategory(id);
-    toast.success(`Đã xóa "${label}"`);
+    toast.success(`Đã xóa "${name}"`);
   };
 
   // ── Income source handlers ─────────────────────────────────────────────────
   const handleAddIncome = (data) => {
     addIncomeSource(data);
     setShowAddIncome(false);
-    toast.success('Đã thêm nguồn thu');
+    toast.success("Đã thêm nguồn thu");
   };
 
   const handleUpdateIncome = (id, data) => {
     updateIncomeSource(id, data);
     setEditIncomeId(null);
-    toast.success('Đã cập nhật nguồn thu');
+    toast.success("Đã cập nhật nguồn thu");
   };
 
-  const handleDeleteIncome = (id, label) => {
+  const handleDeleteIncome = (id, name) => {
     deleteIncomeSource(id);
-    toast.success(`Đã xóa "${label}"`);
+    toast.success(`Đã xóa "${name}"`);
   };
 
   return (
     <PageLayout
       title="Danh mục & Nguồn thu"
-      subtitle="Quản lý các danh mục chi tiêu và nguồn thu nhập của bạn"
-    >
-
+      subtitle="Quản lý các danh mục chi tiêu và nguồn thu nhập của bạn">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
         {/* ── Panel: Danh mục chi tiêu ─────────────────────────────────────── */}
         <div className="bg-card rounded-2xl border border-border overflow-hidden">
           <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border">
@@ -238,16 +369,22 @@ export function Categories() {
                 <LayoutList size={16} className="text-purple-600" />
               </div>
               <div>
-                <h2 className="font-semibold text-card-foreground">Danh mục chi tiêu</h2>
-                <p className="text-xs text-muted-foreground">{expenseCategories.length} danh mục</p>
+                <h2 className="font-semibold text-slate-900">
+                  Danh mục chi tiêu
+                </h2>
+                <p className="text-xs text-slate-400">
+                  {expenseCategories.length} danh mục
+                </p>
               </div>
             </div>
             {!showAddExpense && (
               <button
-                onClick={() => { setShowAddExpense(true); setEditExpenseId(null); }}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors font-medium whitespace-nowrap"
-              >
-                <Plus size={14} className="shrink-0" /> <span className="hidden sm:inline">Thêm mới</span><span className="sm:hidden">Mới</span>
+                onClick={() => {
+                  setShowAddExpense(true);
+                  setEditExpenseId(null);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors font-medium">
+                <Plus size={14} /> Thêm mới
               </button>
             )}
           </div>
@@ -269,9 +406,9 @@ export function Categories() {
               </div>
             )}
 
-            {expenseCategories.map(cat => {
-              const Icon  = ICON_MAP[cat.iconName] || Coffee;
-              const style = COLOR_MAP[cat.color]   || COLOR_MAP.slate;
+            {expenseCategories.map((cat) => {
+              const Icon = ICON_MAP[cat.iconName] || Coffee;
+              const style = COLOR_MAP[cat.color] || COLOR_MAP.slate;
 
               if (editExpenseId === cat.id) {
                 return (
@@ -286,24 +423,27 @@ export function Categories() {
 
               return (
                 <div
-                  key={cat.id}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted group transition-colors"
-                >
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${style.bg}`}>
+                  key={cat.accountId}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 group transition-colors">
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${style.bg}`}>
                     <Icon size={16} className={style.text} />
                   </div>
-                  <span className="flex-1 text-sm font-medium text-foreground">{cat.label}</span>
+                  <span className="flex-1 text-sm font-medium text-slate-800">
+                    {cat.name}
+                  </span>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
-                      onClick={() => { setEditExpenseId(cat.id); setShowAddExpense(false); }}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-purple-600 hover:bg-purple-50 transition-colors"
-                    >
+                      onClick={() => {
+                        setEditExpenseId(cat.accountId);
+                        setShowAddExpense(false);
+                      }}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors">
                       <Pencil size={13} />
                     </button>
                     <button
-                      onClick={() => handleDeleteExpense(cat.id, cat.label)}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
-                    >
+                      onClick={() => handleDeleteExpense(cat.id, cat.name)}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -321,16 +461,20 @@ export function Categories() {
                 <BadgeDollarSign size={16} className="text-green-600" />
               </div>
               <div>
-                <h2 className="font-semibold text-card-foreground">Nguồn thu nhập</h2>
-                <p className="text-xs text-muted-foreground">{incomeSources.length} nguồn</p>
+                <h2 className="font-semibold text-slate-900">Nguồn thu nhập</h2>
+                <p className="text-xs text-slate-400">
+                  {incomeSources.length} nguồn
+                </p>
               </div>
             </div>
             {!showAddIncome && (
               <button
-                onClick={() => { setShowAddIncome(true); setEditIncomeId(null); }}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors font-medium whitespace-nowrap"
-              >
-                <Plus size={14} className="shrink-0" /> <span className="hidden sm:inline">Thêm mới</span><span className="sm:hidden">Mới</span>
+                onClick={() => {
+                  setShowAddIncome(true);
+                  setEditIncomeId(null);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors font-medium">
+                <Plus size={14} /> Thêm mới
               </button>
             )}
           </div>
@@ -346,19 +490,24 @@ export function Categories() {
 
             {/* List */}
             {incomeSources.length === 0 && !showAddIncome && (
-              <div className="text-center py-10 text-muted-foreground">
-                <BadgeDollarSign size={36} className="mx-auto mb-2 opacity-30" />
+              <div className="text-center py-10 text-slate-400">
+                <BadgeDollarSign
+                  size={36}
+                  className="mx-auto mb-2 opacity-30"
+                />
                 <p className="text-sm">Chưa có nguồn thu nào</p>
               </div>
             )}
 
-            {incomeSources.map(src => {
+            {incomeSources.map((src) => {
+              const Icon = ICON_MAP[src.iconName] || DollarSign;
+              const style = COLOR_MAP[src.color] || COLOR_MAP.emerald;
               if (editIncomeId === src.id) {
                 return (
                   <IncomeSourceForm
-                    key={src.id}
+                    key={src.accountId}
                     initial={src}
-                    onSave={(data) => handleUpdateIncome(src.id, data)}
+                    onSave={(data) => handleUpdateIncome(src.accounId, data)}
                     onCancel={() => setEditIncomeId(null)}
                   />
                 );
@@ -366,24 +515,28 @@ export function Categories() {
 
               return (
                 <div
-                  key={src.id}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted group transition-colors"
-                >
+                  key={src.accountId}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 group transition-colors">
                   <div className="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
-                    <DollarSign size={16} className="text-green-600" />
+                    <Icon size={16} className={style.text} />
                   </div>
-                  <span className="flex-1 text-sm font-medium text-foreground">{src.label}</span>
+                  <span className="flex-1 text-sm font-medium text-slate-800">
+                    {src.name}
+                  </span>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
-                      onClick={() => { setEditIncomeId(src.id); setShowAddIncome(false); }}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-green-600 hover:bg-green-50 transition-colors"
-                    >
+                      onClick={() => {
+                        setEditIncomeId(src.accountId);
+                        setShowAddIncome(false);
+                      }}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-green-600 hover:bg-green-50 transition-colors">
                       <Pencil size={13} />
                     </button>
                     <button
-                      onClick={() => handleDeleteIncome(src.id, src.label)}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
-                    >
+                      onClick={() =>
+                        handleDeleteIncome(src.accountId, src.name)
+                      }
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -392,7 +545,6 @@ export function Categories() {
             })}
           </div>
         </div>
-
       </div>
     </PageLayout>
   );
