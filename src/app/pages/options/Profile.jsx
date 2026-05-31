@@ -214,9 +214,7 @@ export function Profile() {
           transactionApi.getCashFlow(),
         ]);
         setProfile({
-          userName: prof.userName || prof.account || "",
           fullName: prof.fullName || prof.userName || "",
-          email: prof.email || "",
           email: prof.email || "",
         });
         setTransactions(
@@ -226,7 +224,6 @@ export function Profile() {
           (transData.items || transData || []).map(mapTransaction),
         );
         setCashFlow({
-          totalIncome: summary.totalIncome || 0,
           totalIncome: summary.totalIncome || 0,
           totalExpense: summary.totalExpense || 0,
         });
@@ -800,9 +797,6 @@ export function Profile() {
                         <input
                           type={showPw[key] ? "text" : "password"}
                           value={pwForm[key]}
-                          onChange={(e) =>
-                            setPwForm((p) => ({ ...p, [key]: e.target.value }))
-                          }
                           onChange={(e) =>
                             setPwForm((p) => ({ ...p, [key]: e.target.value }))
                           }

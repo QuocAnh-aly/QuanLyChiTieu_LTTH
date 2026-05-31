@@ -1,3 +1,4 @@
+using BudgetManagement.Dto;
 using BudgetManagement.Entities;
 using BudgetManagement.Repository.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +16,29 @@ public class RecurringRepository : BaseRepository<RecurringJournal>, IRecurringR
             .Include(r => r.CreditAccount)
             .OrderBy(r => r.NextRunDate)
             .ToListAsync();
+
+    public async Task<PaginatedResult<RecurringJournal>> GetByUserIdPagedAsync(int userId, int page, int pageSize)
+    {
+        var query = _dbSet
+            .Where(r => r.UserId == userId && r.IsActive == true)
+            .Include(r => r.DebitAccount)
+            .Include(r => r.CreditAccount)
+            .OrderBy(r => r.NextRunDate);
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return new PaginatedResult<RecurringJournal>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
 
     public async Task<IEnumerable<RecurringJournal>> GetDueAsync(DateTime asOf)
         => await _dbSet

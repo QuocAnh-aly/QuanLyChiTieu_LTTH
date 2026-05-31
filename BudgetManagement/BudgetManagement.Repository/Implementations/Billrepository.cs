@@ -1,3 +1,4 @@
+using BudgetManagement.Dto;
 using BudgetManagement.Entities;
 using BudgetManagement.Repository.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +15,28 @@ public class BillRepository : BaseRepository<Bill>, IBillRepository
             .OrderBy(b => b.ObjectGroup ?? "zzz")
             .ThenBy(b => b.Name)
             .ToListAsync();
+
+    public async Task<PaginatedResult<Bill>> GetByUserIdPagedAsync(int userId, int page, int pageSize)
+    {
+        var query = _dbSet
+            .Where(b => b.UserId == userId)
+            .OrderBy(b => b.ObjectGroup ?? "zzz")
+            .ThenBy(b => b.Name);
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return new PaginatedResult<Bill>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
 
     public override async Task<Bill?> GetByIdAsync(int id)
         => await _dbSet.FirstOrDefaultAsync(b => b.BillId == id);

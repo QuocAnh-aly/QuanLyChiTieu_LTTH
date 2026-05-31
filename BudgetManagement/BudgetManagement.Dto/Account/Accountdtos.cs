@@ -13,6 +13,7 @@ public class CreateAccountDto
     public decimal? Balance        { get; set; }
     public string? CardNumber      { get; set; }        // "•••• 4892"
     public string  CurrencyCode   { get; set; } = "VND";
+    public int?    SourceAccountId { get; set; }      // Optional: tạo transaction từ source account
 }
 
 public class UpdateAccountDto

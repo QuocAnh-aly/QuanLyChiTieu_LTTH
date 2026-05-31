@@ -47,10 +47,17 @@ public class XxxService : IXxxService
 ### Repository Pattern
 - Use `BaseRepository<T>` for generic CRUD
 - Create specific repositories (e.g., `UserRepository`, `JournalRepository`) for complex queries
+- For paginated queries, return `PaginatedResult<T>` with `TotalCount` from `CountAsync()` + items from `.Skip().Take()`
 
 ### DTOs
 - Use `[JsonPropertyName]` for JSON serialization (snake_case in JSON)
 - Use data annotations: `[Required]`, `[StringLength]`, `[EmailAddress]`, `[RegularExpression]`
+
+### Pagination
+- Use `PaginatedResult<T>` DTO for all endpoints returning lists
+- Repository: build query with `.CountAsync()` for total, then `.Skip().Take()` for items
+- Service: wraps `PaginatedResult<Entity>` into `PaginatedResult<Dto>` using `.Select(MapToDto)`
+- Controller: accept `[FromQuery] int page = 1, [FromQuery] int pageSize = 50` with clamping (`pageSize > 100 → 50`, `page <= 0 → 1`)
 
 ---
 
@@ -166,7 +173,21 @@ try {
 - **Framework:** xUnit + Moq + FluentAssertions
 - **Naming:** `MethodName_Scenario_ExpectedBehavior`
 - **Repository mocking:** Use `Mock<IXxxRepository>` with `Setup()` and `Verify()`
-- Run: `cd BudgetManagement && dotnet test BudgetManagement.Tests/BudgetManagement.Tests.csproj`
+- **Controller testing:** Mock `HttpContext` with `ClaimsPrincipal` for `GetUserId()`; use `ControllerContext` on the controller instance
+
+```csharp
+// Controller test setup
+var claims = new[] { new Claim(ClaimTypes.NameIdentifier, userId.ToString()) };
+var identity = new ClaimsIdentity(claims, "TestAuth");
+var principal = new ClaimsPrincipal(identity);
+_controller.ControllerContext = new ControllerContext
+{
+    HttpContext = new DefaultHttpContext { User = principal }
+};
+```
+
+- **Pagination test pattern:** Mock repository to return a `PaginatedResult<T>` with specific `Page`, `PageSize`, `TotalCount`, and verify `HasNextPage`/`HasPreviousPage`/`TotalPages` on the result
+- Run: `cd BudgetManagement && dotnet test BudgetManagement.Tests/BudgetManagement.Tests.csproj` (168 tests)
 
 ---
 

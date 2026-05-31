@@ -1,7 +1,7 @@
 # 📈 Improvement Log — Quản Lý Chi Tiêu
 
 > **Các cải thiện đã thực hiện**  
-> Last updated: May 29, 2026
+> Last updated: May 31, 2026
 
 ---
 
@@ -180,6 +180,157 @@ Các cải tiến:
 
 ---
 
+## 7. 🗂️ Pagination (Backend + Frontend)
+
+### Backend — PaginatedResult DTO
+
+Tạo `BudgetManagement.Dto/PaginatedResult.cs` — generic DTO cho tất cả endpoints phân trang:
+
+```csharp
+public class PaginatedResult<T>
+{
+    public List<T> Items { get; set; } = [];
+    public int TotalCount { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages => (int)Math.Ceiling((double)TotalCount / Math.Max(1, PageSize));
+    public bool HasPreviousPage => Page > 1;
+    public bool HasNextPage => Page < TotalPages;
+}
+```
+
+### Backend — Paged Methods
+
+Thêm paged methods ở 3 layers cho 4 entities:
+
+| Layer | Account | Budget | Bill | Recurring |
+|-------|---------|--------|------|-----------|
+| **Repository Interface** | `GetByUserIdPagedAsync` | `GetExpenseBudgetsPagedAsync` | `GetByUserIdPagedAsync` | `GetByUserIdPagedAsync` |
+| | `GetByUserAndTypePagedAsync` | `GetSavingsGoalsPagedAsync` | | |
+| **Repository Impl** | Skip/Take queries with TotalCount | Same pattern | Same pattern | Same pattern |
+| **Service Interface** | `GetAllPagedAsync`, `GetByTypePagedAsync` | `GetExpenseBudgetsPagedAsync` | `GetAllPagedAsync` | `GetByUserPagedAsync` |
+| **Service Impl** | Wraps repo result + maps to DTO | Same pattern | Same pattern (+ linked entries) | Same pattern |
+| **Controller** | `[FromQuery] int page=1, int pageSize=50` | Same pattern | Same pattern | Same pattern |
+
+Validation: `pageSize` clamped to 1–100, `page` defaults to 1.
+
+### Frontend — Pagination UI Component
+
+Tạo `PaginationBar.jsx` — component tái sử dụng dùng shadcn Pagination:
+
+| Tính năng | Mô tả |
+|-----------|-------|
+| Nút Prev/Next | Chuyển trang trước/sau, disabled ở biên |
+| Page numbers | Hiển thị đến 5 số trang với ellipsis |
+| Info text | Hiển thị "1–10 of 50" với `pageSize` prop (default 10) |
+
+### Frontend — Pages đã tích hợp
+
+| Page | Loại phân trang | Chi tiết |
+|------|----------------|----------|
+| **Budgets.jsx** | Server-side | Fetch với `{ page, pageSize }`, reset page về 1 khi search/filter/sort thay đổi |
+| **Subscriptions.jsx** | Server-side | Fetch với `{ page, pageSize }`, PaginationBar dưới danh sách nhóm |
+| **AssetAccounts.jsx** | Client-side (accounts) + Server-side (transactions) | Account list pageSize=6, transaction list pageSize=10, reset page khi search/sort |
+
+### Frontend — API changes
+
+| File | Thay đổi |
+|------|----------|
+| `accountApi.js` | Thêm `params` vào `getAll()`, `getByType()` |
+| `billApi.js` | Thêm `params` vào `getAll()` |
+| `budgetApi.js` | Đã hỗ trợ params từ trước |
+| `recurringApi.js` | Đã hỗ trợ params từ trước |
+
+---
+
+## 8. 🔗 Source Account Feature
+
+### Mô tả
+Cho phép người dùng **gán nợ vào tài khoản ngân hàng** (Liability → tạo transaction ghi nợ) và **tạo tài khoản asset từ nguồn tiền** (chuyển tiền từ tài khoản khác).
+
+### Backend
+
+#### DTO
+- `CreateAccountDto.SourceAccountId` (int?) — optional, chỉ dùng khi tạo mới
+
+#### Controller: `AccountController.Create`
+
+Khi `request.SourceAccountId != null`:
+1. Đọc `amount = Math.Abs(request.Balance ?? 0)`
+2. Set `request.Balance = 0` (tránh double-count)
+3. Gọi `_accountService.CreateAsync(...)` → balance=0
+4. Tạo transaction tương ứng:
+
+| Loại | Debit | Credit | Ý nghĩa |
+|------|-------|--------|---------|
+| Liability (typeId=2) | Source bank | New debt | Ghi nhận khoản nợ, bank tăng |
+| Asset (typeId≠2) | New asset | Source bank | Chuyển tiền từ nguồn vào tài sản mới |
+
+Nếu `request.Balance <= 0` (sau Abs) → `400 BadRequest`.
+
+### Frontend
+
+#### `AccountFormModal.jsx` (dùng trong Liabilities)
+- Fetch danh sách tài khoản Asset (typeId=1) khi modal mở
+- Hiển thị dropdown "Chọn tài khoản ngân hàng" với số dư từng tài khoản
+- Khi chọn source: giao diện đơn giản hóa, chỉ hiển thị 1 trường "Số tiền vay" kèm giải thích
+- Gửi `sourceAccountId` + `balance` (dương) lên API
+
+#### `AddWalletModal.jsx` (dùng trong AssetAccounts)
+- Fetch danh sách tài khoản Asset khi modal mở
+- Hiển thị dropdown "Từ tài khoản nguồn" khi nhập số dư > 0
+- Gửi `sourceAccountId` + `balance` lên API
+
+---
+
+## 9. 🧪 Testing Expansion
+
+### Tổng quan
+| Metric | Trước | Sau |
+|--------|-------|-----|
+| Tổng số tests | **72** | **168** |
+| Test files | 3 | 7 |
+
+### Files mới
+
+| File | Số tests | Mô tả |
+|------|----------|-------|
+| `PaginatedResultTests.cs` | 9 | TotalPages, HasPreviousPage, HasNextPage — edge cases (zero items, zero pageSize) |
+| `BudgetServiceTests.cs` | 11 | Pagination (first/middle/empty page), CRUD, savings goals |
+| `BillServiceTests.cs` | 10 | Pagination, CRUD, Rescan active/inactive |
+| `RecurringServiceTests.cs` | 11 | Pagination, CRUD, ProcessDueRecurringsAsync (success + failure + no due) |
+| `AccountControllerTests.cs` | 10 | Source account (Liability/Asset/zero balance), pagination params validation, page clamping |
+
+### Tests thêm vào file cũ
+
+| File | Thêm |
+|------|------|
+| `AccountServiceTests.cs` | +5 tests: `GetAllPagedAsync` (first/middle/last/empty), `GetByTypePagedAsync` |
+
+### Key scenarios covered
+
+**Pagination:**
+- ✅ First page returns correct items
+- ✅ Middle page has prev + next navigation
+- ✅ Last page has prev but no next
+- ✅ Empty page returns empty list
+- ✅ TotalPages calculation (exact division, rounding up, zero)
+- ✅ HasPreviousPage / HasNextPage boundary conditions
+
+**Source account:**
+- ✅ Liability: Debit=source bank, Credit=new debt
+- ✅ Asset: Debit=new asset, Credit=source bank
+- ✅ Negative balance → use absolute value
+- ✅ Zero balance → 400 BadRequest
+- ✅ No source → normal creation flow
+
+**Controller validation:**
+- ✅ pageSize > 100 clamped to 50
+- ✅ page = 0 defaults to 1
+- ✅ Default params (page=1, pageSize=50)
+
+---
+
 ## Tổng quan Feature Completion
 
 | Feature | Status | Ghi chú |
@@ -206,7 +357,10 @@ Các cải tiến:
 | Settings/Preferences | ✅ Complete | |
 | Notification center | ✅ Complete | In-app + sidebar bell |
 | Attachments | ✅ Scaffolded | Table + FK ready |
-| Unit tests (72 tests) | ✅ Complete | Password, Account, Currency |
+| **Pagination (backend DTO + paged methods)** | ✅ Complete | 4 controllers, services, repositories |
+| **Pagination UI (prev/next/page numbers)** | ✅ Complete | Budgets, Subscriptions, AssetAccounts |
+| **Source account (gán nợ/tạo tài sản)** | ✅ Complete | Controller + modals |
+| Unit tests (168 tests) | ✅ Complete | Password, Account, Currency, Budget, Bill, Recurring, Controller |
 | Documentation | ✅ Complete | AI_GUIDE, improvement, guidelines |
 | Log Service | ❌ Unused | Scaffolding only |
 | Mobile responsiveness | ⚠️ Partial | Basic responsive |

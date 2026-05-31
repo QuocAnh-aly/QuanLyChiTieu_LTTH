@@ -1,5 +1,6 @@
-import { X, Landmark, Users, PiggyBank, CreditCard, Wallet, DollarSign, Euro, JapaneseYen } from "lucide-react";
-import { useState } from "react";
+import { X, Landmark, Users, PiggyBank, CreditCard, Wallet, DollarSign, Euro, JapaneseYen, ArrowRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { accountApi } from "../../api/accountApi";
 
 const CURRENCIES = [
   { code: "VND", symbol: "₫", label: "Việt Nam Đồng", Icon: DollarSign },
@@ -68,27 +69,56 @@ export function AddWalletModal({ isOpen, onClose, onAdd }) {
   const [cardNumber,  setCardNumber]  = useState('');
   const [currency,    setCurrency]    = useState('VND');
   const [error,       setError]       = useState('');
+  const [sourceAccountId, setSourceAccountId] = useState('');
+  const [sourceAccounts, setSourceAccounts] = useState([]);
+  const [loadingSources, setLoadingSources] = useState(false);
+
+  // Fetch asset accounts for source selection
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchSources = async () => {
+      setLoadingSources(true);
+      try {
+        const data = await accountApi.getByType(1, { page: 1, pageSize: 100 });
+        setSourceAccounts(data.items || data || []);
+      } catch {
+        setSourceAccounts([]);
+      } finally {
+        setLoadingSources(false);
+      }
+    };
+    fetchSources();
+    // Reset form
+    setSourceAccountId('');
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const selected = ACCOUNT_TYPES.find(t => t.key === selectedKey);
   const showCard = selectedKey === 'credit';
+  const hasSource = sourceAccountId && parseFloat(balance) > 0;
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!selectedKey) { setError('Vui lòng chọn loại tài khoản'); return; }
     if (!name.trim()) { setError('Tên tài khoản không được để trống'); return; }
 
-    onAdd({
+    const data = {
       name:         name.trim(),
       iconName:     selected.iconName,
       color:        selected.color,
       gradientFrom: selected.from,
       gradientTo:   selected.to,
-      balance:      parseFloat(balance) || 0,
+      balance:      hasSource ? parseFloat(balance) : (parseFloat(balance) || 0),
       cardNumber:   showCard ? (cardNumber.trim() || null) : null,
       currencyCode: currency,
-    });
+    };
+
+    if (hasSource) {
+      data.sourceAccountId = parseInt(sourceAccountId);
+    }
+
+    onAdd(data);
 
     // Reset
     setSelectedKey('');
@@ -96,6 +126,7 @@ export function AddWalletModal({ isOpen, onClose, onAdd }) {
     setBalance('');
     setCardNumber('');
     setCurrency('VND');
+    setSourceAccountId('');
     setError('');
     onClose();
   };
@@ -182,13 +213,48 @@ export function AddWalletModal({ isOpen, onClose, onAdd }) {
               {error && name.trim() && <p className="text-red-500 text-xs mt-1">{error}</p>}
             </div>
 
+            {/* Source account selection (khi có số dư > 0) */}
+            {parseFloat(balance) > 0 && (
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
+                  Nguồn tiền <span className="text-muted-foreground font-normal">(tùy chọn)</span>
+                </label>
+                <select
+                  value={sourceAccountId}
+                  onChange={e => setSourceAccountId(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card"
+                >
+                  <option value="">Nhập số dư trực tiếp (không chọn nguồn)</option>
+                  {loadingSources ? (
+                    <option disabled>Đang tải...</option>
+                  ) : sourceAccounts.length === 0 ? (
+                    <option disabled>Không có tài khoản khác</option>
+                  ) : (
+                    sourceAccounts.map(acc => (
+                      <option key={acc.accountId} value={acc.accountId}>
+                        {acc.name} — {Intl.NumberFormat('vi-VN').format(acc.balance ?? 0)}đ
+                      </option>
+                    ))
+                  )}
+                </select>
+                {sourceAccountId && (
+                  <div className="flex items-center gap-2 mt-2 p-2 bg-blue-50 rounded-lg text-xs text-blue-700">
+                    <ArrowRight size={14} className="shrink-0" />
+                    <span>Số dư {Intl.NumberFormat('vi-VN').format(parseFloat(balance) || 0)}đ sẽ được chuyển từ tài khoản đã chọn</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Initial balance */}
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-1.5">Số dư ban đầu</label>
+              <label className="block text-sm font-semibold text-foreground mb-1.5">
+                {hasSource ? 'Số tiền chuyển' : 'Số dư ban đầu'}
+              </label>
               <input
                 type="number"
                 value={balance}
-                onChange={e => setBalance(e.target.value)}
+                onChange={e => { setBalance(e.target.value); setSourceAccountId(''); }}
                 placeholder="0"
                 min={0}
                 className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"

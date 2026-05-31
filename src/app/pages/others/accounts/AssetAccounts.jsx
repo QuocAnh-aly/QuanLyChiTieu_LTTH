@@ -92,6 +92,7 @@ function mapAccount(acc, index) {
     id: acc.accountId,
     name: acc.name,
     type: acc.typeName || "Tài sản",
+    typeId: acc.typeId,
     balance: acc.balance ?? 0,
     initialBalance: acc.initialBalance ?? 0,
     icon: iconMap[acc.iconName] || Landmark,
@@ -127,6 +128,7 @@ function CopyButton({ text }) {
   );
 }
 
+import PaginationBar from "../../../components/ui/navigation/PaginationBar";
 import { PageLayout } from "../../../components/layout/PageLayout";
 
 export function AssetAccounts() {
@@ -147,8 +149,14 @@ export function AssetAccounts() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("default"); // default | balance-desc | balance-asc | name
-  const [recentTxs, setRecentTxs] = useState([]);
-  const [txWalletFilter, setTxWalletFilter] = useState("all"); // "all" | accountId string
+    const [recentTxs, setRecentTxs] = useState([]);
+  const [txWalletFilter, setTxWalletFilter] = useState("all");
+  const [accountPage, setAccountPage] = useState(1);
+  const [accountPageSize] = useState(6);
+  const [txPage, setTxPage] = useState(1);
+  const [txPageSize] = useState(10);
+  const [txTotalCount, setTxTotalCount] = useState(0);
+  const [txTotalPages, setTxTotalPages] = useState(1); // "all" | accountId string
 
   const fetchWallets = useCallback(async (silent = false) => {
     try {
@@ -164,11 +172,6 @@ export function AssetAccounts() {
       const mapped = (data.accounts || []).map(mapAccount);
       setAccounts(mapped);
       setBalanceHistory(buildBalanceHistory(mapped));
-
-      // Fetch recent transactions
-      const txData = await transactionApi.getAll({ page: 1, pageSize: 20 });
-      const txItems = (txData.items || txData || []).map(mapTransaction);
-      setRecentTxs(txItems);
     } catch (error) {
       console.error("Lỗi khi tải dữ liệu ví:", error);
       toast.error("Không thể tải dữ liệu ví");
@@ -178,9 +181,25 @@ export function AssetAccounts() {
     }
   }, []);
 
+  const fetchTransactions = useCallback(async () => {
+    try {
+      const txData = await transactionApi.getAll({ page: txPage, pageSize: txPageSize });
+      const txItems = (txData.items || txData || []).map(mapTransaction);
+      setRecentTxs(txItems);
+      setTxTotalCount(txData.totalCount ?? txItems.length);
+      setTxTotalPages(txData.totalPages ?? 1);
+    } catch {
+      // silent
+    }
+  }, [txPage, txPageSize]);
+
   useEffect(() => {
     fetchWallets();
   }, [fetchWallets]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
 
   function buildBalanceHistory(accs) {
     const months = [
@@ -212,7 +231,7 @@ export function AssetAccounts() {
   const handleAddWallet = async (wallet) => {
     try {
       const grad = colorGradients[wallet.color] || colorGradients.blue;
-      await walletApi.create({
+      const payload = {
         typeId: 1,
         name: wallet.name,
         iconName: wallet.iconName,
@@ -222,7 +241,11 @@ export function AssetAccounts() {
         balance: wallet.balance,
         cardNumber: wallet.cardNumber || null,
         currencyCode: wallet.currencyCode || "VND",
-      });
+      };
+      if (wallet.sourceAccountId) {
+        payload.sourceAccountId = wallet.sourceAccountId;
+      }
+      await walletApi.create(payload);
       await fetchWallets();
       toast.success(`Đã thêm tài khoản "${wallet.name}"!`);
     } catch {
@@ -283,11 +306,21 @@ export function AssetAccounts() {
       return 0;
     });
 
+  // Client-side pagination for accounts
+  const accountTotalPages = Math.ceil(filteredAccounts.length / accountPageSize) || 1;
+  const displayAccounts = filteredAccounts.slice(
+    (accountPage - 1) * accountPageSize,
+    accountPage * accountPageSize,
+  );
+
+  // Reset to page 1 when search/sort changes
+  useEffect(() => { setAccountPage(1); }, [search, sortBy]);
+
   const totalAssets = summary.totalAssets + summary.totalSavings;
 
-  // Pie data: positive balances only
+  // Pie data: only Asset type (typeId=1), positive balances only
   const pieData = accounts
-    .filter((a) => a.balance > 0)
+    .filter((a) => a.typeId === 1 && a.balance > 0)
     .map((a) => ({ name: a.name, value: a.balance }));
 
   return (
@@ -491,7 +524,7 @@ export function AssetAccounts() {
 
       {/* Balance distribution bar */}
       {accounts.length > 1 && totalAssets > 0 && (
-        <div className="bg-card rounded-2xl p-6 border border-border mt-5mb-6">
+        <div className="bg-card rounded-2xl p-6 border border-border mt-6 mb-6">
           <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
             Phân bổ số dư
           </h2>
@@ -585,8 +618,9 @@ export function AssetAccounts() {
           )}
         </div>
       ) : (
+        <>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {filteredAccounts.map((account) => {
+          {displayAccounts.map((account) => {
             const Icon = account.icon;
             const isPositive = account.balance >= 0;
 
@@ -695,6 +729,19 @@ export function AssetAccounts() {
             );
           })}
         </div>
+
+        {/* Account pagination */}
+        {accountTotalPages > 1 && (
+          <div className="mb-8">
+            <PaginationBar
+              currentPage={accountPage}
+              totalPages={accountTotalPages}
+              totalCount={filteredAccounts.length}
+              onPageChange={(p) => { setAccountPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            />
+          </div>
+        )}
+        </>
       )}
 
       {/* Account details table */}
@@ -839,8 +886,7 @@ export function AssetAccounts() {
                     (d) => String(d.accountId) === txWalletFilter,
                   );
                 })
-                .slice(0, 10)
-                .map((t) => {
+              .map((t) => {
                   const iconBg = t.isTransfer
                     ? "bg-blue-500/10"
                     : t.isIncome
@@ -924,6 +970,18 @@ export function AssetAccounts() {
             </tbody>
           </table>
         </div>
+
+        {/* Transactions pagination */}
+        {txTotalPages > 1 && (
+          <div className="px-4 sm:px-6 py-3 border-t border-border">
+            <PaginationBar
+              currentPage={txPage}
+              totalPages={txTotalPages}
+              totalCount={txTotalCount}
+              onPageChange={(p) => { setTxPage(p); }}
+            />
+          </div>
+        )}
       </div>
 
       <AddWalletModal

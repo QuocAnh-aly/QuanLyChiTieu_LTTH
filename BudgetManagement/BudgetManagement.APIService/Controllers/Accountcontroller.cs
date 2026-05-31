@@ -10,25 +10,33 @@ namespace BudgetManagement.APIService.Controllers;
 public class AccountController : BaseController
 {
     private readonly IAccountService _accountService;
+    private readonly ITransactionService _transactionService;
 
-    public AccountController(IAccountService accountService)
+    public AccountController(IAccountService accountService, ITransactionService transactionService)
     {
         _accountService = accountService;
+        _transactionService = transactionService;
     }
 
     // GET api/accounts
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
-        var result = await _accountService.GetAllAsync(GetUserId());
+        if (pageSize <= 0 || pageSize > 100) pageSize = 50;
+        if (page <= 0) page = 1;
+
+        var result = await _accountService.GetAllPagedAsync(GetUserId(), page, pageSize);
         return Ok(result);
     }
 
     // GET api/accounts/type/{typeId}
     [HttpGet("type/{typeId:int}")]
-    public async Task<IActionResult> GetByType(int typeId)
+    public async Task<IActionResult> GetByType(int typeId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
-        var result = await _accountService.GetByTypeAsync(GetUserId(), typeId);
+        if (pageSize <= 0 || pageSize > 100) pageSize = 50;
+        if (page <= 0) page = 1;
+
+        var result = await _accountService.GetByTypePagedAsync(GetUserId(), typeId, page, pageSize);
         return Ok(result);
     }
 
@@ -63,8 +71,51 @@ public class AccountController : BaseController
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateAccountDto request)
     {
-        var result = await _accountService.CreateAsync(GetUserId(), request);
-        return CreatedAtAction(nameof(GetById), new { id = result.AccountId }, result);
+        // Nếu có SourceAccountId, tạo account với balance=0 và tạo transaction riêng
+        if (request.SourceAccountId.HasValue)
+        {
+            var amount = Math.Abs(request.Balance ?? 0);
+            if (amount <= 0)
+                return BadRequest(new { message = "Số tiền không hợp lệ khi chọn tài khoản nguồn" });
+
+            var sourceAccId = request.SourceAccountId.Value;
+            var typeId = request.TypeId;
+            var name = request.Name;
+
+            // Tạo account với balance = 0 (transaction sẽ cập nhật balance)
+            request.Balance = 0;
+            var result = await _accountService.CreateAsync(GetUserId(), request);
+
+            if (typeId == 2) // Liability: gán nợ vào tài khoản bank
+            {
+                // Debit = source (bank tăng), Credit = new debt (nợ tăng)
+                await _transactionService.CreateAsync(GetUserId(), new CreateTransactionDto
+                {
+                    DebitAccountId = sourceAccId,
+                    CreditAccountId = result.AccountId,
+                    Amount = amount,
+                    Description = $"Gán nợ: {name}",
+                    TransactionDate = DateTime.UtcNow
+                });
+            }
+            else // Asset: tạo tài khoản từ nguồn tiền
+            {
+                // Debit = new account (tài sản tăng), Credit = source (nguồn giảm)
+                await _transactionService.CreateAsync(GetUserId(), new CreateTransactionDto
+                {
+                    DebitAccountId = result.AccountId,
+                    CreditAccountId = sourceAccId,
+                    Amount = amount,
+                    Description = $"Tạo tài khoản từ {name}",
+                    TransactionDate = DateTime.UtcNow
+                });
+            }
+
+            return CreatedAtAction(nameof(GetById), new { id = result.AccountId }, result);
+        }
+
+        var account = await _accountService.CreateAsync(GetUserId(), request);
+        return CreatedAtAction(nameof(GetById), new { id = account.AccountId }, account);
     }
 
     // PUT api/accounts/{id}

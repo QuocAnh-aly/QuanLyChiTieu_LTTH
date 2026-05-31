@@ -24,6 +24,18 @@ public class RecurringService : IRecurringService
         return recurrings.Select(MapToDto);
     }
 
+    public async Task<PaginatedResult<RecurringDto>> GetByUserPagedAsync(int userId, int page, int pageSize)
+    {
+        var result = await _recurringRepo.GetByUserIdPagedAsync(userId, page, pageSize);
+        return new PaginatedResult<RecurringDto>
+        {
+            Items = result.Items.Select(MapToDto).ToList(),
+            TotalCount = result.TotalCount,
+            Page = result.Page,
+            PageSize = result.PageSize
+        };
+    }
+
     public async Task<RecurringDto> GetByIdAsync(int userId, int recurringId)
     {
         var recurring = await _recurringRepo.GetByIdAsync(recurringId)

@@ -1,5 +1,6 @@
-import { X, Check } from "lucide-react";
+import { X, Check, Landmark } from "lucide-react";
 import { useState, useEffect } from "react";
+import { accountApi } from "../../api/accountApi";
 
 const COLOR_OPTIONS = [
   { value: 'blue',    label: 'Xanh dương', from: '#3b82f6', to: '#1d4ed8'  },
@@ -43,10 +44,30 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
     balance: '',
     initialBalance: '',
     notes: '',
+    sourceAccountId: '',
   });
 
   const [form,  setForm]  = useState(blankForm);
   const [error, setError] = useState('');
+  const [sourceAccounts, setSourceAccounts] = useState([]);
+  const [loadingSources, setLoadingSources] = useState(false);
+
+  // Fetch asset accounts for source selection (chỉ khi tạo mới và là Liability)
+  useEffect(() => {
+    if (!isOpen || isEdit || !isLiability) return;
+    const fetchSources = async () => {
+      setLoadingSources(true);
+      try {
+        const data = await accountApi.getByType(1, { page: 1, pageSize: 100 });
+        setSourceAccounts(data.items || data || []);
+      } catch {
+        setSourceAccounts([]);
+      } finally {
+        setLoadingSources(false);
+      }
+    };
+    fetchSources();
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -58,6 +79,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
         balance:        account.balance        != null ? String(Math.abs(account.balance))        : '',
         initialBalance: account.initialBalance != null ? String(Math.abs(account.initialBalance)) : '',
         notes:          account.notes || '',
+        sourceAccountId: '',
       });
     } else {
       setForm(blankForm());
@@ -78,6 +100,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
     if (!name) { setError('Tên không được để trống'); return; }
 
     const col  = COLOR_MAP[form.color] || COLOR_MAP.blue;
+    const hasSource = form.sourceAccountId && !isEdit;
     const data = {
       name,
       color:        form.color,
@@ -88,10 +111,24 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
     };
 
     if (isLiability) {
-      data.balance        = -(parseFloat(form.balance)        || 0);
-      data.initialBalance = -(parseFloat(form.initialBalance) || parseFloat(form.balance) || 0);
+      const amount = parseFloat(form.balance) || 0;
+      if (hasSource) {
+        // Gán nợ vào tài khoản bank: gửi balance dương, controller tạo transaction
+        data.sourceAccountId = parseInt(form.sourceAccountId);
+        data.balance = amount; // Positive amount, controller xử lý
+        data.initialBalance = 0;
+      } else {
+        data.balance        = -amount;
+        data.initialBalance = -(parseFloat(form.initialBalance) || amount);
+      }
     } else {
-      data.balance = parseFloat(form.balance) || 0;
+      const amount = parseFloat(form.balance) || 0;
+      if (hasSource && amount > 0) {
+        data.balance = amount;
+        data.sourceAccountId = parseInt(form.sourceAccountId);
+      } else {
+        data.balance = amount;
+      }
     }
 
     if (isExpense) data.cardNumber = form.cardNumber.trim() || null;
@@ -181,32 +218,93 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
               </div>
             )}
 
-            {/* Liability: original + remaining */}
-            {isLiability && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-1.5">Số tiền ban đầu</label>
-                  <input
-                    type="number"
-                    value={form.initialBalance}
-                    onChange={set('initialBalance')}
-                    placeholder="300000000"
-                    min={0}
-                    className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-1.5">Dư nợ còn lại</label>
-                  <input
-                    type="number"
-                    value={form.balance}
-                    onChange={set('balance')}
-                    placeholder="250000000"
-                    min={0}
-                    className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
+            {/* Liability: source account (gán nợ vào tài khoản bank) */}
+            {isLiability && !isEdit && (
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
+                  Gán nợ vào tài khoản <span className="text-muted-foreground font-normal">(tùy chọn)</span>
+                </label>
+                <select
+                  value={form.sourceAccountId}
+                  onChange={e => setForm(f => ({ ...f, sourceAccountId: e.target.value }))}
+                  className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card"
+                >
+                  <option value="">Không gán vào tài khoản</option>
+                  {loadingSources ? (
+                    <option disabled>Đang tải...</option>
+                  ) : sourceAccounts.length === 0 ? (
+                    <option disabled>Không có tài khoản ngân hàng</option>
+                  ) : (
+                    sourceAccounts.map(acc => (
+                      <option key={acc.accountId} value={acc.accountId}>
+                        {acc.name} — {Intl.NumberFormat('vi-VN').format(acc.balance ?? 0)}đ
+                      </option>
+                    ))
+                  )}
+                </select>
+                {form.sourceAccountId && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    <Landmark size={12} className="inline mr-0.5" />
+                    Số tiền vay sẽ được chuyển vào tài khoản này
+                  </p>
+                )}
               </div>
+            )}
+
+            {/* Liability: amount fields */}
+            {isLiability && (
+              <>
+                {form.sourceAccountId ? (
+                  /* Gán nợ vào tài khoản: chỉ cần 1 số tiền */
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">
+                      Số tiền vay / Dư nợ
+                    </label>
+                    <input
+                      type="number"
+                      value={form.balance}
+                      onChange={set('balance')}
+                      placeholder="100000000"
+                      min={0}
+                      className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                    <p className="text-xs text-blue-600 mt-1">
+                      <Landmark size={12} className="inline mr-0.5" />
+                      Số tiền này sẽ được chuyển vào tài khoản đã chọn và ghi nhận là khoản nợ
+                    </p>
+                  </div>
+                ) : (
+                  /* Tạo nợ thông thường: số tiền ban đầu và dư nợ còn lại */
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-1.5">
+                        Số tiền ban đầu
+                      </label>
+                      <input
+                        type="number"
+                        value={form.initialBalance}
+                        onChange={set('initialBalance')}
+                        placeholder="300000000"
+                        min={0}
+                        className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-1.5">
+                        Dư nợ còn lại
+                      </label>
+                      <input
+                        type="number"
+                        value={form.balance}
+                        onChange={set('balance')}
+                        placeholder="250000000"
+                        min={0}
+                        className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Revenue / Expense: single balance */}

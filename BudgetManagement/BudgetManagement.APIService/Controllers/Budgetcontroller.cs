@@ -20,9 +20,12 @@ public class BudgetController : BaseController
 
     // GET api/budgets/expense
     [HttpGet("expense")]
-    public async Task<IActionResult> GetExpenseBudgets()
+    public async Task<IActionResult> GetExpenseBudgets([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
-        var result = await _budgetService.GetExpenseBudgetsAsync(GetUserId());
+        if (pageSize <= 0 || pageSize > 100) pageSize = 50;
+        if (page <= 0) page = 1;
+
+        var result = await _budgetService.GetExpenseBudgetsPagedAsync(GetUserId(), page, pageSize);
         return Ok(result);
     }
 

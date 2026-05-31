@@ -49,6 +49,7 @@ function PaidBadge({ status }) {
   );
 }
 
+import PaginationBar from "../../components/ui/navigation/PaginationBar";
 import { PageLayout } from "../../components/layout/PageLayout";
 
 export function Subscriptions() {
@@ -59,12 +60,18 @@ export function Subscriptions() {
   const [isLoading,setIsLoading]= useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editBill, setEditBill] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   const load = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await billApi.getAll();
-      setBills(data || []);
+      const data = await billApi.getAll({ page, pageSize });
+      setBills(data.items || data || []);
+      setTotalCount(data.totalCount ?? (data.items || data || []).length);
+      setTotalPages(data.totalPages ?? 1);
     } catch {
       toast.error("Không thể tải danh sách hóa đơn");
     } finally {
@@ -72,7 +79,7 @@ export function Subscriptions() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, page]);
 
   const { addNotification } = useNotifications();
 
@@ -202,7 +209,7 @@ export function Subscriptions() {
           <p className="font-medium text-muted-foreground">Chưa có hóa đơn nào</p>
           <p className="text-sm text-muted-foreground mt-1">Nhấn "Thêm hóa đơn" để bắt đầu</p>
         </div>
-      ) : (
+      ) : totalPages > 0 && (
         <div className="space-y-4">
           {sortedGroups.map(([groupName, groupBills]) => {
             const groupMonthly = groupBills.filter(b => b.active).reduce((sum, b) => {
@@ -329,6 +336,16 @@ export function Subscriptions() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && bills.length > 0 && (
+        <PaginationBar
+          currentPage={page}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          onPageChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+        />
       )}
 
       {/* Modals */}

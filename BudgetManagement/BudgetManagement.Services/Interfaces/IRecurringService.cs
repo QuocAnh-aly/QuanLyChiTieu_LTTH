@@ -5,6 +5,7 @@ namespace BudgetManagement.Services.Interfaces;
 public interface IRecurringService
 {
     Task<IEnumerable<RecurringDto>> GetByUserAsync(int userId);
+    Task<PaginatedResult<RecurringDto>> GetByUserPagedAsync(int userId, int page, int pageSize);
     Task<RecurringDto> GetByIdAsync(int userId, int recurringId);
     Task<RecurringDto> CreateAsync(int userId, CreateRecurringDto request);
     Task<RecurringDto> UpdateAsync(int userId, int recurringId, UpdateRecurringDto request);

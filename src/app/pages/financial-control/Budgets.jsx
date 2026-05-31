@@ -100,6 +100,7 @@ function StatusBadge({ percentage }) {
   );
 }
 
+import PaginationBar from "../../components/ui/navigation/PaginationBar";
 import { PageLayout } from "../../components/layout/PageLayout";
 
 export function Budgets() {
@@ -109,12 +110,19 @@ export function Budgets() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [search, setSearch] = useState("");
+    const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [sortBy, setSortBy] = useState("default");
   const [viewMode, setViewMode] = useState("grid");
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => { fetchBudgets(); }, []);
+  useEffect(() => { fetchBudgets(); }, [page]);
+
+  // Reset to page 1 when search/filter/sort changes
+  useEffect(() => { setPage(1); }, [search, filterStatus, sortBy]);
 
   // Track previously notified budget IDs so we don't spam
   const notifiedOverRef = useRef(new Set());
@@ -123,8 +131,11 @@ export function Budgets() {
   const fetchBudgets = async () => {
     try {
       setIsLoading(true);
-      const data = await budgetApi.getExpenseBudgets();
-      const mapped = (data || []).map(mapBudget);
+      const data = await budgetApi.getExpenseBudgets({ page, pageSize });
+      const items = data.items || data || [];
+      setTotalCount(data.totalCount ?? items.length);
+      setTotalPages(data.totalPages ?? 1);
+      const mapped = items.map(mapBudget);
       setBudgets(mapped);
 
       // Check for budget warnings and send notifications
@@ -331,8 +342,7 @@ export function Budgets() {
               <div className="flex flex-col items-center justify-center py-12 bg-card rounded-2xl border border-dashed border-border">
                 <TrendingUp size={40} className="text-muted-foreground mb-3" />
                 <p className="text-muted-foreground font-medium">Không tìm thấy ngân sách phù hợp</p>
-              </div>
-            ) : viewMode === "grid" ? (
+              </div>              ) : viewMode === "grid" ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filtered.map(b => <BudgetCard key={b.id} b={b} onEdit={setEditingBudget} onDelete={handleDeleteBudget} />)}
               </div>
@@ -340,6 +350,16 @@ export function Budgets() {
               <div className="space-y-3">
                 {filtered.map(b => <BudgetListRow key={b.id} b={b} onEdit={setEditingBudget} onDelete={handleDeleteBudget} />)}
               </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <PaginationBar
+                currentPage={page}
+                totalPages={totalPages}
+                totalCount={totalCount}
+                onPageChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              />
             )}
           </div>
 

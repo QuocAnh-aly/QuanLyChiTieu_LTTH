@@ -8,6 +8,7 @@ namespace BudgetManagement.Services.Implementations;
 public class AccountService : IAccountService
 {
     private readonly IAccountRepository _accountRepo;
+    private const int DefaultPageSize = 20;
 
     // Account_Types IDs (khớp với INSERT trong SQL schema)
     private const int TypeAssets      = 1;
@@ -27,10 +28,34 @@ public class AccountService : IAccountService
         return accounts.Select(MapToDto);
     }
 
+    public async Task<PaginatedResult<AccountDto>> GetAllPagedAsync(int userId, int page, int pageSize)
+    {
+        var result = await _accountRepo.GetByUserIdPagedAsync(userId, page, pageSize);
+        return new PaginatedResult<AccountDto>
+        {
+            Items = result.Items.Select(MapToDto).ToList(),
+            TotalCount = result.TotalCount,
+            Page = result.Page,
+            PageSize = result.PageSize
+        };
+    }
+
     public async Task<IEnumerable<AccountDto>> GetByTypeAsync(int userId, int typeId)
     {
         var accounts = await _accountRepo.GetByUserAndTypeAsync(userId, typeId);
         return accounts.Select(MapToDto);
+    }
+
+    public async Task<PaginatedResult<AccountDto>> GetByTypePagedAsync(int userId, int typeId, int page, int pageSize)
+    {
+        var result = await _accountRepo.GetByUserAndTypePagedAsync(userId, typeId, page, pageSize);
+        return new PaginatedResult<AccountDto>
+        {
+            Items = result.Items.Select(MapToDto).ToList(),
+            TotalCount = result.TotalCount,
+            Page = result.Page,
+            PageSize = result.PageSize
+        };
     }
 
     public async Task<AccountDto> GetByIdAsync(int userId, int accountId)

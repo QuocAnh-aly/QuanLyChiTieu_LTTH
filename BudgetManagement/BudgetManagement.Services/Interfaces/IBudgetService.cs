@@ -6,6 +6,7 @@ public interface IBudgetService
 {
     // Expense budgets (Budget.jsx)
     Task<IEnumerable<BudgetDto>> GetExpenseBudgetsAsync(int userId);
+    Task<PaginatedResult<BudgetDto>> GetExpenseBudgetsPagedAsync(int userId, int page, int pageSize);
     Task<BudgetDto> GetExpenseBudgetByIdAsync(int userId, int budgetId);
     Task<BudgetDto> CreateExpenseBudgetAsync(int userId, CreateBudgetDto request);
     Task<BudgetDto> UpdateExpenseBudgetAsync(int userId, int budgetId, UpdateBudgetDto request);

@@ -20,6 +20,8 @@
 - **Savings goals** — Piggy bank-style savings tracking with target amounts
 - **Recurring transactions** — Auto-generated journal entries on schedule
 - **Bills management** — Track and manage recurring bills
+- **Pagination** — Server-side paginated responses with PaginatedResult DTO + UI controls (prev/next, page numbers)
+- **Source Account** — Link debt creation to bank accounts or create assets by transferring from existing accounts
 
 ### Automation
 - **Rules engine** — Create if-then rules with triggers and actions
@@ -91,7 +93,7 @@ QuanLyChiTieu_LTTH/
 │   ├── BudgetManagement.Services/    # Business logic
 │   ├── BudgetManagement.Repository/  # Data access (EF Core)
 │   ├── BudgetManagement.Common/      # Shared utilities
-│   └── BudgetManagement.Tests/       # xUnit tests (72 tests)
+│   └── BudgetManagement.Tests/       # xUnit tests (168 tests)
 ├── src/                              # React frontend
 │   ├── app/
 │   │   ├── api/                      # Axios API modules
@@ -164,7 +166,7 @@ npm run dev
 
 ```bash
 cd BudgetManagement && dotnet test BudgetManagement.Tests/BudgetManagement.Tests.csproj
-# 72 tests total
+# 168 tests total
 ```
 
 ### URLs
@@ -194,13 +196,16 @@ cd BudgetManagement && dotnet test BudgetManagement.Tests/BudgetManagement.Tests
 |--------|----------|-------------|
 | POST | `/api/auth/signin` | Login |
 | POST | `/api/auth/signup` | Register |
-| GET | `/api/accounts` | List accounts |
-| GET | `/api/accounts/type/{typeId}` | Filter by type (1=Asset, 4=Revenue, 5=Expense) |
+| GET | `/api/accounts?page=1&pageSize=50` | List accounts (paginated) |
+| GET | `/api/accounts/type/{typeId}?page=1&pageSize=50` | Filter by type (1=Asset, 4=Revenue, 5=Expense) — paginated |
 | GET | `/api/accounts/wallet-summary` | Balance summary |
 | GET/POST/PUT/DELETE | `/api/accounts/{id}` | Account CRUD |
+| POST | `/api/accounts` | Create account (optional `SourceAccountId` for source transactions) |
 | GET/POST/PUT/DELETE | `/api/transactions/{id}` | Transaction CRUD |
-| GET | `/api/budgets/expense` | List expense budgets |
+| GET | `/api/budgets/expense?page=1&pageSize=50` | List expense budgets (paginated) |
 | GET | `/api/budgets/savings` | List savings goals |
+| GET | `/api/bills?page=1&pageSize=50` | List bills (paginated) |
+| GET | `/api/recurring?page=1&pageSize=50` | List recurring transactions (paginated) |
 | GET | `/api/dashboard/summary` | Dashboard summary |
 | GET | `/api/dashboard/monthly-report` | Monthly report |
 
@@ -211,13 +216,18 @@ cd BudgetManagement && dotnet test BudgetManagement.Tests/BudgetManagement.Tests
 
 ## 🧪 Testing
 
-72 unit tests using **xUnit + Moq + FluentAssertions**:
+**168 unit tests** using **xUnit + Moq + FluentAssertions**:
 
 | Test File | Tests | Coverage |
 |-----------|-------|----------|
 | `PasswordStrengthValidatorTests.cs` | 27 | Validation rules, edge cases |
-| `AccountServiceTests.cs` | 20 | CRUD, auth, WalletSummary |
+| `AccountServiceTests.cs` | 25 | CRUD, auth, WalletSummary, **pagination** |
 | `CurrencyServiceTests.cs` | 25 | CRUD, primary rules, constraints |
+| `BudgetServiceTests.cs` | 11 | CRUD, **pagination**, savings goals |
+| `BillServiceTests.cs` | 10 | CRUD, **pagination**, rescan |
+| `RecurringServiceTests.cs` | 11 | CRUD, **pagination**, process due |
+| `PaginatedResultTests.cs` | 9 | **PaginatedResult** computed properties |
+| `AccountControllerTests.cs` | 10 | **Source account**, pagination params |
 
 ```bash
 cd BudgetManagement && dotnet test BudgetManagement.Tests/BudgetManagement.Tests.csproj
