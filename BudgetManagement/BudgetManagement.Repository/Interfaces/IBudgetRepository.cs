@@ -7,7 +7,7 @@ public interface IBudgetRepository : IBaseRepository<Budget>
 {
     Task<IEnumerable<Budget>> GetByUserIdAsync(int userId);
     Task<IEnumerable<Budget>> GetExpenseBudgetsAsync(int userId);   // BudgetType = "expense"
-    Task<PaginatedResult<Budget>> GetExpenseBudgetsPagedAsync(int userId, int page, int pageSize);
+    Task<PaginatedResult<Budget>> GetExpenseBudgetsPagedAsync(int userId, int page, int pageSize, string? search = null, string? filterStatus = null, string? sortBy = null);
     Task<IEnumerable<Budget>> GetSavingsGoalsAsync(int userId);     // BudgetType = "savings"
     Task<PaginatedResult<Budget>> GetSavingsGoalsPagedAsync(int userId, int page, int pageSize);
     Task<Budget?> GetActiveByAccountIdAsync(int accountId);

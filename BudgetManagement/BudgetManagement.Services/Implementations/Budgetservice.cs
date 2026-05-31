@@ -24,9 +24,9 @@ public class BudgetService : IBudgetService
         return budgets.Select(MapToBudgetDto);
     }
 
-    public async Task<PaginatedResult<BudgetDto>> GetExpenseBudgetsPagedAsync(int userId, int page, int pageSize)
+    public async Task<PaginatedResult<BudgetDto>> GetExpenseBudgetsPagedAsync(int userId, int page, int pageSize, string? search = null, string? filterStatus = null, string? sortBy = null)
     {
-        var result = await _budgetRepo.GetExpenseBudgetsPagedAsync(userId, page, pageSize);
+        var result = await _budgetRepo.GetExpenseBudgetsPagedAsync(userId, page, pageSize, search, filterStatus, sortBy);
         return new PaginatedResult<BudgetDto>
         {
             Items = result.Items.Select(MapToBudgetDto).ToList(),

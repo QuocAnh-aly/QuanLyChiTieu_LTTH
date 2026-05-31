@@ -14,5 +14,5 @@ public interface IAccountService
     Task<bool> DeleteAsync(int userId, int accountId);
 
     // Dashboard summary
-    Task<WalletSummaryDto> GetWalletSummaryAsync(int userId);
+    Task<WalletSummaryDto> GetWalletSummaryAsync(int userId, int page = 1, int pageSize = 50);
 }

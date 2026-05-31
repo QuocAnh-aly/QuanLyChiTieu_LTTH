@@ -57,6 +57,8 @@ export default function PaginationBar({
   totalCount,
   onPageChange,
   pageSize = 10,
+  onPageSizeChange,
+  pageSizeOptions = [10, 20, 50],
 }) {
   if (totalPages <= 1 && totalCount <= 0) return null;
 
@@ -64,14 +66,32 @@ export default function PaginationBar({
 
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6">
-      <p className="text-xs text-muted-foreground">
-        {totalCount > 0
-          ? `Hiển thị ${(currentPage - 1) * pageSize + 1}–${Math.min(
-              currentPage * pageSize,
-              totalCount,
-            )} trong ${totalCount}`
-          : "Không có dữ liệu"}
-      </p>
+      <div className="flex items-center gap-3">
+        <p className="text-xs text-muted-foreground">
+          {totalCount > 0
+            ? `Hiển thị ${(currentPage - 1) * pageSize + 1}–${Math.min(
+                currentPage * pageSize,
+                totalCount,
+              )} trong ${totalCount}`
+            : "Không có dữ liệu"}
+        </p>
+
+        {onPageSizeChange && (
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              onPageSizeChange(Number(e.target.value));
+            }}
+            className="text-xs border border-border rounded-lg px-2 py-1 bg-card text-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple-500"
+          >
+            {pageSizeOptions.map((size) => (
+              <option key={size} value={size}>
+                {size} / trang
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
 
       <Pagination>
         <PaginationContent>

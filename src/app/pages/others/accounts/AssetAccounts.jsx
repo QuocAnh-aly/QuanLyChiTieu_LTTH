@@ -78,8 +78,12 @@ const PIE_COLORS = [
   "#22c55e",
   "#a855f7",
   "#f97316",
+  "#ec4899",
   "#10b981",
-  "#64748b",
+  "#f59e0b",
+  "#6366f1",
+  "#ef4444",
+  "#14b8a6",
 ];
 const fallbackGradients = Object.values(colorGradients);
 
@@ -152,9 +156,12 @@ export function AssetAccounts() {
     const [recentTxs, setRecentTxs] = useState([]);
   const [txWalletFilter, setTxWalletFilter] = useState("all");
   const [accountPage, setAccountPage] = useState(1);
-  const [accountPageSize] = useState(6);
+  const [accountPageSize, setAccountPageSize] = useState(12);
+  const [displayAccounts, setDisplayAccounts] = useState([]);
+  const [accountTotalCount, setAccountTotalCount] = useState(0);
+  const [accountTotalPages, setAccountTotalPages] = useState(1);
   const [txPage, setTxPage] = useState(1);
-  const [txPageSize] = useState(10);
+  const [txPageSize, setTxPageSize] = useState(10);
   const [txTotalCount, setTxTotalCount] = useState(0);
   const [txTotalPages, setTxTotalPages] = useState(1); // "all" | accountId string
 
@@ -162,16 +169,22 @@ export function AssetAccounts() {
     try {
       if (!silent) setIsLoading(true);
       else setIsRefreshing(true);
-      const data = await walletApi.getSummary();
+      const data = await walletApi.getSummary({ page: accountPage, pageSize: accountPageSize });
       setSummary({
         totalAssets: data.totalAssets ?? 0,
         totalLiabilities: data.totalLiabilities ?? 0,
         totalSavings: data.totalSavings ?? 0,
         netWorth: data.netWorth ?? 0,
       });
-      const mapped = (data.accounts || []).map(mapAccount);
-      setAccounts(mapped);
-      setBalanceHistory(buildBalanceHistory(mapped));
+      // AllAccounts (full list) — for pie chart, balance distribution, details table
+      const allMapped = (data.allAccounts || []).map(mapAccount);
+      setAccounts(allMapped);
+      // Accounts (paginated) — for card grid
+      const paginatedMapped = (data.accounts || []).map(mapAccount);
+      setDisplayAccounts(paginatedMapped);
+      setAccountTotalCount(data.totalCount ?? 0);
+      setAccountTotalPages(data.totalPages ?? 1);
+      setBalanceHistory(buildBalanceHistory(allMapped));
     } catch (error) {
       console.error("Lỗi khi tải dữ liệu ví:", error);
       toast.error("Không thể tải dữ liệu ví");
@@ -179,7 +192,7 @@ export function AssetAccounts() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [accountPage, accountPageSize]);
 
   const fetchTransactions = useCallback(async () => {
     try {
@@ -296,7 +309,7 @@ export function AssetAccounts() {
     }
   };
 
-  // Filter + sort
+  // Client-side search/sort on full accounts list (for details table & pie)
   const filteredAccounts = accounts
     .filter((a) => a.name.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
@@ -306,22 +319,13 @@ export function AssetAccounts() {
       return 0;
     });
 
-  // Client-side pagination for accounts
-  const accountTotalPages = Math.ceil(filteredAccounts.length / accountPageSize) || 1;
-  const displayAccounts = filteredAccounts.slice(
-    (accountPage - 1) * accountPageSize,
-    accountPage * accountPageSize,
-  );
-
-  // Reset to page 1 when search/sort changes
-  useEffect(() => { setAccountPage(1); }, [search, sortBy]);
-
   const totalAssets = summary.totalAssets + summary.totalSavings;
 
   // Pie data: only Asset type (typeId=1), positive balances only
   const pieData = accounts
     .filter((a) => a.typeId === 1 && a.balance > 0)
     .map((a) => ({ name: a.name, value: a.balance }));
+  const pieTotal = pieData.reduce((s, d) => s + d.value, 0);
 
   return (
     <PageLayout
@@ -466,16 +470,36 @@ export function AssetAccounts() {
             <h2 className="text-lg font-bold text-card-foreground mb-4">
               Cơ cấu tài sản
             </h2>
-            <ResponsiveContainer width="100%" height={160}>
+            <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
                   data={pieData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={45}
-                  outerRadius={75}
-                  paddingAngle={4}
+                  innerRadius={55}
+                  outerRadius={100}
+                  paddingAngle={3}
                   dataKey="value"
+                  label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+                    const RADIAN = Math.PI / 180;
+                    const radius = outerRadius + 16;
+                    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                    return (
+                      <text
+                        x={x}
+                        y={y}
+                        textAnchor={x > cx ? "start" : "end"}
+                        dominantBaseline="central"
+                        fill="var(--color-muted-foreground)"
+                        fontSize={11}
+                        fontWeight={500}
+                      >
+                        {(percent * 100).toFixed(0)}%
+                      </text>
+                    );
+                  }}
+                  labelLine={{ stroke: "var(--color-muted-foreground)", strokeWidth: 1 }}
                 >
                   {pieData.map((_, i) => (
                     <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
@@ -487,30 +511,37 @@ export function AssetAccounts() {
                     border: "1px solid var(--color-border)",
                     borderRadius: "10px",
                   }}
-                  formatter={(val) => [fmt(val), ""]}
+                  formatter={(val, name) => [fmt(val), name]}
                 />
               </PieChart>
             </ResponsiveContainer>
-            <div className="mt-3 space-y-2">
-              {pieData.slice(0, 4).map((d, i) => (
+            <div className="mt-4 space-y-2.5 max-h-[200px] overflow-y-auto">
+              {pieData.map((d, i) => (
                 <div
                   key={d.name}
-                  className="flex items-center justify-between text-xs"
+                  className="flex items-center justify-between text-xs hover:bg-muted px-2 py-1 rounded-lg transition-colors"
                 >
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2 min-w-0 flex-1 mr-3">
                     <div
-                      className="w-2.5 h-2.5 rounded-full"
+                      className="w-3 h-3 rounded-full shrink-0"
                       style={{
                         backgroundColor: PIE_COLORS[i % PIE_COLORS.length],
                       }}
                     />
-                    <span className="text-muted-foreground truncate max-w-[90px]">
+                    <span className="text-muted-foreground truncate">
                       {d.name}
                     </span>
                   </div>
-                  <span className="font-semibold text-foreground">
-                    {fmt(d.value)}
-                  </span>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-muted-foreground font-medium">
+                      {pieTotal > 0
+                        ? ((d.value / pieTotal) * 100).toFixed(1)
+                        : 0}%
+                    </span>
+                    <span className="font-semibold text-foreground">
+                      {fmt(d.value)}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -736,8 +767,10 @@ export function AssetAccounts() {
             <PaginationBar
               currentPage={accountPage}
               totalPages={accountTotalPages}
-              totalCount={filteredAccounts.length}
+              totalCount={accountTotalCount}
+              pageSize={accountPageSize}
               onPageChange={(p) => { setAccountPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              onPageSizeChange={(newSize) => { setAccountPageSize(newSize); setAccountPage(1); }}
             />
           </div>
         )}
@@ -978,7 +1011,9 @@ export function AssetAccounts() {
               currentPage={txPage}
               totalPages={txTotalPages}
               totalCount={txTotalCount}
+              pageSize={txPageSize}
               onPageChange={(p) => { setTxPage(p); }}
+              onPageSizeChange={(newSize) => { setTxPageSize(newSize); setTxPage(1); }}
             />
           </div>
         )}

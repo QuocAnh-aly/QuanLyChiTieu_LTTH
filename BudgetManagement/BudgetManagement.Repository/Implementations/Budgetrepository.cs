@@ -26,14 +26,38 @@ public class BudgetRepository : BaseRepository<Budget>, IBudgetRepository
             .OrderBy(b => b.Title)
             .ToListAsync();
 
-    public async Task<PaginatedResult<Budget>> GetExpenseBudgetsPagedAsync(int userId, int page, int pageSize)
+    public async Task<PaginatedResult<Budget>> GetExpenseBudgetsPagedAsync(int userId, int page, int pageSize, string? search = null, string? filterStatus = null, string? sortBy = null)
     {
-        var query = _dbSet
+        IQueryable<Budget> query = _dbSet
             .Where(b => b.UserId == userId
                      && b.BudgetType == "expense"
                      && b.IsActive == true)
-            .Include(b => b.Account)
-            .OrderBy(b => b.Title);
+            .Include(b => b.Account);
+
+        // Search by title
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(b => b.Title.Contains(search));
+
+        // Filter by status (percentage-based)
+        if (filterStatus == "over")
+            query = query.Where(b => b.CurrentAmount > b.TargetAmount);
+        else if (filterStatus == "warning")
+            query = query.Where(b => b.CurrentAmount >= b.TargetAmount * (decimal)0.8
+                                  && b.CurrentAmount <= b.TargetAmount);
+        else if (filterStatus == "on-track")
+            query = query.Where(b => b.CurrentAmount < b.TargetAmount * (decimal)0.8);
+
+        // Sort
+        if (sortBy == "pct-desc")
+            query = query.OrderByDescending(b => b.CurrentAmount / (b.TargetAmount > 0 ? b.TargetAmount : 1));
+        else if (sortBy == "pct-asc")
+            query = query.OrderBy(b => b.CurrentAmount / (b.TargetAmount > 0 ? b.TargetAmount : 1));
+        else if (sortBy == "amount")
+            query = query.OrderByDescending(b => b.TargetAmount);
+        else if (sortBy == "name")
+            query = query.OrderBy(b => b.Title);
+        else
+            query = query.OrderBy(b => b.Title);
 
         var totalCount = await query.CountAsync();
         var items = await query

@@ -25,7 +25,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AddBudgetModal } from "../../components/modals/AddBudgetModal";
 import { EditBudgetModal } from "../../components/modals/EditBudgetModal";
 import { toast } from "sonner";
@@ -115,11 +115,11 @@ export function Budgets() {
   const [sortBy, setSortBy] = useState("default");
   const [viewMode, setViewMode] = useState("grid");
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => { fetchBudgets(); }, [page]);
+  useEffect(() => { fetchBudgets(); }, [page, pageSize, search, filterStatus, sortBy]);
 
   // Reset to page 1 when search/filter/sort changes
   useEffect(() => { setPage(1); }, [search, filterStatus, sortBy]);
@@ -131,7 +131,11 @@ export function Budgets() {
   const fetchBudgets = async () => {
     try {
       setIsLoading(true);
-      const data = await budgetApi.getExpenseBudgets({ page, pageSize });
+      const params = { page, pageSize };
+      if (search) params.search = search;
+      if (filterStatus && filterStatus !== 'all') params.filterStatus = filterStatus;
+      if (sortBy && sortBy !== 'default') params.sortBy = sortBy;
+      const data = await budgetApi.getExpenseBudgets(params);
       const items = data.items || data || [];
       setTotalCount(data.totalCount ?? items.length);
       setTotalPages(data.totalPages ?? 1);
@@ -181,20 +185,8 @@ export function Budgets() {
   const warningCount = budgets.filter(b => b.percentage >= 80 && b.percentage <= 100).length;
   const onTrackCount = budgets.filter(b => b.percentage < 80).length;
 
-  const filtered = useMemo(() => {
-    let list = [...budgets];
-    if (search)                       list = list.filter(b => b.name.toLowerCase().includes(search.toLowerCase()));
-    if (filterStatus === "over")       list = list.filter(b => b.percentage > 100);
-    else if (filterStatus === "warning") list = list.filter(b => b.percentage >= 80 && b.percentage <= 100);
-    else if (filterStatus === "on-track") list = list.filter(b => b.percentage < 80);
-    if (sortBy === "pct-desc")  list.sort((a, b) => b.percentage - a.percentage);
-    else if (sortBy === "pct-asc")  list.sort((a, b) => a.percentage - b.percentage);
-    else if (sortBy === "amount")   list.sort((a, b) => b.budget - a.budget);
-    else if (sortBy === "name")     list.sort((a, b) => a.name.localeCompare(b.name));
-    return list;
-  }, [budgets, search, filterStatus, sortBy]);
-
   const pieData = budgets.filter(b => b.spent > 0).map(b => ({ name: b.name, value: b.spent, color: b.pieColor }));
+  const displayBudgets = budgets;
 
   const handleAddBudget = async (data) => {
     try { await budgetApi.createExpenseBudget(data); await fetchBudgets(); toast.success("Đã thêm ngân sách!"); addNotification({ type: 'success', title: 'Ngân sách mới', message: 'Đã tạo ngân sách thành công', link: '/budgets' }); }
@@ -338,17 +330,17 @@ export function Budgets() {
               <div className={`grid gap-4 ${viewMode === "grid" ? "grid-cols-2" : "grid-cols-1"}`}>
                 {[1,2,3,4].map(i => <div key={i} className="h-40 rounded-2xl bg-accent animate-pulse" />)}
               </div>
-            ) : filtered.length === 0 ? (
+            ) : displayBudgets.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 bg-card rounded-2xl border border-dashed border-border">
                 <TrendingUp size={40} className="text-muted-foreground mb-3" />
                 <p className="text-muted-foreground font-medium">Không tìm thấy ngân sách phù hợp</p>
               </div>              ) : viewMode === "grid" ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filtered.map(b => <BudgetCard key={b.id} b={b} onEdit={setEditingBudget} onDelete={handleDeleteBudget} />)}
+                {displayBudgets.map(b => <BudgetCard key={b.id} b={b} onEdit={setEditingBudget} onDelete={handleDeleteBudget} />)}
               </div>
             ) : (
               <div className="space-y-3">
-                {filtered.map(b => <BudgetListRow key={b.id} b={b} onEdit={setEditingBudget} onDelete={handleDeleteBudget} />)}
+                {displayBudgets.map(b => <BudgetListRow key={b.id} b={b} onEdit={setEditingBudget} onDelete={handleDeleteBudget} />)}
               </div>
             )}
 
@@ -358,7 +350,9 @@ export function Budgets() {
                 currentPage={page}
                 totalPages={totalPages}
                 totalCount={totalCount}
+                pageSize={pageSize}
                 onPageChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(1); }}
               />
             )}
           </div>

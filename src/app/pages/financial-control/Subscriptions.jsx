@@ -61,7 +61,7 @@ export function Subscriptions() {
   const [formOpen, setFormOpen] = useState(false);
   const [editBill, setEditBill] = useState(null);
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -77,9 +77,9 @@ export function Subscriptions() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [page, pageSize]);
 
-  useEffect(() => { load(); }, [load, page]);
+  useEffect(() => { load(); }, [load]);
 
   const { addNotification } = useNotifications();
 
@@ -344,7 +344,9 @@ export function Subscriptions() {
           currentPage={page}
           totalPages={totalPages}
           totalCount={totalCount}
+          pageSize={pageSize}
           onPageChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+          onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(1); }}
         />
       )}
 

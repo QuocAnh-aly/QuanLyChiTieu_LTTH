@@ -124,7 +124,7 @@ public class AccountService : IAccountService
         return await _accountRepo.DeleteAsync(accountId);
     }
 
-    public async Task<WalletSummaryDto> GetWalletSummaryAsync(int userId)
+    public async Task<WalletSummaryDto> GetWalletSummaryAsync(int userId, int page = 1, int pageSize = 50)
     {
         var allAccounts = (await _accountRepo.GetByUserIdAsync(userId)).ToList();
 
@@ -143,16 +143,29 @@ public class AccountService : IAccountService
             .Where(a => a.TypeId == TypeEquity && a.IsActive == true)
             .Sum(a => a.Balance ?? 0);
 
+        // All accounts (unpaginated) for pie chart & balance distribution
+        var allDto = allAccounts
+            .Where(a => a.TypeId is TypeAssets or TypeLiabilities or TypeEquity)
+            .Select(MapToDto)
+            .ToList();
+
+        // Paginated accounts for card grid
+        var paginated = allDto
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
         return new WalletSummaryDto
         {
             TotalAssets      = totalAssets,
             TotalLiabilities = totalLiabilities,
             TotalSavings     = totalSavings,
             NetWorth         = totalAssets + totalSavings - totalLiabilities,
-            Accounts         = allAccounts
-                .Where(a => a.TypeId is TypeAssets or TypeLiabilities or TypeEquity)
-                .Select(MapToDto)
-                .ToList()
+            AllAccounts      = allDto,
+            Accounts         = paginated,
+            TotalCount       = allDto.Count,
+            Page             = page,
+            PageSize         = pageSize
         };
     }
 
