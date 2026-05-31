@@ -1,61 +1,228 @@
-**Add your own guidelines here**
-<!--
+# Project Guidelines — Quản Lý Chi Tiêu
 
-System Guidelines
+> Coding conventions and best practices for this project.
+> Stack: .NET 10 (C#) microservices + React 18 (Vite) + SQL Server
 
-Use this file to provide the AI with rules and guidelines you want it to follow.
-This template outlines a few examples of things you can add. You can add your own sections and format it to suit your needs
+---
 
-TIP: More context isn't always better. It can confuse the LLM. Try and add the most important rules you need
+## 1. General
 
-# General guidelines
+- **Language:** Vietnamese for UI text (e.g., "Thêm giao dịch", "Đăng nhập"), English for code identifiers
+- **Naming:** `snake_case` in DB, `PascalCase` in C#, `camelCase` in JS/TS/JSON
+- **Imports (React):** Group by: 1) React/third-party, 2) Local components, 3) API/context, 4) Utilities
+- **Async:** All async methods end with `Async` in C#
 
-Any general rules you want the AI to follow.
-For example:
+---
 
-* Only use absolute positioning when necessary. Opt for responsive and well structured layouts that use flexbox and grid by default
-* Refactor code as you go to keep code clean
-* Keep file sizes small and put helper functions and components in their own files.
+## 2. C# Conventions
 
---------------
+### Controllers
+- Extend `BaseController` which provides `GetUserId()` from JWT claims
+- Catch specific exceptions and map to appropriate HTTP status codes:
 
-# Design system guidelines
-Rules for how the AI should make generations look like your company's design system
+```csharp
+[HttpPost]
+public async Task<IActionResult> Create([FromBody] CreateDto dto)
+{
+    try { return Ok(await _service.CreateAsync(GetUserId(), dto)); }
+    catch (ArgumentException e) => BadRequest(new { message = e.Message });
+    catch (InvalidOperationException e) => Conflict(new { message = e.Message });
+    catch (KeyNotFoundException e) => NotFound(new { message = e.Message });
+    catch (UnauthorizedAccessException e) => Unauthorized(new { message = e.Message });
+}
+```
 
-Additionally, if you select a design system to use in the prompt box, you can reference
-your design system's components, tokens, variables and components.
-For example:
+### Services
+- Inject repositories via constructor
+- Throw typed exceptions: `KeyNotFoundException` (404), `UnauthorizedAccessException` (403), `InvalidOperationException` (409), `ArgumentException` (400)
 
-* Use a base font-size of 14px
-* Date formats should always be in the format “Jun 10”
-* The bottom toolbar should only ever have a maximum of 4 items
-* Never use the floating action button with the bottom toolbar
-* Chips should always come in sets of 3 or more
-* Don't use a dropdown if there are 2 or fewer options
+```csharp
+public class XxxService : IXxxService
+{
+    private readonly IXxxRepository _repo;
+    public XxxService(IXxxRepository repo) => _repo = repo;
+}
+```
 
-You can also create sub sections and add more specific details
-For example:
+### Repository Pattern
+- Use `BaseRepository<T>` for generic CRUD
+- Create specific repositories (e.g., `UserRepository`, `JournalRepository`) for complex queries
+- For paginated queries, return `PaginatedResult<T>` with `TotalCount` from `CountAsync()` + items from `.Skip().Take()`
 
+### DTOs
+- Use `[JsonPropertyName]` for JSON serialization (snake_case in JSON)
+- Use data annotations: `[Required]`, `[StringLength]`, `[EmailAddress]`, `[RegularExpression]`
 
-## Button
-The Button component is a fundamental interactive element in our design system, designed to trigger actions or navigate
-users through the application. It provides visual feedback and clear affordances to enhance user experience.
+### Pagination
+- Use `PaginatedResult<T>` DTO for all endpoints returning lists
+- Repository: build query with `.CountAsync()` for total, then `.Skip().Take()` for items
+- Service: wraps `PaginatedResult<Entity>` into `PaginatedResult<Dto>` using `.Select(MapToDto)`
+- Controller: accept `[FromQuery] int page = 1, [FromQuery] int pageSize = 50` with clamping (`pageSize > 100 → 50`, `page <= 0 → 1`)
+- For search/filter/sort endpoints: accept `search`, `sortBy`, `filterStatus` query params — apply server-side before pagination
 
-### Usage
-Buttons should be used for important actions that users need to take, such as form submissions, confirming choices,
-or initiating processes. They communicate interactivity and should have clear, action-oriented labels.
+### Wallet Summary (Server-side Search/Sort)
+- `AccountController.GetWalletSummary` accepts `search`, `sortBy`, `page`, `pageSize`
+- Returns `AllAccounts` (full list for charts/totals) + `Accounts` (paginated + filtered)
+- Sort options: `balance-desc`, `balance-asc`, `name`, `default` (TypeId → Name)
 
-### Variants
-* Primary Button
-  * Purpose : Used for the main action in a section or page
-  * Visual Style : Bold, filled with the primary brand color
-  * Usage : One primary button per section to guide users toward the most important action
-* Secondary Button
-  * Purpose : Used for alternative or supporting actions
-  * Visual Style : Outlined with the primary color, transparent background
-  * Usage : Can appear alongside a primary button for less important actions
-* Tertiary Button
-  * Purpose : Used for the least important actions
-  * Visual Style : Text-only with no border, using primary color
-  * Usage : For actions that should be available but not emphasized
--->
+### Budget Search/Filter/Sort (Server-side)
+- `BudgetController.GetExpenseBudgets` accepts `search`, `filterStatus`, `sortBy`
+- `filterStatus`: `all`, `under-budget` (under 80%), `over-budget` (exceeded)
+- Sort options: `name`, `spent-desc`, `progress`, `deadline`
+
+### PaginationBar Defaults
+- Default `pageSizeOptions`: `[5, 10, 20]`
+- Default page size: `5`
+- Pages using custom defaults: `AssetAccounts` → `accountPageSize=10`
+
+---
+
+## 3. React Conventions
+
+### Component Structure
+- Functional components with hooks
+- Accept `isOpen`, `onClose`, `onAdd`/`onSave` props for modals
+
+```jsx
+export function MyPage() {
+  const { user } = useAuth();
+  const { fmt } = useSettings();
+  const { addNotification } = useNotifications();
+
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadData = useCallback(async (force) => {
+    // ...
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  return (
+    <PageLayout title="..." subtitle="...">
+      {/* Content */}
+    </PageLayout>
+  );
+}
+```
+
+### Toast + Notification Pattern
+Always use both Sonner toast AND in-app notifications together:
+
+```jsx
+try {
+  await api.doSomething(data);
+  toast.success('Thành công!');
+  addNotification({ type: 'success', title: 'Thành công', message: '...' });
+  await loadData(true);
+} catch (err) {
+  toast.error(err?.response?.data || 'Có lỗi xảy ra');
+  addNotification({ type: 'error', title: 'Lỗi', message: err?.response?.data });
+}
+```
+
+### Pages
+- Use `<PageLayout>` for consistent header/filter/content structure
+- Use Recharts (`<ResponsiveContainer>`, `<BarChart>`, `<PieChart>`) for charts
+- Use shadcn `<Table>` for data tables
+
+### Modals
+- Use `<Dialog>` from shadcn/ui
+- Common pattern: `AddXxxModal({ isOpen, onClose, onAdd })`
+
+---
+
+## 4. Architecture Patterns
+
+### Frontend talks only to Gateway
+- All API calls go through `http://localhost:5229` (API Gateway)
+- **Never** call individual services directly from frontend
+- Auth routes: `/api/auth/*`
+- Business routes: `/api/*`
+
+### State Management
+- **Auth state:** AuthContext (JWT tokens in localStorage)
+- **Settings/currencies:** SettingsContext (fetched from API)
+- **Categories/tags:** CategoriesContext (localStorage only)
+- **Notifications:** NotificationContext (localStorage)
+- **Local state:** `useState` + `useCallback` + `useEffect`
+- **No Redux/Zustand** — context + local state is sufficient
+
+### Axios Client
+- Base URL: `http://localhost:5229`
+- JWT Bearer token attached by request interceptor (except signin/signup)
+- Auto-refresh on 401 with request queuing
+- Response interceptor unwraps `response.data`
+
+---
+
+## 5. Database
+
+- **Column mapping:** EF Core uses automatic `snake_case` mapping (e.g., `CurrencyCode` → `currency_code`)
+- **Tables with underscores:** Explicit `ToTable()` for `Account_Types`, `Journal_Entries`, `Journal_Details`, etc.
+- **PKs:** All entities use `int IDENTITY(1,1)` primary keys
+- **FKs:** Foreign keys use `ON DELETE CASCADE` for user-owned entities
+- **Default currency:** VND (not USD)
+
+---
+
+## 6. Components & UI
+
+### shadcn/ui Components
+- All components are local files in `src/app/components/ui/`
+- They can be modified directly (not npm packages)
+- Organized by: inputs/, overlays/, navigation/, data/, layout/, feedback/
+
+### Icons
+- Use Lucide React (`import { Wallet, Target } from "lucide-react"`)
+- Japanese Yen icon: `JapaneseYen` (not `Yen`)
+
+### Currency Display
+- Use `SettingsContext.fmt(n)` for formatting: `"10,000 ₫"`
+- Use `SettingsContext.fmtShort(n)` for abbreviated: `"10k"`, `"1.5M"`
+- Currency codes: VND, USD, EUR, JPY
+
+---
+
+## 7. Testing
+
+- **Framework:** xUnit + Moq + FluentAssertions
+- **Naming:** `MethodName_Scenario_ExpectedBehavior`
+- **Repository mocking:** Use `Mock<IXxxRepository>` with `Setup()` and `Verify()`
+- **Controller testing:** Mock `HttpContext` with `ClaimsPrincipal` for `GetUserId()`; use `ControllerContext` on the controller instance
+
+```csharp
+// Controller test setup
+var claims = new[] { new Claim(ClaimTypes.NameIdentifier, userId.ToString()) };
+var identity = new ClaimsIdentity(claims, "TestAuth");
+var principal = new ClaimsPrincipal(identity);
+_controller.ControllerContext = new ControllerContext
+{
+    HttpContext = new DefaultHttpContext { User = principal }
+};
+```
+
+- **Pagination test pattern:** Mock repository to return a `PaginatedResult<T>` with specific `Page`, `PageSize`, `TotalCount`, and verify `HasNextPage`/`HasPreviousPage`/`TotalPages` on the result
+- Run: `cd BudgetManagement && dotnet test BudgetManagement.Tests/BudgetManagement.Tests.csproj` (168 tests)
+
+---
+
+## 8. Git & Workflow
+
+- **Branch naming:** `feature/xxx`, `fix/xxx`, `refactor/xxx`
+- **Commit messages:** Vietnamese or English, descriptive
+- **Before committing:** Run `npm run build` to verify frontend
+- **Sensitive data:** `appsettings.json` with connection strings is gitignored — use `.Development.json` for overrides
+
+---
+
+## 9. Common Pitfalls
+
+1. Always check `ocelot.json` before adding new API routes
+2. All pages are in `src/app/pages/` — organized by feature (auth, dashboard, accounting, financial-control, etc.)
+3. DbContext uses snake_case — EF queries use PascalCase but SQL columns are snake_case
+4. Gateway port is 5229, not 5133 or 5134
+5. Notification system is **separate** from Sonner toasts
+6. Recurring background service runs every 60 seconds
+7. shadcn/ui components are local files — can be modified directly
+8. Default currency is VND, not USD

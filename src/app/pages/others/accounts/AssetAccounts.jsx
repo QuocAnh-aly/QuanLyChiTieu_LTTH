@@ -30,6 +30,7 @@ import {
   Cell,
 } from "recharts";
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { AddWalletModal } from "../../../components/modals/AddWalletModal";
 import { EditWalletModal } from "../../../components/modals/EditWalletModal";
@@ -45,7 +46,7 @@ function mapTransaction(t) {
   const revenueDetail = details.find((d) => d.typeId === 4 && d.credit > 0);
   const isTransfer = !expenseDetail && !revenueDetail;
   const isIncome = !!revenueDetail;
-  let categoryName = "Uncategorized";
+  let categoryName = "Chưa phân loại";
   if (expenseDetail) categoryName = expenseDetail.accountName || "Chi tiêu";
   else if (revenueDetail)
     categoryName = revenueDetail.accountName || "Thu nhập";
@@ -77,8 +78,12 @@ const PIE_COLORS = [
   "#22c55e",
   "#a855f7",
   "#f97316",
+  "#ec4899",
   "#10b981",
-  "#64748b",
+  "#f59e0b",
+  "#6366f1",
+  "#ef4444",
+  "#14b8a6",
 ];
 const fallbackGradients = Object.values(colorGradients);
 
@@ -90,7 +95,8 @@ function mapAccount(acc, index) {
   return {
     id: acc.accountId,
     name: acc.name,
-    type: acc.typeName || "Asset",
+    type: acc.typeName || "Tài sản",
+    typeId: acc.typeId,
     balance: acc.balance ?? 0,
     initialBalance: acc.initialBalance ?? 0,
     icon: iconMap[acc.iconName] || Landmark,
@@ -126,9 +132,11 @@ function CopyButton({ text }) {
   );
 }
 
+import PaginationBar from "../../../components/ui/navigation/PaginationBar";
 import { PageLayout } from "../../../components/layout/PageLayout";
 
 export function AssetAccounts() {
+  const navigate = useNavigate();
   const { fmt, fmtShort } = useSettings();
   const [accounts, setAccounts] = useState([]);
   const [summary, setSummary] = useState({
@@ -145,40 +153,77 @@ export function AssetAccounts() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("default"); // default | balance-desc | balance-asc | name
-  const [recentTxs, setRecentTxs] = useState([]);
-  const [txWalletFilter, setTxWalletFilter] = useState("all"); // "all" | accountId string
+    const [recentTxs, setRecentTxs] = useState([]);
+  const [txWalletFilter, setTxWalletFilter] = useState("all");
+  const [accountPage, setAccountPage] = useState(1);
+  const [accountPageSize, setAccountPageSize] = useState(10);
+  const [displayAccounts, setDisplayAccounts] = useState([]);
+  const [accountTotalCount, setAccountTotalCount] = useState(0);
+  const [accountTotalPages, setAccountTotalPages] = useState(1);
+  const [txPage, setTxPage] = useState(1);
+  const [txPageSize, setTxPageSize] = useState(10);
+  const [txTotalCount, setTxTotalCount] = useState(0);
+  const [txTotalPages, setTxTotalPages] = useState(1); // "all" | accountId string
 
   const fetchWallets = useCallback(async (silent = false) => {
     try {
       if (!silent) setIsLoading(true);
       else setIsRefreshing(true);
-      const data = await walletApi.getSummary();
+      const data = await walletApi.getSummary({ 
+        page: accountPage, 
+        pageSize: accountPageSize,
+        search: search || undefined,
+        sortBy: sortBy !== 'default' ? sortBy : undefined
+      });
       setSummary({
         totalAssets: data.totalAssets ?? 0,
         totalLiabilities: data.totalLiabilities ?? 0,
         totalSavings: data.totalSavings ?? 0,
         netWorth: data.netWorth ?? 0,
       });
-      const mapped = (data.accounts || []).map(mapAccount);
-      setAccounts(mapped);
-      setBalanceHistory(buildBalanceHistory(mapped));
-
-      // Fetch recent transactions
-      const txData = await transactionApi.getAll({ page: 1, pageSize: 20 });
-      const txItems = (txData.items || txData || []).map(mapTransaction);
-      setRecentTxs(txItems);
+      // AllAccounts (full list) — for pie chart, balance distribution, details table
+      const allMapped = (data.allAccounts || []).map(mapAccount);
+      setAccounts(allMapped);
+      // Accounts (paginated) — for card grid
+      const paginatedMapped = (data.accounts || []).map(mapAccount);
+      setDisplayAccounts(paginatedMapped);
+      setAccountTotalCount(data.totalCount ?? 0);
+      setAccountTotalPages(data.totalPages ?? 1);
+      // Cập nhật lại isLoading nếu search/sort thay đổi mà fetchWallets chưa chạy
+      setBalanceHistory(buildBalanceHistory(allMapped));
     } catch (error) {
-      console.error("Error fetching wallets:", error);
+      console.error("Lỗi khi tải dữ liệu ví:", error);
       toast.error("Không thể tải dữ liệu ví");
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [accountPage, accountPageSize, search, sortBy]);
+
+  // Reset về trang 1 khi search/sort thay đổi
+  useEffect(() => {
+    setAccountPage(1);
+  }, [search, sortBy]);
+
+  const fetchTransactions = useCallback(async () => {
+    try {
+      const txData = await transactionApi.getAll({ page: txPage, pageSize: txPageSize });
+      const txItems = (txData.items || txData || []).map(mapTransaction);
+      setRecentTxs(txItems);
+      setTxTotalCount(txData.totalCount ?? txItems.length);
+      setTxTotalPages(txData.totalPages ?? 1);
+    } catch {
+      // silent
+    }
+  }, [txPage, txPageSize]);
 
   useEffect(() => {
     fetchWallets();
   }, [fetchWallets]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
 
   function buildBalanceHistory(accs) {
     const months = [
@@ -210,7 +255,7 @@ export function AssetAccounts() {
   const handleAddWallet = async (wallet) => {
     try {
       const grad = colorGradients[wallet.color] || colorGradients.blue;
-      await walletApi.create({
+      const payload = {
         typeId: 1,
         name: wallet.name,
         iconName: wallet.iconName,
@@ -220,7 +265,11 @@ export function AssetAccounts() {
         balance: wallet.balance,
         cardNumber: wallet.cardNumber || null,
         currencyCode: wallet.currencyCode || "VND",
-      });
+      };
+      if (wallet.sourceAccountId) {
+        payload.sourceAccountId = wallet.sourceAccountId;
+      }
+      await walletApi.create(payload);
       await fetchWallets();
       toast.success(`Đã thêm tài khoản "${wallet.name}"!`);
     } catch {
@@ -271,22 +320,13 @@ export function AssetAccounts() {
     }
   };
 
-  // Filter + sort
-  const filteredAccounts = accounts
-    .filter((a) => a.name.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => {
-      if (sortBy === "balance-desc") return b.balance - a.balance;
-      if (sortBy === "balance-asc") return a.balance - b.balance;
-      if (sortBy === "name") return a.name.localeCompare(b.name);
-      return 0;
-    });
-
   const totalAssets = summary.totalAssets + summary.totalSavings;
 
-  // Pie data: positive balances only
+  // Pie data: only Asset type (typeId=1), positive balances only
   const pieData = accounts
-    .filter((a) => a.balance > 0)
+    .filter((a) => a.typeId === 1 && a.balance > 0)
     .map((a) => ({ name: a.name, value: a.balance }));
+  const pieTotal = pieData.reduce((s, d) => s + d.value, 0);
 
   return (
     <PageLayout
@@ -297,7 +337,7 @@ export function AssetAccounts() {
           <button
             onClick={() => fetchWallets(true)}
             disabled={isRefreshing}
-            className="p-2.5 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 text-slate-600 transition-colors"
+            className="p-2.5 border border-border bg-card rounded-lg hover:bg-muted text-muted-foreground transition-colors"
             title="Làm mới"
           >
             <RefreshCw
@@ -324,7 +364,6 @@ export function AssetAccounts() {
         </>
       }
     >
-
       {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl p-6 text-white">
@@ -338,16 +377,16 @@ export function AssetAccounts() {
           <p className="text-purple-100 text-sm">{accounts.length} tài khoản</p>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border border-slate-200">
+        <div className="bg-card rounded-2xl p-6 border border-border">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-slate-600 text-sm font-medium">
+            <span className="text-muted-foreground text-sm font-medium">
               Tổng tài sản
             </span>
-            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-green-500/15 flex items-center justify-center">
               <ArrowUpRight size={20} className="text-green-600" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-slate-900 mb-1">
+          <p className="text-3xl font-bold text-card-foreground mb-1">
             {fmt(totalAssets)}
           </p>
           <p className="text-green-600 text-sm">
@@ -355,14 +394,19 @@ export function AssetAccounts() {
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border border-slate-200">
+        <div
+          onClick={() => navigate("/accounts/liabilities")}
+          className="bg-card rounded-2xl p-6 border border-border cursor-pointer hover:border-red-400 hover:shadow-md transition-all"
+        >
           <div className="flex items-center justify-between mb-4">
-            <span className="text-slate-600 text-sm font-medium">Nợ</span>
-            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+            <span className="text-muted-foreground text-sm font-medium">
+              Nợ
+            </span>
+            <div className="w-10 h-10 rounded-full bg-red-500/15 flex items-center justify-center">
               <ArrowDownRight size={20} className="text-red-600" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-slate-900 mb-1">
+          <p className="text-3xl font-bold text-card-foreground mb-1">
             {fmt(summary.totalLiabilities)}
           </p>
           <p className="text-red-600 text-sm">
@@ -371,10 +415,130 @@ export function AssetAccounts() {
         </div>
       </div>
 
+      {/* Charts row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Balance Trend */}
+        <div className="lg:col-span-2 bg-card rounded-2xl p-6 border border-border">
+          <h2 className="text-lg font-bold text-card-foreground mb-6">
+            Xu hướng số dư
+          </h2>
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={balanceHistory}>
+              <defs>
+                <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#9333ea" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#9333ea" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="var(--color-border)"
+              />
+              <XAxis
+                dataKey="month"
+                stroke="var(--color-muted-foreground)"
+                tick={{ fontSize: 12 }}
+              />
+              <YAxis
+                stroke="var(--color-muted-foreground)"
+                tick={{ fontSize: 12 }}
+                tickFormatter={fmtShort}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "var(--color-card)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "10px",
+                }}
+                formatter={(val) => [fmt(val), "Số dư"]}
+              />
+              <Area
+                type="monotone"
+                dataKey="balance"
+                stroke="#9333ea"
+                strokeWidth={2.5}
+                fillOpacity={1}
+                fill="url(#colorBalance)"
+                dot={{ r: 4, fill: "#9333ea" }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Asset breakdown pie */}
+        {pieData.length > 0 ? (
+          <div className="bg-card rounded-2xl p-6 border border-border">
+            <h2 className="text-lg font-bold text-card-foreground mb-4">
+              Cơ cấu tài sản
+            </h2>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={55}
+                  outerRadius={100}
+                  paddingAngle={3}
+                  dataKey="value"
+
+                >
+                  {pieData.map((_, i) => (
+                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "var(--color-card)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: "10px",
+                  }}
+                  formatter={(val, name) => [fmt(val), name]}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="mt-4 space-y-2.5 max-h-[200px] overflow-y-auto">
+              {pieData.map((d, i) => (
+                <div
+                  key={d.name}
+                  className="flex items-center justify-between text-xs hover:bg-muted px-2 py-1 rounded-lg transition-colors"
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1 mr-3">
+                    <div
+                      className="w-3 h-3 rounded-full shrink-0"
+                      style={{
+                        backgroundColor: PIE_COLORS[i % PIE_COLORS.length],
+                      }}
+                    />
+                    <span className="text-muted-foreground truncate">
+                      {d.name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-muted-foreground font-medium">
+                      {pieTotal > 0
+                        ? ((d.value / pieTotal) * 100).toFixed(1)
+                        : 0}%
+                    </span>
+                    <span className="font-semibold text-foreground">
+                      {fmt(d.value)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-card rounded-2xl p-6 border border-border flex items-center justify-center text-muted-foreground text-sm">
+            Không có dữ liệu tài sản
+          </div>
+        )}
+      </div>
+
       {/* Balance distribution bar */}
       {accounts.length > 1 && totalAssets > 0 && (
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 mb-6">
-          <h2 className="text-sm font-semibold text-slate-600 mb-3 uppercase tracking-wide">
+        <div className="bg-card rounded-2xl p-6 border border-border mt-6 mb-6">
+          <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
             Phân bổ số dư
           </h2>
           <div className="flex h-3 rounded-full overflow-hidden gap-0.5 mb-3">
@@ -399,14 +563,14 @@ export function AssetAccounts() {
               .map((a) => (
                 <div
                   key={a.id}
-                  className="flex items-center gap-1.5 text-xs text-slate-600"
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground"
                 >
                   <div
                     className="w-2.5 h-2.5 rounded-full"
                     style={{ background: a.gradientFrom }}
                   />
                   <span>{a.name}</span>
-                  <span className="text-slate-400">
+                  <span className="text-muted-foreground">
                     {((a.balance / totalAssets) * 100).toFixed(0)}%
                   </span>
                 </div>
@@ -417,26 +581,26 @@ export function AssetAccounts() {
 
       {/* Search & sort toolbar */}
       {accounts.length > 0 && (
-        <div className="flex gap-3 mb-5">
-          <div className="relative flex-1 max-w-xs">
+        <div className="flex flex-col sm:flex-row gap-3 mb-5">
+          <div className="relative flex-1 max-w-full sm:max-w-xs">
             <Search
               size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Tìm kiếm tài khoản..."
-              className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
           </div>
-          <div className="flex items-center gap-1.5 border border-slate-200 rounded-lg px-3 bg-white">
-            <SortAsc size={15} className="text-slate-400" />
+          <div className="flex items-center gap-1.5 border border-border rounded-lg px-3 bg-card w-full sm:w-auto">
+            <SortAsc size={15} className="text-muted-foreground" />
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="text-sm text-slate-700 bg-transparent focus:outline-none py-2.5 pr-1"
+              className="text-sm text-foreground bg-transparent focus:outline-none py-2.5 pr-1"
             >
               <option value="default">Mặc định</option>
               <option value="balance-desc">Số dư (Cao → Thấp)</option>
@@ -451,27 +615,25 @@ export function AssetAccounts() {
       {isLoading ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="h-48 rounded-2xl bg-slate-200 animate-pulse"
-            />
+            <div key={i} className="h-48 rounded-2xl bg-accent animate-pulse" />
           ))}
         </div>
-      ) : filteredAccounts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 mb-8 bg-white rounded-2xl border border-dashed border-slate-300">
-          <WalletIcon size={48} className="text-slate-300 mb-4" />
-          <p className="text-slate-500 font-medium">
+      ) : accounts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 mb-8 bg-card rounded-2xl border border-dashed border-border">
+          <WalletIcon size={48} className="text-muted-foreground mb-4" />
+          <p className="text-muted-foreground font-medium">
             {search ? "Không tìm thấy tài khoản phù hợp" : "Chưa có tài khoản"}
           </p>
           {!search && (
-            <p className="text-slate-400 text-sm mt-1">
+            <p className="text-muted-foreground text-sm mt-1">
               Nhấn "Thêm tài khoản" để bắt đầu
             </p>
           )}
         </div>
       ) : (
+        <>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {filteredAccounts.map((account) => {
+          {displayAccounts.map((account) => {
             const Icon = account.icon;
             const isPositive = account.balance >= 0;
 
@@ -484,8 +646,8 @@ export function AssetAccounts() {
                 }}
               >
                 {/* decorative circles */}
-                <div className="absolute top-0 right-0 w-36 h-36 bg-white opacity-10 rounded-full -mr-18 -mt-18 pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-28 h-28 bg-white opacity-10 rounded-full -ml-14 -mb-14 pointer-events-none" />
+                <div className="absolute top-0 right-0 w-36 h-36 bg-card opacity-10 rounded-full -mr-18 -mt-18 pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-28 h-28 bg-card opacity-10 rounded-full -ml-14 -mb-14 pointer-events-none" />
 
                 <div className="relative">
                   {/* Top row */}
@@ -502,7 +664,7 @@ export function AssetAccounts() {
                       <button
                         onClick={() => setEditingWallet(account)}
                         className="p-1.5 rounded-full hover:bg-white/20 transition-colors opacity-0 group-hover:opacity-100"
-                        title="Edit"
+                        title="Sửa"
                       >
                         <Pencil size={14} />
                       </button>
@@ -511,7 +673,7 @@ export function AssetAccounts() {
                           handleDeleteWallet(account.id, account.name)
                         }
                         className="p-1.5 rounded-full hover:bg-white/20 transition-colors opacity-0 group-hover:opacity-100"
-                        title="Delete"
+                        title="Xóa"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -580,38 +742,57 @@ export function AssetAccounts() {
             );
           })}
         </div>
+
+        {/* Account pagination */}
+        {accountTotalPages > 1 && (
+          <div className="mb-8">
+            <PaginationBar
+              currentPage={accountPage}
+              totalPages={accountTotalPages}
+              totalCount={accountTotalCount}
+              pageSize={accountPageSize}
+              onPageChange={(p) => { setAccountPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              onPageSizeChange={(newSize) => { setAccountPageSize(newSize); setAccountPage(1); }}
+            />
+          </div>
+        )}
+        </>
       )}
 
       {/* Account details table */}
       {accounts.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-6">
-          <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
-            <h2 className="text-base font-bold text-slate-900">
+        <div className="bg-card rounded-2xl border border-border overflow-hidden mb-6">
+          <div className="px-4 sm:px-6 py-4 border-b border-border bg-muted/50">
+            <h2 className="text-sm sm:text-base font-bold text-card-foreground">
               Chi tiết tài khoản
             </h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50">
-                  <th className="px-6 py-3 font-semibold">Tên tài khoản</th>
-                  <th className="px-6 py-3 font-semibold">Loại</th>
-                  <th className="px-6 py-3 font-semibold text-center">
+                <tr className="text-xs uppercase tracking-wider text-muted-foreground border-b border-border bg-muted">
+                  <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">
+                    Tên tài khoản
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">
+                    Loại
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 font-semibold text-center whitespace-nowrap">
                     Tiền tệ
                   </th>
-                  <th className="px-6 py-3 font-semibold text-right">
+                  <th className="px-3 sm:px-6 py-3 font-semibold text-right whitespace-nowrap">
                     Số dư ban đầu
                   </th>
-                  <th className="px-6 py-3 font-semibold text-right">
+                  <th className="px-3 sm:px-6 py-3 font-semibold text-right whitespace-nowrap">
                     Số dư hiện tại
                   </th>
-                  <th className="px-6 py-3 font-semibold text-right">
+                  <th className="px-3 sm:px-6 py-3 font-semibold text-right whitespace-nowrap">
                     Thay đổi
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredAccounts.map((acc) => {
+              <tbody className="divide-y divide-border">
+                {accounts.map((acc) => {
                   const diff = acc.balance - acc.initialBalance;
                   const diffPct =
                     acc.initialBalance !== 0
@@ -620,42 +801,42 @@ export function AssetAccounts() {
                   return (
                     <tr
                       key={acc.id}
-                      className="hover:bg-slate-50 transition-colors"
+                      className="hover:bg-muted transition-colors"
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <div
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs"
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs shrink-0"
                             style={{
                               background: `linear-gradient(135deg, ${acc.gradientFrom}, ${acc.gradientTo})`,
                             }}
                           >
                             <acc.icon size={14} />
                           </div>
-                          <span className="font-semibold text-slate-900">
+                          <span className="font-semibold text-card-foreground text-sm sm:text-base">
                             {acc.name}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-medium">
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                        <span className="px-2.5 py-1 bg-muted text-muted-foreground rounded-full text-xs font-medium">
                           {acc.type}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className="px-2.5 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-semibold">
+                      <td className="px-3 sm:px-6 py-4 text-center whitespace-nowrap">
+                        <span className="px-2.5 py-1 bg-purple-500/15 text-purple-600 rounded-full text-xs font-semibold">
                           {acc.currencyCode}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right text-slate-600 font-medium">
+                      <td className="px-3 sm:px-6 py-4 text-right text-muted-foreground font-medium whitespace-nowrap text-sm">
                         {fmt(acc.initialBalance)}
                       </td>
-                      <td className="px-6 py-4 text-right font-bold text-slate-900">
+                      <td className="px-3 sm:px-6 py-4 text-right font-bold text-card-foreground whitespace-nowrap text-sm">
                         {fmt(acc.balance)}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-3 sm:px-6 py-4 text-right whitespace-nowrap">
                         <span
-                          className={`font-semibold text-sm ${diff >= 0 ? "text-green-600" : "text-red-500"}`}
+                          className={`font-semibold text-xs sm:text-sm ${diff >= 0 ? "text-green-600" : "text-red-500"}`}
                         >
                           {diff >= 0 ? "+" : "-"}
                           {fmt(Math.abs(diff))}
@@ -676,15 +857,15 @@ export function AssetAccounts() {
       )}
 
       {/* Recent Transactions */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-6">
-        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between flex-wrap gap-3">
-          <h2 className="text-base font-bold text-slate-900">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden mb-6">
+        <div className="px-4 sm:px-6 py-4 border-b border-border bg-muted/50 flex items-center justify-between flex-wrap gap-3">
+          <h2 className="text-sm sm:text-base font-bold text-card-foreground">
             Lịch sử giao dịch gần nhất
           </h2>
           <select
             value={txWalletFilter}
             onChange={(e) => setTxWalletFilter(e.target.value)}
-            className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+            className="text-xs sm:text-sm border border-border rounded-lg px-2 sm:px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card"
           >
             <option value="all">Tất cả ví</option>
             {accounts.map((a) => (
@@ -697,14 +878,22 @@ export function AssetAccounts() {
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50">
-                <th className="px-6 py-3 font-semibold">Mô tả</th>
-                <th className="px-6 py-3 font-semibold">Danh mục</th>
-                <th className="px-6 py-3 font-semibold">Ngày</th>
-                <th className="px-6 py-3 font-semibold text-right">Số tiền</th>
+              <tr className="text-xs uppercase tracking-wider text-muted-foreground border-b border-border bg-muted">
+                <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">
+                  Mô tả
+                </th>
+                <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">
+                  Danh mục
+                </th>
+                <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">
+                  Ngày
+                </th>
+                <th className="px-3 sm:px-6 py-3 font-semibold text-right whitespace-nowrap">
+                  Số tiền
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {recentTxs
                 .filter((t) => {
                   if (txWalletFilter === "all") return true;
@@ -712,13 +901,12 @@ export function AssetAccounts() {
                     (d) => String(d.accountId) === txWalletFilter,
                   );
                 })
-                .slice(0, 10)
-                .map((t) => {
+              .map((t) => {
                   const iconBg = t.isTransfer
-                    ? "bg-blue-50"
+                    ? "bg-blue-500/10"
                     : t.isIncome
-                      ? "bg-green-100"
-                      : "bg-red-50";
+                      ? "bg-green-500/15"
+                      : "bg-red-500/10";
                   const TxIcon = t.isTransfer
                     ? ArrowLeftRight
                     : t.isIncome
@@ -733,37 +921,44 @@ export function AssetAccounts() {
                     ? "text-blue-600"
                     : t.isIncome
                       ? "text-green-600"
-                      : "text-slate-900";
+                      : "text-card-foreground";
                   const prefix = t.isIncome ? "+" : t.isTransfer ? "" : "-";
                   return (
                     <tr
                       key={t.journalId}
-                      className="hover:bg-slate-50 transition-colors"
+                      className="hover:bg-muted transition-colors"
                     >
-                      <td className="px-6 py-3.5">
-                        <div className="flex items-center gap-3">
+                      <td className="px-3 sm:px-6 py-3.5 whitespace-nowrap">
+                        <div className="flex items-center gap-2 sm:gap-3">
                           <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}
+                            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}
                           >
-                            <TxIcon size={14} className={iconCls} />
+                            <TxIcon
+                              size={12}
+                              className={iconCls + " sm:hidden"}
+                            />
+                            <TxIcon
+                              size={14}
+                              className={iconCls + " hidden sm:block"}
+                            />
                           </div>
-                          <span className="font-medium text-slate-900 text-sm">
+                          <span className="font-medium text-card-foreground text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">
                             {t.description || "—"}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-3.5">
-                        <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-medium">
+                      <td className="px-3 sm:px-6 py-3.5 whitespace-nowrap">
+                        <span className="px-2 py-1 bg-muted text-muted-foreground rounded-full text-[10px] sm:text-xs font-medium">
                           {t.categoryName}
                         </span>
                       </td>
-                      <td className="px-6 py-3.5 text-slate-500 text-sm">
+                      <td className="px-3 sm:px-6 py-3.5 text-muted-foreground text-xs sm:text-sm whitespace-nowrap">
                         {t.transactionDate
                           ? format(new Date(t.transactionDate), "dd/MM/yyyy")
                           : "—"}
                       </td>
                       <td
-                        className={`px-6 py-3.5 text-right font-bold text-sm ${amtCls}`}
+                        className={`px-3 sm:px-6 py-3.5 text-right font-bold text-xs sm:text-sm ${amtCls} whitespace-nowrap`}
                       >
                         {prefix}
                         {fmt(Math.abs(t.totalAmount))}
@@ -781,7 +976,7 @@ export function AssetAccounts() {
                 <tr>
                   <td
                     colSpan="4"
-                    className="px-6 py-10 text-center text-slate-400 text-sm"
+                    className="px-3 sm:px-6 py-10 text-center text-muted-foreground text-sm"
                   >
                     Không có giao dịch nào
                   </td>
@@ -790,114 +985,27 @@ export function AssetAccounts() {
             </tbody>
           </table>
         </div>
-      </div>
 
-      {/* Charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Balance Trend */}
-        <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200">
-          <h2 className="text-lg font-bold text-slate-900 mb-6">
-            Xu hướng số dư
-          </h2>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={balanceHistory}>
-              <defs>
-                <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#9333ea" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#9333ea" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="month" stroke="#94a3b8" tick={{ fontSize: 12 }} />
-              <YAxis
-                stroke="#94a3b8"
-                tick={{ fontSize: 12 }}
-                tickFormatter={fmtShort}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#fff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "10px",
-                }}
-                formatter={(val) => [fmt(val), "Số dư"]}
-              />
-              <Area
-                type="monotone"
-                dataKey="balance"
-                stroke="#9333ea"
-                strokeWidth={2.5}
-                fillOpacity={1}
-                fill="url(#colorBalance)"
-                dot={{ r: 4, fill: "#9333ea" }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Asset breakdown pie */}
-        {pieData.length > 0 ? (
-          <div className="bg-white rounded-2xl p-6 border border-slate-200">
-            <h2 className="text-lg font-bold text-slate-900 mb-4">
-              Cơ cấu tài sản
-            </h2>
-            <ResponsiveContainer width="100%" height={160}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={45}
-                  outerRadius={75}
-                  paddingAngle={4}
-                  dataKey="value"
-                >
-                  {pieData.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#fff",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "10px",
-                  }}
-                  formatter={(val) => [fmt(val), ""]}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="mt-3 space-y-2">
-              {pieData.slice(0, 4).map((d, i) => (
-                <div
-                  key={d.name}
-                  className="flex items-center justify-between text-xs"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <div
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{
-                        backgroundColor: PIE_COLORS[i % PIE_COLORS.length],
-                      }}
-                    />
-                    <span className="text-slate-600 truncate max-w-[90px]">
-                      {d.name}
-                    </span>
-                  </div>
-                  <span className="font-semibold text-slate-700">
-                    {fmt(d.value)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 flex items-center justify-center text-slate-400 text-sm">
-            Không có dữ liệu tài sản
+        {/* Transactions pagination */}
+        {txTotalPages > 1 && (
+          <div className="px-4 sm:px-6 py-3 border-t border-border">
+            <PaginationBar
+              currentPage={txPage}
+              totalPages={txTotalPages}
+              totalCount={txTotalCount}
+              pageSize={txPageSize}
+              onPageChange={(p) => { setTxPage(p); }}
+              onPageSizeChange={(newSize) => { setTxPageSize(newSize); setTxPage(1); }}
+            />
           </div>
         )}
       </div>
 
-      <AddWalletModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={handleAddWallet} />
+      <AddWalletModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={handleAddWallet}
+      />
       {editingWallet && (
         <EditWalletModal
           wallet={editingWallet}

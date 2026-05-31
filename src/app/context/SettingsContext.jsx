@@ -39,7 +39,7 @@ export function SettingsProvider({ children }) {
       if (primary) setCurrencyCode(primary.code);
     } catch (err) {
       // Stay on fallback when unauthenticated or offline
-      console.warn('Could not load currencies:', err?.message);
+      console.warn('Không thể tải dữ liệu tiền tệ:', err?.message);
     }
   }, []);
 
@@ -55,7 +55,7 @@ export function SettingsProvider({ children }) {
       }
       setRates(map);
     } catch (err) {
-      console.warn('Could not load exchange rates:', err?.message);
+      console.warn('Không thể tải tỷ giá hối đoái:', err?.message);
     }
   }, []);
 
@@ -140,7 +140,16 @@ export function SettingsProvider({ children }) {
 
   // ── Formatting ─────────────────────────────────────────
   const currencySymbol = currencies.find(c => c.code === currency)?.symbol ?? currency;
-  const fmt      = (n) => `${Number(n ?? 0).toLocaleString()} ${currencySymbol}`;
+  const fmt = (n) => {
+    const num = Number(n ?? 0);
+    try {
+      // Dùng Intl.NumberFormat locale-aware — trình duyệt tự xử lý symbol
+      return num.toLocaleString('vi-VN', { style: 'currency', currency });
+    } catch {
+      // Fallback nếu currency code không hợp lệ
+      return `${num.toLocaleString('vi-VN')} ${currency}`;
+    }
+  };
   const fmtShort = (n) => {
     const num = Number(n ?? 0);
     if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(1)}B`;

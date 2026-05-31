@@ -18,9 +18,12 @@ public class RecurringController : BaseController
 
     // GET api/recurring
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
-        var result = await _recurringService.GetByUserAsync(GetUserId());
+        if (pageSize <= 0 || pageSize > 100) pageSize = 50;
+        if (page <= 0) page = 1;
+
+        var result = await _recurringService.GetByUserPagedAsync(GetUserId(), page, pageSize);
         return Ok(result);
     }
 
@@ -39,7 +42,7 @@ public class RecurringController : BaseController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { message = ex.Message });
         }
     }
 
@@ -66,7 +69,7 @@ public class RecurringController : BaseController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { message = ex.Message });
         }
     }
 
@@ -82,10 +85,9 @@ public class RecurringController : BaseController
         catch (KeyNotFoundException ex)
         {
             return NotFound(new { message = ex.Message });
-        }
-        catch (UnauthorizedAccessException ex)
+        }        catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { message = ex.Message });
         }
     }
 }

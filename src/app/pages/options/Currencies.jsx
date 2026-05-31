@@ -117,72 +117,73 @@ export function Currencies() {
     >
 
       {/* ── Table card ─────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <h3 className="font-bold text-slate-900 text-lg">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+        <div className="p-6 border-b border-border flex flex-col sm:flex-row justify-between items-center gap-4">
+          <h3 className="font-bold text-card-foreground text-lg">
             Danh sách Tiền tệ
-            <span className="ml-2 text-sm font-normal text-slate-400">({currencies.length})</span>
+            <span className="ml-2 text-sm font-normal text-muted-foreground">({currencies.length})</span>
           </h3>
           <div className="relative w-full sm:max-w-xs">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Tìm kiếm theo mã hoặc tên..."
-              className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full pl-9 pr-4 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
           </div>
         </div>
 
+        <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead>
-            <tr className="text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50">
-              <th className="px-6 py-4 font-semibold">Mã</th>
-              <th className="px-6 py-4 font-semibold">Tên tiền tệ</th>
-              <th className="px-6 py-4 font-semibold text-center">Ký hiệu</th>
-              <th className="px-6 py-4 font-semibold text-center">Trạng thái</th>
-              <th className="px-6 py-4 font-semibold text-right">Thao tác</th>
+            <tr className="text-xs uppercase tracking-wider text-muted-foreground border-b border-border bg-muted">
+              <th className="px-4 sm:px-6 py-4 font-semibold">Mã</th>
+              <th className="px-4 sm:px-6 py-4 font-semibold hidden sm:table-cell">Tên tiền tệ</th>
+              <th className="px-4 sm:px-6 py-4 font-semibold text-center">Ký hiệu</th>
+              <th className="px-4 sm:px-6 py-4 font-semibold text-center hidden md:table-cell">Trạng thái</th>
+              <th className="px-4 sm:px-6 py-4 font-semibold text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-border">
             {filtered.map(c => (
               <tr
                 key={c.code}
-                className={`hover:bg-slate-50 transition-colors ${c.isDefault ? 'bg-indigo-50/30' : ''}`}
+                className={`hover:bg-muted transition-colors ${c.isDefault ? 'bg-indigo-50/30' : ''}`}
               >
-                <td className="px-6 py-4">
-                  <span className="font-bold text-slate-900 font-mono">{c.code}</span>
+                <td className="px-4 sm:px-6 py-4">
+                  <span className="font-bold text-card-foreground font-mono">{c.code}</span>
                 </td>
-                <td className="px-6 py-4 text-slate-700 font-medium">{c.name}</td>
-                <td className="px-6 py-4 text-center">
-                  <span className="inline-flex min-w-8 h-8 px-2 items-center justify-center bg-slate-100 text-slate-700 rounded-lg font-mono font-bold text-sm border border-slate-200">
+                <td className="px-4 sm:px-6 py-4 text-foreground font-medium hidden sm:table-cell">{c.name}</td>
+                <td className="px-4 sm:px-6 py-4 text-center">
+                  <span className="inline-flex min-w-8 h-8 px-2 items-center justify-center bg-muted text-foreground rounded-lg font-mono font-bold text-sm border border-border">
                     {c.symbol}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-center">
+                <td className="px-4 sm:px-6 py-4 text-center hidden md:table-cell">
                   {c.isDefault ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold">
                       <Star size={12} className="fill-indigo-700" />
                       Mặc định
                     </span>
                   ) : (
-                    <span className="text-slate-300 text-sm">—</span>
+                    <span className="text-muted-foreground text-sm">—</span>
                   )}
                 </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center justify-end gap-2">
+                <td className="px-4 sm:px-6 py-4">
+                  <div className="flex items-center justify-end gap-1 sm:gap-2">
                     {!c.isDefault && (
                       <>
                         <button
                           onClick={() => handleSetDefault(c.code)}
-                          className="px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-md hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-colors"
+                          className="px-2 sm:px-3 py-1.5 text-xs font-medium text-muted-foreground bg-card border border-border rounded-md hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-colors"
                         >
                           Đặt mặc định
                         </button>
                         <button
                           onClick={() => handleRemove(c.code)}
-                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                          className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
                           title="Xóa tiền tệ"
                         >
                           <Trash2 size={16} />
@@ -190,7 +191,7 @@ export function Currencies() {
                       </>
                     )}
                     {c.isDefault && (
-                      <span className="text-xs text-slate-400 italic pr-1">Đang dùng</span>
+                      <span className="text-xs text-muted-foreground italic pr-1">Đang dùng</span>
                     )}
                   </div>
                 </td>
@@ -198,30 +199,31 @@ export function Currencies() {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan="5" className="px-6 py-16 text-center">
-                  <DollarSign size={32} className="mx-auto text-slate-300 mb-2" />
-                  <p className="text-slate-500">Không tìm thấy loại tiền tệ nào.</p>
+                <td colSpan="5" className="px-4 sm:px-6 py-16 text-center">
+                  <DollarSign size={32} className="mx-auto text-muted-foreground mb-2" />
+                  <p className="text-muted-foreground">Không tìm thấy loại tiền tệ nào.</p>
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* ── Add Currency Modal ──────────────────────── */}
       {showAdd && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg">
 
             {/* Modal header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+            <div className="flex items-center justify-between p-6 border-b border-border">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Thêm tiền tệ</h2>
-                <p className="text-sm text-slate-500 mt-0.5">Chọn từ danh sách hoặc nhập thủ công</p>
+                <h2 className="text-xl font-bold text-card-foreground">Thêm tiền tệ</h2>
+                <p className="text-sm text-muted-foreground mt-0.5">Chọn từ danh sách hoặc nhập thủ công</p>
               </div>
               <button
                 onClick={closeModal}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-500"
+                className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground"
               >
                 <X size={20} />
               </button>
@@ -234,7 +236,7 @@ export function Currencies() {
                 className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
                   tab === 'popular'
                     ? 'bg-purple-100 text-purple-700'
-                    : 'text-slate-500 hover:bg-slate-100'
+                    : 'text-muted-foreground hover:bg-muted'
                 }`}
               >
                 Tiền tệ phổ biến
@@ -244,7 +246,7 @@ export function Currencies() {
                 className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
                   tab === 'custom'
                     ? 'bg-purple-100 text-purple-700'
-                    : 'text-slate-500 hover:bg-slate-100'
+                    : 'text-muted-foreground hover:bg-muted'
                 }`}
               >
                 Nhập thủ công
@@ -255,7 +257,7 @@ export function Currencies() {
             {tab === 'popular' && (
               <div className="p-4">
                 {availablePopular.length === 0 ? (
-                  <div className="py-8 text-center text-slate-400 text-sm">
+                  <div className="py-8 text-center text-muted-foreground text-sm">
                     Tất cả tiền tệ phổ biến đã được thêm.
                   </div>
                 ) : (
@@ -264,14 +266,14 @@ export function Currencies() {
                       <button
                         key={c.code}
                         onClick={() => handleAddPopular(c)}
-                        className="flex items-center gap-3 p-3 border border-slate-200 rounded-xl hover:border-purple-300 hover:bg-purple-50 transition-colors text-left group"
+                        className="flex items-center gap-3 p-3 border border-border rounded-xl hover:border-purple-400 hover:bg-purple-50 transition-colors text-left group"
                       >
-                        <span className="w-9 h-9 flex items-center justify-center bg-slate-100 group-hover:bg-purple-100 rounded-lg font-mono font-bold text-sm text-slate-700 group-hover:text-purple-700 flex-shrink-0 transition-colors">
+                        <span className="w-9 h-9 flex items-center justify-center bg-muted group-hover:bg-purple-100 rounded-lg font-mono font-bold text-sm text-foreground group-hover:text-purple-700 flex-shrink-0 transition-colors">
                           {c.symbol}
                         </span>
                         <div className="min-w-0">
-                          <div className="font-bold text-slate-900 text-sm">{c.code}</div>
-                          <div className="text-xs text-slate-500 truncate">{c.name}</div>
+                          <div className="font-bold text-card-foreground text-sm">{c.code}</div>
+                          <div className="text-xs text-muted-foreground truncate">{c.name}</div>
                         </div>
                       </button>
                     ))}
@@ -284,9 +286,9 @@ export function Currencies() {
             {tab === 'custom' && (
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1">
                     Mã tiền tệ <span className="text-red-500">*</span>
-                    <span className="ml-1 text-xs text-slate-400 font-normal">(2–5 chữ in hoa)</span>
+                    <span className="ml-1 text-xs text-muted-foreground font-normal">(2–5 chữ in hoa)</span>
                   </label>
                   <input
                     type="text"
@@ -295,14 +297,14 @@ export function Currencies() {
                     placeholder="VD: THB, GBP, CNY"
                     maxLength={5}
                     className={`w-full px-3 py-2.5 border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-500 ${
-                      errors.code ? 'border-red-400 bg-red-50' : 'border-slate-200'
+                      errors.code ? 'border-red-400 bg-red-50' : 'border-border'
                     }`}
                   />
                   {errors.code && <p className="text-red-500 text-xs mt-1">{errors.code}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1">
                     Tên tiền tệ <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -311,14 +313,14 @@ export function Currencies() {
                     onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                     placeholder="VD: Thai Baht, British Pound"
                     className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 ${
-                      errors.name ? 'border-red-400 bg-red-50' : 'border-slate-200'
+                      errors.name ? 'border-red-400 bg-red-50' : 'border-border'
                     }`}
                   />
                   {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1">
                     Ký hiệu <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -328,7 +330,7 @@ export function Currencies() {
                     placeholder="VD: ฿, £, S$"
                     maxLength={5}
                     className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 ${
-                      errors.symbol ? 'border-red-400 bg-red-50' : 'border-slate-200'
+                      errors.symbol ? 'border-red-400 bg-red-50' : 'border-border'
                     }`}
                   />
                   {errors.symbol && <p className="text-red-500 text-xs mt-1">{errors.symbol}</p>}
@@ -336,23 +338,23 @@ export function Currencies() {
 
                 {/* Preview */}
                 {(form.code || form.symbol) && (
-                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-xs text-slate-500">Xem trước:</span>
-                    <span className="font-mono font-bold text-slate-700">{form.code || '???'}</span>
-                    <span className="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg font-mono font-bold text-sm text-slate-700">
+                  <div className="flex items-center gap-3 p-3 bg-muted rounded-xl border border-border">
+                    <span className="text-xs text-muted-foreground">Xem trước:</span>
+                    <span className="font-mono font-bold text-foreground">{form.code || '???'}</span>
+                    <span className="w-8 h-8 flex items-center justify-center bg-card border border-border rounded-lg font-mono font-bold text-sm text-foreground">
                       {form.symbol || '?'}
                     </span>
-                    <span className="text-sm text-slate-600">{form.name || 'Tên tiền tệ'}</span>
+                    <span className="text-sm text-muted-foreground">{form.name || 'Tên tiền tệ'}</span>
                   </div>
                 )}
               </div>
             )}
 
             {/* Footer */}
-            <div className="flex gap-3 p-6 pt-2 border-t border-slate-100 mt-2">
+            <div className="flex gap-3 p-6 pt-2 border-t border-border mt-2">
               <button
                 onClick={closeModal}
-                className="flex-1 px-4 py-2.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                className="flex-1 px-4 py-2.5 border border-border rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors"
               >
                 Hủy
               </button>

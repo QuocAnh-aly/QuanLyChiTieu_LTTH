@@ -1,14 +1,12 @@
 import axiosClient from './axiosClient';
 
 export const accountApi = {
-  getAll() {
-    const url = '/api/accounts';
-    return axiosClient.get(url);
+  getAll(params = {}) {
+    return axiosClient.get('/api/accounts', { params });
   },
 
-  getByType(typeId) {
-    const url = `/api/accounts/type/${typeId}`;
-    return axiosClient.get(url);
+  getByType(typeId, params = {}) {
+    return axiosClient.get(`/api/accounts/type/${typeId}`, { params });
   },
 
   getById(id) {

@@ -36,6 +36,13 @@ public class TransactionService : ITransactionService
         return entries.Select(MapToDto);
     }
 
+    public async Task<IEnumerable<TransactionDto>> GetByDateRangeAndAccountAsync(
+        int userId, DateTime from, DateTime to, int accountId)
+    {
+        var entries = await _journalRepo.GetByDateRangeAndAccountAsync(userId, from, to, accountId);
+        return entries.Select(MapToDto);
+    }
+
     public async Task<TransactionDto> GetByIdAsync(int userId, int journalId)
     {
         var entry = await _journalRepo.GetWithDetailsAsync(journalId)
@@ -202,8 +209,9 @@ public class TransactionService : ITransactionService
     private async Task UpdateAccountBalanceAsync(Account account, decimal delta)
     {
         // typeId 1 (Assets) hoặc 5 (Expense): debit = tăng
-        // typeId 2,3,4 (Liabilities, Equity, Revenue): credit = tăng
-        var normalBalanceFactor = account.TypeId is 1 or 5 ? 1 : -1;
+        // typeId 2 (Liabilities): cũng debit = tăng vì balance đang âm (nợ)
+        // typeId 3,4 (Equity, Revenue): credit = tăng
+        var normalBalanceFactor = account.TypeId is 1 or 2 or 5 ? 1 : -1;
         await _accountRepo.UpdateBalanceAsync(account.AccountId, delta * normalBalanceFactor);
     }
 

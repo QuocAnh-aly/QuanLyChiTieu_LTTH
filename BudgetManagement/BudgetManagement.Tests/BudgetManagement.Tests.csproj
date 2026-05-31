@@ -21,11 +21,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\BudgetManagement.Common\BudgetManagement.Common.csproj" />
     <ProjectReference Include="..\BudgetManagement.Services\BudgetManagement.Services.csproj" />
     <ProjectReference Include="..\BudgetManagement.Dto\BudgetManagement.Dto.csproj" />
     <ProjectReference Include="..\BudgetManagement.Entities\BudgetManagement.Entities.csproj" />
     <ProjectReference Include="..\BudgetManagement.Repository\BudgetManagement.Repository.csproj" />
+    <ProjectReference Include="..\BudgetManagement.APIService\BudgetManagement.APIService.csproj" />
   </ItemGroup>
 
 </Project>

@@ -101,8 +101,8 @@ function buildCumulativeData(transactions) {
 const ChartTooltip = ({ active, payload, label, fmt }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-lg px-3 py-2 text-xs">
-      <p className="font-semibold text-slate-700 mb-1">Ngày {label}</p>
+    <div className="bg-card border border-border rounded-xl shadow-lg px-3 py-2 text-xs">
+      <p className="font-semibold text-foreground mb-1">Ngày {label}</p>
       <p className="text-purple-600 font-bold">{fmt(payload[0].value)}</p>
     </div>
   );
@@ -113,11 +113,11 @@ const PieTooltip = ({ active, payload, fmt, total }) => {
   const d = payload[0];
   const pct = total > 0 ? ((d.value / total) * 100).toFixed(1) : 0;
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-lg px-3 py-2 text-xs">
-      <p className="font-semibold text-slate-700 mb-0.5">{d.name}</p>
-      <p className="text-slate-500">
-        <span className="font-bold text-slate-900">{fmt(d.value)}</span>
-        <span className="text-slate-400 ml-1">({pct}%)</span>
+    <div className="bg-card border border-border rounded-xl shadow-lg px-3 py-2 text-xs">
+      <p className="font-semibold text-foreground mb-0.5">{d.name}</p>
+      <p className="text-muted-foreground">
+        <span className="font-bold text-card-foreground">{fmt(d.value)}</span>
+        <span className="text-muted-foreground ml-1">({pct}%)</span>
       </p>
     </div>
   );
@@ -126,9 +126,9 @@ const PieTooltip = ({ active, payload, fmt, total }) => {
 const CumulativeTooltip = ({ active, payload, label, fmt }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-lg px-3 py-2 text-xs">
-      <p className="font-semibold text-slate-700 mb-1">Ngày {label}</p>
-      <p className="text-slate-500">Đã chi lũy kế: <span className="font-bold text-slate-900">{fmt(payload[0].value)}</span></p>
+    <div className="bg-card border border-border rounded-xl shadow-lg px-3 py-2 text-xs">
+      <p className="font-semibold text-foreground mb-1">Ngày {label}</p>
+      <p className="text-muted-foreground">Đã chi lũy kế: <span className="font-bold text-card-foreground">{fmt(payload[0].value)}</span></p>
     </div>
   );
 };
@@ -136,12 +136,12 @@ const CumulativeTooltip = ({ active, payload, label, fmt }) => {
 function PieCard({ title, data, total, fmt }) {
   if (!data?.length) return null;
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-      <p className="text-sm font-bold text-slate-700 mb-3">{title}</p>
+    <div className="bg-card rounded-2xl border border-border shadow-sm p-5">
+      <p className="text-sm font-bold text-foreground mb-3">{title}</p>
       <ResponsiveContainer width="100%" height={180}>
         <PieChart>
           <Pie data={data} cx="50%" cy="50%" innerRadius={45} outerRadius={72} paddingAngle={2} dataKey="value">
-            {data.map((entry, i) => <Cell key={i} fill={entry.color} stroke="#fff" strokeWidth={2} />)}
+            {data.map((entry, i) => <Cell key={i} fill={entry.color} stroke="var(--color-card)" strokeWidth={2} />)}
           </Pie>
           <Tooltip content={<PieTooltip fmt={fmt} total={total} />} />
         </PieChart>
@@ -151,9 +151,9 @@ function PieCard({ title, data, total, fmt }) {
           <div key={d.name} className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-1.5 min-w-0">
               <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
-              <span className="text-slate-600 truncate">{d.name}</span>
+              <span className="text-muted-foreground truncate">{d.name}</span>
             </div>
-            <span className="font-semibold text-slate-700 shrink-0 ml-2">{fmt(d.value)}</span>
+            <span className="font-semibold text-foreground shrink-0 ml-2">{fmt(d.value)}</span>
           </div>
         ))}
       </div>
@@ -302,11 +302,10 @@ export function BudgetDetail() {
     return (
       <PageLayout title="Chi tiết ngân sách">
         <div className="space-y-4">
-          <div className="h-32 bg-slate-100 rounded-2xl animate-pulse" />
-          <div className="grid grid-cols-4 gap-4">
-            {[1,2,3,4].map(i => <div key={i} className="h-24 bg-slate-100 rounded-2xl animate-pulse" />)}
+          <div className="h-32 bg-muted rounded-2xl animate-pulse" />            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[1,2,3,4].map(i => <div key={i} className="h-24 bg-muted rounded-2xl animate-pulse" />)}
           </div>
-          <div className="h-64 bg-slate-100 rounded-2xl animate-pulse" />
+          <div className="h-64 bg-muted rounded-2xl animate-pulse" />
         </div>
       </PageLayout>
     );
@@ -315,7 +314,7 @@ export function BudgetDetail() {
   if (!budget) {
     return (
       <PageLayout title="Chi tiết ngân sách">
-        <div className="py-16 text-center text-slate-400">
+        <div className="py-16 text-center text-muted-foreground">
           <TrendingUp size={48} className="mx-auto mb-3 text-slate-200" />
           <p>Không tìm thấy ngân sách</p>
           <button onClick={() => navigate("/budgets")} className="mt-3 text-purple-600 text-sm hover:underline">
@@ -358,15 +357,15 @@ export function BudgetDetail() {
       actions={
         <>
           <button onClick={() => navigate("/budgets")}
-            className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 text-slate-600 transition-colors">
+            className="flex items-center gap-2 px-4 py-2.5 border border-border bg-card rounded-lg hover:bg-muted text-muted-foreground transition-colors">
             <ArrowLeft size={18} /> Quay lại
           </button>
           <button onClick={() => setEditOpen(true)}
-            className="p-2.5 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 text-slate-600 transition-colors" title="Sửa">
+            className="p-2.5 border border-border bg-card rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Sửa">
             <Pencil size={18} />
           </button>
           <button onClick={handleDelete}
-            className="p-2.5 border border-slate-200 bg-white rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors" title="Xóa">
+            className="p-2.5 border border-border bg-card rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors" title="Xóa">
             <Trash2 size={18} />
           </button>
         </>
@@ -378,14 +377,14 @@ export function BudgetDetail() {
           <Icon size={24} className={colors.text} />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-slate-900 leading-tight">{budget.title}</h2>
+          <h2 className="text-xl font-bold text-card-foreground leading-tight">{budget.title}</h2>
           <div className="flex items-center gap-2 mt-1">
             <StatusBadge percentage={pct} />
             {budget.periodType && (
-              <span className="text-xs text-slate-500">{PERIOD_LABELS[budget.periodType] || budget.periodType}</span>
+              <span className="text-xs text-muted-foreground">{PERIOD_LABELS[budget.periodType] || budget.periodType}</span>
             )}
             {!budget.isActive && (
-              <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-semibold">Tắt</span>
+              <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded font-semibold">Tắt</span>
             )}
           </div>
         </div>
@@ -404,7 +403,7 @@ export function BudgetDetail() {
           </div>
         </div>
         <div className="w-full h-3 bg-white/20 rounded-full mb-2">
-          <div className="h-3 bg-white rounded-full transition-all duration-700"
+          <div className="h-3 bg-card rounded-full transition-all duration-700"
             style={{ width: `${pctClamped}%` }} />
         </div>
         <div className="flex justify-between text-xs text-white/85">
@@ -415,66 +414,66 @@ export function BudgetDetail() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+        <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-slate-500">Hạn mức</p>
-            <Target size={16} className="text-slate-300" />
+            <p className="text-xs text-muted-foreground">Hạn mức</p>
+            <Target size={16} className="text-muted-foreground" />
           </div>
-          <p className="text-xl font-bold text-slate-900">{fmt(target)}</p>
+          <p className="text-xl font-bold text-card-foreground">{fmt(target)}</p>
         </div>
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+        <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-slate-500">Đã chi</p>
-            <TrendingUp size={16} className="text-slate-300" />
+            <p className="text-xs text-muted-foreground">Đã chi</p>
+            <TrendingUp size={16} className="text-muted-foreground" />
           </div>
-          <p className="text-xl font-bold text-slate-900">{fmt(spent)}</p>
+          <p className="text-xl font-bold text-card-foreground">{fmt(spent)}</p>
         </div>
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+        <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-slate-500">{isOver ? "Vượt mức" : "Còn lại"}</p>
-            <Wallet size={16} className="text-slate-300" />
+            <p className="text-xs text-muted-foreground">{isOver ? "Vượt mức" : "Còn lại"}</p>
+            <Wallet size={16} className="text-muted-foreground" />
           </div>
-          <p className={`text-xl font-bold ${isOver ? "text-red-600" : "text-slate-900"}`}>
+          <p className={`text-xl font-bold ${isOver ? "text-red-600" : "text-card-foreground"}`}>
             {fmt(Math.abs(remaining))}
           </p>
         </div>
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+        <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-slate-500">Số giao dịch</p>
-            <Receipt size={16} className="text-slate-300" />
+            <p className="text-xs text-muted-foreground">Số giao dịch</p>
+            <Receipt size={16} className="text-muted-foreground" />
           </div>
-          <p className="text-xl font-bold text-slate-900">{transactions.length}</p>
+          <p className="text-xl font-bold text-card-foreground">{transactions.length}</p>
           {avgSpend > 0 && (
-            <p className="text-xs text-slate-400 mt-0.5">TB {fmt(avgSpend)}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">TB {fmt(avgSpend)}</p>
           )}
         </div>
       </div>
 
       {/* Info row */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 mb-6">
+      <div className="bg-card rounded-2xl border border-border shadow-sm p-5 mb-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
-            <p className="text-xs text-slate-400 mb-0.5">Chu kỳ</p>
-            <p className="font-semibold text-slate-800">
+            <p className="text-xs text-muted-foreground mb-0.5">Chu kỳ</p>
+            <p className="font-semibold text-foreground">
               {PERIOD_LABELS[budget.periodType] || budget.periodType || "—"}
             </p>
           </div>
           <div>
-            <p className="text-xs text-slate-400 mb-0.5">Bắt đầu</p>
-            <p className="font-semibold text-slate-800">
+            <p className="text-xs text-muted-foreground mb-0.5">Bắt đầu</p>
+            <p className="font-semibold text-foreground">
               {budget.startDate ? format(parseISO(budget.startDate), "dd/MM/yyyy", { locale: vi }) : "—"}
             </p>
           </div>
           <div>
-            <p className="text-xs text-slate-400 mb-0.5">Kết thúc</p>
-            <p className="font-semibold text-slate-800">
+            <p className="text-xs text-muted-foreground mb-0.5">Kết thúc</p>
+            <p className="font-semibold text-foreground">
               {budget.endDate ? format(parseISO(budget.endDate), "dd/MM/yyyy", { locale: vi }) : "—"}
             </p>
           </div>
           <div>
-            <p className="text-xs text-slate-400 mb-0.5">Tài khoản</p>
-            <p className="font-semibold text-slate-800 flex items-center gap-1">
-              <Wallet size={13} className="text-slate-400" />
+            <p className="text-xs text-muted-foreground mb-0.5">Tài khoản</p>
+            <p className="font-semibold text-foreground flex items-center gap-1">
+              <Wallet size={13} className="text-muted-foreground" />
               {budget.accountName || "—"}
             </p>
           </div>
@@ -483,17 +482,17 @@ export function BudgetDetail() {
 
       {/* Daily spending bar chart */}
       {chartData.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6">
+        <div className="bg-card rounded-2xl border border-border shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm font-bold text-slate-700">Biểu đồ chi tiêu theo ngày</p>
-            <div className="flex items-center gap-3 text-xs text-slate-500">
-              <span>Cao nhất: <span className="font-semibold text-slate-700">{fmt(maxSpend)}</span></span>
-              <span>TB: <span className="font-semibold text-slate-700">{fmt(avgSpend)}</span></span>
+            <p className="text-sm font-bold text-foreground">Biểu đồ chi tiêu theo ngày</p>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span>Cao nhất: <span className="font-semibold text-foreground">{fmt(maxSpend)}</span></span>
+              <span>TB: <span className="font-semibold text-foreground">{fmt(avgSpend)}</span></span>
             </div>
           </div>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={chartData} margin={{ top: 5, right: 16, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
               <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} axisLine={false} />
               <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} axisLine={false}
                 tickFormatter={v => v >= 1_000_000 ? `${(v/1_000_000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}K` : v} />
@@ -506,16 +505,16 @@ export function BudgetDetail() {
 
       {/* Cumulative spending vs target */}
       {cumulative.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6">
+        <div className="bg-card rounded-2xl border border-border shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm font-bold text-slate-700">Chi tiêu lũy kế so với hạn mức</p>
-            <span className="text-xs text-slate-500">
-              Đã dùng <span className="font-semibold text-slate-700">{pct.toFixed(1)}%</span>
+            <p className="text-sm font-bold text-foreground">Chi tiêu lũy kế so với hạn mức</p>
+            <span className="text-xs text-muted-foreground">
+              Đã dùng <span className="font-semibold text-foreground">{pct.toFixed(1)}%</span>
             </span>
           </div>
           <ResponsiveContainer width="100%" height={240}>
             <LineChart data={cumulative} margin={{ top: 5, right: 16, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
               <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} axisLine={false} />
               <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} axisLine={false}
                 tickFormatter={v => v >= 1_000_000 ? `${(v/1_000_000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}K` : v} />
@@ -540,30 +539,31 @@ export function BudgetDetail() {
       )}
 
       {/* Transactions list */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Giao dịch trong ngân sách</p>
-          <span className="text-xs text-slate-400">{transactions.length} giao dịch</span>
+      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="px-6 py-3 border-b border-border bg-muted/50 flex items-center justify-between">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Giao dịch trong ngân sách</p>
+          <span className="text-xs text-muted-foreground">{transactions.length} giao dịch</span>
         </div>
 
         {transactions.length === 0 ? (
-          <div className="py-14 flex flex-col items-center text-slate-300">
+          <div className="py-14 flex flex-col items-center text-muted-foreground">
             <Receipt size={36} className="mb-3" />
-            <p className="text-sm text-slate-400">Chưa có giao dịch nào trong ngân sách này</p>
-            <p className="text-xs mt-1 text-slate-400">Thêm giao dịch chi tiêu vào danh mục để bắt đầu theo dõi</p>
+            <p className="text-sm text-muted-foreground">Chưa có giao dịch nào trong ngân sách này</p>
+            <p className="text-xs mt-1 text-muted-foreground">Thêm giao dịch chi tiêu vào danh mục để bắt đầu theo dõi</p>
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="text-xs text-slate-500 uppercase tracking-wider bg-slate-50/30">
-                <th className="px-6 py-3 font-semibold">Ngày</th>
-                <th className="px-6 py-3 font-semibold">Mô tả</th>
-                <th className="px-6 py-3 font-semibold">Nguồn</th>
-                <th className="px-6 py-3 font-semibold">Đích</th>
-                <th className="px-6 py-3 font-semibold text-right">Số tiền</th>
+              <tr className="text-xs text-muted-foreground uppercase tracking-wider bg-muted/30">
+                <th className="px-4 md:px-6 py-3 font-semibold">Ngày</th>
+                <th className="px-4 md:px-6 py-3 font-semibold">Mô tả</th>
+                <th className="px-4 md:px-6 py-3 font-semibold hidden md:table-cell">Nguồn</th>
+                <th className="px-4 md:px-6 py-3 font-semibold hidden md:table-cell">Đích</th>
+                <th className="px-4 md:px-6 py-3 font-semibold text-right">Số tiền</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {[...transactions]
                 .sort((a, b) => new Date(b.transactionDate) - new Date(a.transactionDate))
                 .map(t => {
@@ -571,21 +571,21 @@ export function BudgetDetail() {
                   const txCls  = t.isTransfer ? "text-blue-500" : t.isIncome ? "text-green-600" : "text-red-500";
                   const amtCls = t.isTransfer ? "text-blue-600" : t.isIncome ? "text-green-600" : "text-red-500";
                   return (
-                    <tr key={t.journalId} className="hover:bg-slate-50">
-                      <td className="px-6 py-3 text-sm text-slate-600">
+                    <tr key={t.journalId} className="hover:bg-muted">
+                      <td className="px-4 md:px-6 py-3 text-sm text-muted-foreground">
                         {t.transactionDate
                           ? format(parseISO(t.transactionDate), "dd/MM/yyyy", { locale: vi })
                           : "—"}
                       </td>
-                      <td className="px-6 py-3 text-sm text-slate-700">
+                      <td className="px-4 md:px-6 py-3 text-sm text-foreground">
                         <div className="flex items-center gap-2">
                           <TxIcon size={14} className={txCls} />
                           <span>{t.description || "—"}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-3 text-sm text-slate-500">{t.sourceAccount}</td>
-                      <td className="px-6 py-3 text-sm text-slate-500">{t.destAccount}</td>
-                      <td className={`px-6 py-3 text-sm font-bold text-right ${amtCls}`}>
+                      <td className="px-4 md:px-6 py-3 text-sm text-muted-foreground hidden md:table-cell">{t.sourceAccount}</td>
+                      <td className="px-4 md:px-6 py-3 text-sm text-muted-foreground hidden md:table-cell">{t.destAccount}</td>
+                      <td className={`px-4 md:px-6 py-3 text-sm font-bold text-right ${amtCls}`}>
                         {t.isIncome ? "+" : t.isTransfer ? "" : "-"}{fmt(t.totalAmount)}
                       </td>
                     </tr>
@@ -593,6 +593,7 @@ export function BudgetDetail() {
                 })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

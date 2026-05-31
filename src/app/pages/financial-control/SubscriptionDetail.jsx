@@ -27,8 +27,8 @@ const FREQ_LABELS = {
 };
 
 const STATUS_CONFIG = {
-  inactive:        { icon: MinusCircle,  cls: "text-slate-500 bg-slate-100",   label: "Không hoạt động" },
-  not_expected:    { icon: Clock,        cls: "text-slate-500 bg-slate-100",   label: "Không cần trả" },
+  inactive:        { icon: MinusCircle,  cls: "text-muted-foreground bg-muted",   label: "Không hoạt động" },
+  not_expected:    { icon: Clock,        cls: "text-muted-foreground bg-muted",   label: "Không cần trả" },
   expected_unpaid: { icon: AlertCircle,  cls: "text-yellow-700 bg-yellow-100", label: "Chưa trả" },
   paid:            { icon: CheckCircle2, cls: "text-green-700 bg-green-100",   label: "Đã trả" },
 };
@@ -52,8 +52,8 @@ function buildChartData(transactions) {
 const ChartTooltip = ({ active, payload, label, fmt }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-lg px-3 py-2 text-xs">
-      <p className="font-semibold text-slate-700 mb-1">{label}</p>
+    <div className="bg-card border border-border rounded-xl shadow-lg px-3 py-2 text-xs">
+      <p className="font-semibold text-foreground mb-1">{label}</p>
       <p className="text-purple-600 font-bold">{fmt(payload[0].value)}</p>
     </div>
   );
@@ -129,18 +129,18 @@ export function SubscriptionDetail() {
   if (isLoading) {
     return (
       <div className="p-8 space-y-4">
-        <div className="h-8 w-48 bg-slate-100 rounded-lg animate-pulse" />
+        <div className="h-8 w-48 bg-muted rounded-lg animate-pulse" />
         <div className="grid grid-cols-4 gap-4">
-          {[1,2,3,4].map(i => <div key={i} className="h-24 bg-slate-100 rounded-2xl animate-pulse" />)}
+          {[1,2,3,4].map(i => <div key={i} className="h-24 bg-muted rounded-2xl animate-pulse" />)}
         </div>
-        <div className="h-64 bg-slate-100 rounded-2xl animate-pulse" />
+        <div className="h-64 bg-muted rounded-2xl animate-pulse" />
       </div>
     );
   }
 
   if (!bill) {
     return (
-      <div className="p-8 text-center text-slate-400">
+      <div className="p-8 text-center text-muted-foreground">
         <Receipt size={48} className="mx-auto mb-3 text-slate-200" />
         <p>Không tìm thấy hóa đơn</p>
         <button onClick={() => navigate("/subscriptions")} className="mt-3 text-purple-600 text-sm hover:underline">
@@ -158,43 +158,43 @@ export function SubscriptionDetail() {
     : 0;
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto">
 
       {/* Back + header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/subscriptions")}
-            className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+            className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-muted-foreground transition-colors shrink-0">
             <ArrowLeft size={20} />
           </button>
-          <div className="w-11 h-11 rounded-xl bg-purple-100 flex items-center justify-center">
+          <div className="w-11 h-11 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
             <Receipt size={22} className="text-purple-600" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-slate-900">{bill.name}</h1>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg md:text-2xl font-bold text-card-foreground truncate">{bill.name}</h1>
               {!bill.active && (
-                <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-semibold">Tắt</span>
+                <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded font-semibold">Tắt</span>
               )}
             </div>
             {bill.objectGroup && (
-              <p className="text-sm text-slate-400">{bill.objectGroup}</p>
+              <p className="text-sm text-muted-foreground truncate">{bill.objectGroup}</p>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button onClick={handleRescan} disabled={rescanning || !bill.active}
             className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg font-medium text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
             <RefreshCw size={14} className={rescanning ? "animate-spin" : ""} />
             Quét lại
           </button>
           <button onClick={() => setEditOpen(true)}
-            className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-purple-600 transition-colors">
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-purple-600 transition-colors">
             <Pencil size={18} />
           </button>
           <button onClick={handleDelete}
-            className="p-2 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors">
+            className="p-2 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors">
             <Trash2 size={18} />
           </button>
         </div>
@@ -202,86 +202,86 @@ export function SubscriptionDetail() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+        <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-slate-500">Khoảng tiền</p>
-            <DollarSign size={15} className="text-slate-300" />
+            <p className="text-xs text-muted-foreground">Khoảng tiền</p>
+            <DollarSign size={15} className="text-muted-foreground" />
           </div>
-          <p className="text-base font-bold text-slate-900">
+          <p className="text-base font-bold text-card-foreground">
             {fmt(bill.amountMin)} – {fmt(bill.amountMax)}
           </p>
         </div>
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+        <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-slate-500">Trạng thái kỳ này</p>
-            <StatusIcon size={15} className="text-slate-300" />
+            <p className="text-xs text-muted-foreground">Trạng thái kỳ này</p>
+            <StatusIcon size={15} className="text-muted-foreground" />
           </div>
           <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${statusCfg.cls}`}>
             <StatusIcon size={10} /> {statusCfg.label}
           </span>
         </div>
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+        <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-slate-500">Tiếp theo</p>
-            <Calendar size={15} className="text-slate-300" />
+            <p className="text-xs text-muted-foreground">Tiếp theo</p>
+            <Calendar size={15} className="text-muted-foreground" />
           </div>
-          <p className="text-base font-bold text-slate-900">
+          <p className="text-base font-bold text-card-foreground">
             {bill.nextExpectedMatch
               ? format(parseISO(bill.nextExpectedMatch), "dd/MM/yyyy", { locale: vi })
               : "—"}
           </p>
         </div>
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+        <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-slate-500">TB thực tế</p>
-            <TrendingDown size={15} className="text-slate-300" />
+            <p className="text-xs text-muted-foreground">TB thực tế</p>
+            <TrendingDown size={15} className="text-muted-foreground" />
           </div>
-          <p className="text-base font-bold text-slate-900">{avgActual > 0 ? fmt(avgActual) : "—"}</p>
+          <p className="text-base font-bold text-card-foreground">{avgActual > 0 ? fmt(avgActual) : "—"}</p>
         </div>
       </div>
 
       {/* Info row */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 mb-6">
+      <div className="bg-card rounded-2xl border border-border shadow-sm p-5 mb-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
-            <p className="text-xs text-slate-400 mb-0.5">Tần suất</p>
-            <p className="font-semibold text-slate-800">
+            <p className="text-xs text-muted-foreground mb-0.5">Tần suất</p>
+            <p className="font-semibold text-foreground">
               {FREQ_LABELS[bill.repeatFreq] ?? bill.repeatFreq}
               {bill.skip > 0 ? ` (bỏ ${bill.skip})` : ""}
             </p>
           </div>
           <div>
-            <p className="text-xs text-slate-400 mb-0.5">Bắt đầu từ</p>
-            <p className="font-semibold text-slate-800">
+            <p className="text-xs text-muted-foreground mb-0.5">Bắt đầu từ</p>
+            <p className="font-semibold text-foreground">
               {bill.date ? format(parseISO(bill.date), "dd/MM/yyyy") : "—"}
             </p>
           </div>
           <div>
-            <p className="text-xs text-slate-400 mb-0.5">Kết thúc</p>
-            <p className="font-semibold text-slate-800">
+            <p className="text-xs text-muted-foreground mb-0.5">Kết thúc</p>
+            <p className="font-semibold text-foreground">
               {bill.endDate ? format(parseISO(bill.endDate), "dd/MM/yyyy") : "—"}
             </p>
           </div>
           <div>
-            <p className="text-xs text-slate-400 mb-0.5">Đã khớp</p>
-            <p className="font-semibold text-slate-800">{bill.matchedCount} giao dịch</p>
+            <p className="text-xs text-muted-foreground mb-0.5">Đã khớp</p>
+            <p className="font-semibold text-foreground">{bill.matchedCount} giao dịch</p>
           </div>
         </div>
         {bill.notes && (
-          <div className="mt-4 pt-4 border-t border-slate-100">
-            <p className="text-xs text-slate-400 mb-1">Ghi chú</p>
-            <p className="text-sm text-slate-600">{bill.notes}</p>
+          <div className="mt-4 pt-4 border-t border-border">
+            <p className="text-xs text-muted-foreground mb-1">Ghi chú</p>
+            <p className="text-sm text-muted-foreground">{bill.notes}</p>
           </div>
         )}
       </div>
 
       {/* Chart */}
       {chartData.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6">
-          <p className="text-sm font-bold text-slate-700 mb-4">Lịch sử giao dịch khớp</p>
+        <div className="bg-card rounded-2xl border border-border shadow-sm p-6 mb-6">
+          <p className="text-sm font-bold text-foreground mb-4">Lịch sử giao dịch khớp</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={chartData} margin={{ top: 5, right: 16, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} axisLine={false} />
               <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} axisLine={false}
                 tickFormatter={v => v >= 1_000_000 ? `${(v/1_000_000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}K` : v} />
@@ -293,41 +293,43 @@ export function SubscriptionDetail() {
       )}
 
       {/* Matched transactions */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/50">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Giao dịch đã khớp</p>
+      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="px-6 py-3 border-b border-border bg-muted/50">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Giao dịch đã khớp</p>
         </div>
         {!bill.matchedTransactions?.length ? (
-          <div className="py-12 flex flex-col items-center text-slate-300">
+          <div className="py-12 flex flex-col items-center text-muted-foreground">
             <Receipt size={36} className="mb-3" />
             <p className="text-sm">Chưa có giao dịch nào khớp</p>
-            <p className="text-xs mt-1 text-slate-400">Nhấn "Quét lại" để tìm giao dịch tự động</p>
+            <p className="text-xs mt-1 text-muted-foreground">Nhấn "Quét lại" để tìm giao dịch tự động</p>
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="text-xs text-slate-500 uppercase tracking-wider bg-slate-50/30">
-                <th className="px-6 py-3 font-semibold">Ngày</th>
-                <th className="px-6 py-3 font-semibold">Mô tả</th>
-                <th className="px-6 py-3 font-semibold text-right">Số tiền</th>
+              <tr className="text-xs text-muted-foreground uppercase tracking-wider bg-muted/30">
+                <th className="px-4 md:px-6 py-3 font-semibold">Ngày</th>
+                <th className="px-4 md:px-6 py-3 font-semibold">Mô tả</th>
+                <th className="px-4 md:px-6 py-3 font-semibold text-right">Số tiền</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {bill.matchedTransactions.map(t => (
-                <tr key={t.journalId} className="hover:bg-slate-50">
-                  <td className="px-6 py-3 text-sm text-slate-600">
+                <tr key={t.journalId} className="hover:bg-muted">
+                  <td className="px-4 md:px-6 py-3 text-sm text-muted-foreground whitespace-nowrap">
                     {t.transactionDate
                       ? format(parseISO(t.transactionDate), "dd/MM/yyyy", { locale: vi })
                       : "—"}
                   </td>
-                  <td className="px-6 py-3 text-sm text-slate-700">{t.description || "—"}</td>
-                  <td className="px-6 py-3 text-sm font-bold text-purple-600 text-right">
+                  <td className="px-4 md:px-6 py-3 text-sm text-foreground">{t.description || "—"}</td>
+                  <td className="px-4 md:px-6 py-3 text-sm font-bold text-purple-600 text-right whitespace-nowrap">
                     {fmt(t.amount)}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

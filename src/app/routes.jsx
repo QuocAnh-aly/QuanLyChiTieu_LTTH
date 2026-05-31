@@ -24,8 +24,7 @@ import { Webhooks } from "./pages/accounting/automation/Webhooks";
 
 // Others - Accounts
 import { AssetAccounts } from "./pages/others/accounts/AssetAccounts";
-import { ExpenseAccounts } from "./pages/others/accounts/ExpenseAccounts";
-import { RevenueAccounts } from "./pages/others/accounts/RevenueAccounts";
+
 import { Liabilities } from "./pages/others/accounts/Liabilities";
 
 // Others - Classification
@@ -105,8 +104,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="/accounts/asset" replace /> },
           { path: "asset", element: <AssetAccounts /> },
-          { path: "expense", element: <ExpenseAccounts /> },
-          { path: "revenue", element: <RevenueAccounts /> },
+
           { path: "liabilities", element: <Liabilities /> },
         ],
       },

@@ -79,6 +79,140 @@ public class AccountServiceTests
         result.Should().ContainSingle().Which.TypeId.Should().Be(1);
     }
 
+    // ─── GetAllPagedAsync ───────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetAllPagedAsync_FirstPage_ReturnsPagedResult()
+    {
+        var accounts = new[] { MakeAccount(1), MakeAccount(2) };
+        _repoMock
+            .Setup(r => r.GetByUserIdPagedAsync(_userId, 1, 10))
+            .ReturnsAsync(new PaginatedResult<Account>
+            {
+                Items = accounts.ToList(),
+                TotalCount = 2,
+                Page = 1,
+                PageSize = 10,
+            });
+
+        var result = await _service.GetAllPagedAsync(_userId, 1, 10);
+
+        result.Items.Should().HaveCount(2);
+        result.TotalCount.Should().Be(2);
+        result.Page.Should().Be(1);
+        result.PageSize.Should().Be(10);
+        result.TotalPages.Should().Be(1);
+        result.HasPreviousPage.Should().BeFalse();
+        result.HasNextPage.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetAllPagedAsync_MultiplePages_CalculatesCorrectly()
+    {
+        var page2Accounts = new[] { MakeAccount(3, name: "Page2-1"), MakeAccount(4, name: "Page2-2") };
+        _repoMock
+            .Setup(r => r.GetByUserIdPagedAsync(_userId, 2, 3))
+            .ReturnsAsync(new PaginatedResult<Account>
+            {
+                Items = page2Accounts.ToList(),
+                TotalCount = 8,
+                Page = 2,
+                PageSize = 3,
+            });
+
+        var result = await _service.GetAllPagedAsync(_userId, 2, 3);
+
+        result.Items.Should().HaveCount(2);
+        result.TotalCount.Should().Be(8);
+        result.TotalPages.Should().Be(3);   // ceiling of 8/3
+        result.HasPreviousPage.Should().BeTrue();
+        result.HasNextPage.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetAllPagedAsync_LastPage_HasNoNextPage()
+    {
+        var lastAccount = MakeAccount(8, name: "Last");
+        _repoMock
+            .Setup(r => r.GetByUserIdPagedAsync(_userId, 3, 3))
+            .ReturnsAsync(new PaginatedResult<Account>
+            {
+                Items = new List<Account> { lastAccount },
+                TotalCount = 8,
+                Page = 3,
+                PageSize = 3,
+            });
+
+        var result = await _service.GetAllPagedAsync(_userId, 3, 3);
+
+        result.Items.Should().ContainSingle().Which.Name.Should().Be("Last");
+        result.HasNextPage.Should().BeFalse();
+        result.HasPreviousPage.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetAllPagedAsync_EmptyResult_ReturnsEmpty()
+    {
+        _repoMock
+            .Setup(r => r.GetByUserIdPagedAsync(_userId, 1, 10))
+            .ReturnsAsync(new PaginatedResult<Account>
+            {
+                Items = new List<Account>(),
+                TotalCount = 0,
+                Page = 1,
+                PageSize = 10,
+            });
+
+        var result = await _service.GetAllPagedAsync(_userId, 1, 10);
+
+        result.Items.Should().BeEmpty();
+        result.TotalCount.Should().Be(0);
+        result.HasPreviousPage.Should().BeFalse();
+        result.HasNextPage.Should().BeFalse();
+    }
+
+    // ─── GetByTypePagedAsync ────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetByTypePagedAsync_FiltersByTypeAndReturnsPagedResult()
+    {
+        var accounts = new[] { MakeAccount(1, typeId: 1), MakeAccount(2, typeId: 1) };
+        _repoMock
+            .Setup(r => r.GetByUserAndTypePagedAsync(_userId, 1, 1, 10))
+            .ReturnsAsync(new PaginatedResult<Account>
+            {
+                Items = accounts.ToList(),
+                TotalCount = 2,
+                Page = 1,
+                PageSize = 10,
+            });
+
+        var result = await _service.GetByTypePagedAsync(_userId, 1, 1, 10);
+
+        result.Items.Should().HaveCount(2);
+        result.TotalCount.Should().Be(2);
+        result.Page.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetByTypePagedAsync_NoMatchingType_ReturnsEmpty()
+    {
+        _repoMock
+            .Setup(r => r.GetByUserAndTypePagedAsync(_userId, 2, 1, 10))
+            .ReturnsAsync(new PaginatedResult<Account>
+            {
+                Items = new List<Account>(),
+                TotalCount = 0,
+                Page = 1,
+                PageSize = 10,
+            });
+
+        var result = await _service.GetByTypePagedAsync(_userId, 2, 1, 10);
+
+        result.Items.Should().BeEmpty();
+        result.TotalCount.Should().Be(0);
+    }
+
     // ─── GetByIdAsync ───────────────────────────────────────────────────────
 
     [Fact]

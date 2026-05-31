@@ -18,9 +18,12 @@ public class BillController : BaseController
 
     // GET api/bills
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
-        var result = await _billService.GetAllAsync(GetUserId());
+        if (pageSize <= 0 || pageSize > 100) pageSize = 50;
+        if (page <= 0) page = 1;
+
+        var result = await _billService.GetAllPagedAsync(GetUserId(), page, pageSize);
         return Ok(result);
     }
 

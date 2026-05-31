@@ -24,7 +24,7 @@ const COLOR_MAP = {
   yellow: { bg: 'bg-yellow-100', text: 'text-yellow-600', swatch: 'bg-yellow-500' },
   green:  { bg: 'bg-green-100',  text: 'text-green-600',  swatch: 'bg-green-500'  },
   red:    { bg: 'bg-red-100',    text: 'text-red-600',    swatch: 'bg-red-500'    },
-  slate:  { bg: 'bg-slate-100',  text: 'text-slate-600',  swatch: 'bg-slate-500'  },
+  slate:  { bg: 'bg-muted',  text: 'text-muted-foreground',  swatch: 'bg-muted0'  },
   indigo: { bg: 'bg-indigo-100', text: 'text-indigo-600', swatch: 'bg-indigo-500' },
   emerald:{ bg: 'bg-emerald-100',text: 'text-emerald-600',swatch: 'bg-emerald-500'},
 };
@@ -46,16 +46,16 @@ function ExpenseCategoryForm({ initial, onSave, onCancel }) {
   const { bg, text } = COLOR_MAP[color] || COLOR_MAP.orange;
 
   return (
-    <form onSubmit={handleSubmit} className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-200">
+    <form onSubmit={handleSubmit} className="bg-muted rounded-xl p-4 space-y-3 border border-border">
       {/* Label */}
       <div>
-        <label className="block text-xs font-semibold text-slate-600 mb-1">Tên danh mục</label>
+        <label className="block text-xs font-semibold text-muted-foreground mb-1">Tên danh mục</label>
         <input
           autoFocus
           type="text"
           value={label}
           onChange={e => setLabel(e.target.value)}
-          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+          className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           placeholder="Ví dụ: Ăn uống"
           required
         />
@@ -63,7 +63,7 @@ function ExpenseCategoryForm({ initial, onSave, onCancel }) {
 
       {/* Icon picker */}
       <div>
-        <label className="block text-xs font-semibold text-slate-600 mb-1">Biểu tượng</label>
+        <label className="block text-xs font-semibold text-muted-foreground mb-1">Biểu tượng</label>
         <div className="flex flex-wrap gap-1.5">
           {Object.entries(ICON_MAP).map(([name, Icon]) => (
             <button
@@ -73,7 +73,7 @@ function ExpenseCategoryForm({ initial, onSave, onCancel }) {
               className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
                 iconName === name
                   ? 'bg-purple-600 text-white ring-2 ring-purple-400'
-                  : 'bg-white border border-slate-200 text-slate-500 hover:border-purple-300'
+                  : 'bg-white border border-border text-muted-foreground hover:border-purple-400'
               }`}
             >
               <Icon size={14} />
@@ -84,7 +84,7 @@ function ExpenseCategoryForm({ initial, onSave, onCancel }) {
 
       {/* Color picker */}
       <div>
-        <label className="block text-xs font-semibold text-slate-600 mb-1">Màu sắc</label>
+        <label className="block text-xs font-semibold text-muted-foreground mb-1">Màu sắc</label>
         <div className="flex flex-wrap gap-1.5">
           {Object.entries(COLOR_MAP).map(([name, { swatch }]) => (
             <button
@@ -101,7 +101,7 @@ function ExpenseCategoryForm({ initial, onSave, onCancel }) {
 
       {/* Preview */}
       <div className="flex items-center gap-2 pt-1">
-        <span className="text-xs text-slate-500">Xem trước:</span>
+        <span className="text-xs text-muted-foreground">Xem trước:</span>
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${bg} ${text}`}>
           <IconPreview size={12} />
           {label || 'Tên danh mục'}
@@ -112,7 +112,7 @@ function ExpenseCategoryForm({ initial, onSave, onCancel }) {
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm hover:bg-slate-100 transition-colors"
+          className="flex-1 py-2 border border-border text-muted-foreground rounded-lg text-sm hover:bg-muted transition-colors"
         >
           Hủy
         </button>
@@ -139,15 +139,15 @@ function IncomeSourceForm({ initial, onSave, onCancel }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-200">
+    <form onSubmit={handleSubmit} className="bg-muted rounded-xl p-4 space-y-3 border border-border">
       <div>
-        <label className="block text-xs font-semibold text-slate-600 mb-1">Tên nguồn thu</label>
+        <label className="block text-xs font-semibold text-muted-foreground mb-1">Tên nguồn thu</label>
         <input
           autoFocus
           type="text"
           value={label}
           onChange={e => setLabel(e.target.value)}
-          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+          className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           placeholder="Ví dụ: Lương, Freelance..."
           required
         />
@@ -156,7 +156,7 @@ function IncomeSourceForm({ initial, onSave, onCancel }) {
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm hover:bg-slate-100 transition-colors"
+          className="flex-1 py-2 border border-border text-muted-foreground rounded-lg text-sm hover:bg-muted transition-colors"
         >
           Hủy
         </button>
@@ -231,23 +231,23 @@ export function Categories() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* ── Panel: Danh mục chi tiêu ─────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+        <div className="bg-card rounded-2xl border border-border overflow-hidden">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
                 <LayoutList size={16} className="text-purple-600" />
               </div>
               <div>
-                <h2 className="font-semibold text-slate-900">Danh mục chi tiêu</h2>
-                <p className="text-xs text-slate-400">{expenseCategories.length} danh mục</p>
+                <h2 className="font-semibold text-card-foreground">Danh mục chi tiêu</h2>
+                <p className="text-xs text-muted-foreground">{expenseCategories.length} danh mục</p>
               </div>
             </div>
             {!showAddExpense && (
               <button
                 onClick={() => { setShowAddExpense(true); setEditExpenseId(null); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors font-medium"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors font-medium whitespace-nowrap"
               >
-                <Plus size={14} /> Thêm mới
+                <Plus size={14} className="shrink-0" /> <span className="hidden sm:inline">Thêm mới</span><span className="sm:hidden">Mới</span>
               </button>
             )}
           </div>
@@ -263,7 +263,7 @@ export function Categories() {
 
             {/* List */}
             {expenseCategories.length === 0 && !showAddExpense && (
-              <div className="text-center py-10 text-slate-400">
+              <div className="text-center py-10 text-muted-foreground">
                 <LayoutList size={36} className="mx-auto mb-2 opacity-30" />
                 <p className="text-sm">Chưa có danh mục nào</p>
               </div>
@@ -287,22 +287,22 @@ export function Categories() {
               return (
                 <div
                   key={cat.id}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 group transition-colors"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted group transition-colors"
                 >
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${style.bg}`}>
                     <Icon size={16} className={style.text} />
                   </div>
-                  <span className="flex-1 text-sm font-medium text-slate-800">{cat.label}</span>
+                  <span className="flex-1 text-sm font-medium text-foreground">{cat.label}</span>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => { setEditExpenseId(cat.id); setShowAddExpense(false); }}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-purple-600 hover:bg-purple-50 transition-colors"
                     >
                       <Pencil size={13} />
                     </button>
                     <button
                       onClick={() => handleDeleteExpense(cat.id, cat.label)}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
                     >
                       <Trash2 size={13} />
                     </button>
@@ -314,23 +314,23 @@ export function Categories() {
         </div>
 
         {/* ── Panel: Nguồn thu nhập ─────────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+        <div className="bg-card rounded-2xl border border-border overflow-hidden">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
                 <BadgeDollarSign size={16} className="text-green-600" />
               </div>
               <div>
-                <h2 className="font-semibold text-slate-900">Nguồn thu nhập</h2>
-                <p className="text-xs text-slate-400">{incomeSources.length} nguồn</p>
+                <h2 className="font-semibold text-card-foreground">Nguồn thu nhập</h2>
+                <p className="text-xs text-muted-foreground">{incomeSources.length} nguồn</p>
               </div>
             </div>
             {!showAddIncome && (
               <button
                 onClick={() => { setShowAddIncome(true); setEditIncomeId(null); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors font-medium"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors font-medium whitespace-nowrap"
               >
-                <Plus size={14} /> Thêm mới
+                <Plus size={14} className="shrink-0" /> <span className="hidden sm:inline">Thêm mới</span><span className="sm:hidden">Mới</span>
               </button>
             )}
           </div>
@@ -346,7 +346,7 @@ export function Categories() {
 
             {/* List */}
             {incomeSources.length === 0 && !showAddIncome && (
-              <div className="text-center py-10 text-slate-400">
+              <div className="text-center py-10 text-muted-foreground">
                 <BadgeDollarSign size={36} className="mx-auto mb-2 opacity-30" />
                 <p className="text-sm">Chưa có nguồn thu nào</p>
               </div>
@@ -367,22 +367,22 @@ export function Categories() {
               return (
                 <div
                   key={src.id}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 group transition-colors"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted group transition-colors"
                 >
                   <div className="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
                     <DollarSign size={16} className="text-green-600" />
                   </div>
-                  <span className="flex-1 text-sm font-medium text-slate-800">{src.label}</span>
+                  <span className="flex-1 text-sm font-medium text-foreground">{src.label}</span>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => { setEditIncomeId(src.id); setShowAddIncome(false); }}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-green-600 hover:bg-green-50 transition-colors"
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-green-600 hover:bg-green-50 transition-colors"
                     >
                       <Pencil size={13} />
                     </button>
                     <button
                       onClick={() => handleDeleteIncome(src.id, src.label)}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
                     >
                       <Trash2 size={13} />
                     </button>

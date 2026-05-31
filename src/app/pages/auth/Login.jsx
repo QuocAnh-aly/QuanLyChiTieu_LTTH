@@ -25,7 +25,7 @@ function PasswordStrengthIndicator({ password }) {
   const strength = passedCount === 0 ? 0 : (passedCount / PASSWORD_RULES.length) * 100;
 
   const barColor =
-    strength === 0 ? 'bg-gray-200' :
+    strength === 0 ? 'bg-muted' :
     strength <= 40 ? 'bg-red-500' :
     strength <= 60 ? 'bg-orange-500' :
     strength <= 80 ? 'bg-yellow-500' :
@@ -36,7 +36,7 @@ function PasswordStrengthIndicator({ password }) {
   return (
     <div className="space-y-2 mt-2">
       {/* Progress bar */}
-      <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
+      <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
         <div
           className={`h-full ${barColor} transition-all duration-300 rounded-full`}
           style={{ width: `${strength}%` }}
@@ -49,9 +49,9 @@ function PasswordStrengthIndicator({ password }) {
             {rule.passed ? (
               <Check size={12} className="text-green-500 shrink-0" />
             ) : (
-              <X size={12} className="text-slate-300 shrink-0" />
+              <X size={12} className="text-muted-foreground shrink-0" />
             )}
-            <span className={rule.passed ? 'text-green-600' : 'text-slate-400'}>
+            <span className={rule.passed ? 'text-green-600' : 'text-muted-foreground'}>
               {rule.label}
             </span>
           </li>
@@ -150,7 +150,7 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-slate-900 dark:to-indigo-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-2">
@@ -161,7 +161,7 @@ export function Login() {
               MoneyFlow
             </h1>
           </div>
-          <p className="text-slate-500">Quản lý tài chính thông minh</p>
+          <p className="text-muted-foreground">Quản lý tài chính thông minh</p>
         </div>
 
         <Tabs defaultValue="login">
@@ -213,7 +213,7 @@ export function Login() {
                       />
                       <button
                         type="button"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
                         onClick={() => setShowPassword(v => !v)}
                       >
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -304,7 +304,7 @@ export function Login() {
                       />
                       <button
                         type="button"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
                         onClick={() => setShowRegPassword(v => !v)}
                       >
                         {showRegPassword ? <EyeOff size={16} /> : <Eye size={16} />}

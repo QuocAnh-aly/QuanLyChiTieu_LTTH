@@ -262,14 +262,14 @@ export function OAuthTokens() {
     >
 
       {/* ── Security banner ─────────────────────────────────────── */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-sm relative overflow-hidden mb-8 flex items-center gap-6">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -mr-32 -mt-32 pointer-events-none" />
-        <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm relative z-10 shrink-0">
-          <ShieldCheck size={32} />
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-4 sm:p-6 text-white shadow-sm relative overflow-hidden mb-8 flex flex-col sm:flex-row items-center gap-3 sm:gap-6 text-center sm:text-left">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-card opacity-5 rounded-full -mr-32 -mt-32 pointer-events-none" />
+        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm relative z-10 shrink-0">
+          <ShieldCheck size={24} className="sm:size-[32px]" />
         </div>
         <div className="relative z-10">
-          <h3 className="text-xl font-bold mb-1">Bảo mật dữ liệu của bạn</h3>
-          <p className="text-blue-100 max-w-2xl text-sm leading-relaxed">
+          <h3 className="text-lg sm:text-xl font-bold mb-1">Bảo mật dữ liệu của bạn</h3>
+          <p className="text-blue-100 text-xs sm:text-sm leading-relaxed">
             MoneyFlow sử dụng chuẩn <strong>OAuth 2.0</strong> để liên kết với ngân hàng và dịch vụ lưu trữ.
             Chúng tôi <strong>KHÔNG BAO GIỜ</strong> lưu mật khẩu ngân hàng của bạn. Bạn có thể thu hồi quyền truy cập bất cứ lúc nào.
           </p>
@@ -285,12 +285,12 @@ export function OAuthTokens() {
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               filter === opt.value
                 ? 'bg-slate-800 text-white'
-                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                : 'bg-white border border-border text-muted-foreground hover:bg-muted'
             }`}
           >
             {opt.label}
             <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-              filter === opt.value ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+              filter === opt.value ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'
             }`}>
               {countByStatus[opt.value]}
             </span>
@@ -301,12 +301,12 @@ export function OAuthTokens() {
       {/* ── Token cards ─────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {displayTokens.length === 0 ? (
-          <div className="md:col-span-2 py-16 text-center bg-white rounded-2xl border border-slate-200 shadow-sm">
-            <Key size={48} className="mx-auto text-slate-300 mb-4" />
-            <p className="text-slate-900 font-bold text-lg mb-1">
+          <div className="md:col-span-2 py-16 text-center bg-card rounded-2xl border border-border shadow-sm">
+            <Key size={48} className="mx-auto text-muted-foreground mb-4" />
+            <p className="text-card-foreground font-bold text-lg mb-1">
               {filter === 'all' ? 'Chưa có ứng dụng nào được liên kết' : 'Không có kết nối nào'}
             </p>
-            <p className="text-slate-500 text-sm mt-1">
+            <p className="text-muted-foreground text-sm mt-1">
               {filter === 'all'
                 ? 'Bấm "Thêm kết nối mới" để liên kết với ngân hàng hoặc dịch vụ sao lưu.'
                 : `Không có kết nối nào ở trạng thái "${FILTER_OPTIONS.find(f => f.value === filter)?.label}".`}
@@ -321,7 +321,7 @@ export function OAuthTokens() {
               <div
                 key={token.id}
                 className={`bg-white rounded-2xl border p-6 shadow-sm flex flex-col justify-between transition-colors ${
-                  expired ? 'border-red-200 bg-red-50/20' : 'border-slate-200'
+                  expired ? 'border-red-200 bg-red-50/20' : 'border-border'
                 }`}
               >
                 {/* Card header */}
@@ -329,10 +329,10 @@ export function OAuthTokens() {
                   <div className="flex items-center gap-3">
                     <ProviderAvatar provider={token} />
                     <div>
-                      <h3 className="font-bold text-slate-900">{token.name}</h3>
-                      <p className="text-xs text-slate-500 font-mono mt-0.5">{token.scope}</p>
+                      <h3 className="font-bold text-card-foreground">{token.name}</h3>
+                      <p className="text-xs text-muted-foreground font-mono mt-0.5">{token.scope}</p>
                       {provider?.category && (
-                        <span className="text-xs text-slate-400">{CATEGORY_LABELS[provider.category]}</span>
+                        <span className="text-xs text-muted-foreground">{CATEGORY_LABELS[provider.category]}</span>
                       )}
                     </div>
                   </div>
@@ -349,34 +349,34 @@ export function OAuthTokens() {
 
                 {/* Token details */}
                 <div className="space-y-2 mb-5">
-                  <div className="flex items-center justify-between text-sm bg-slate-50 rounded-lg px-3 py-2">
-                    <span className="text-slate-500 flex items-center gap-1.5">
+                  <div className="flex items-center justify-between text-sm bg-muted rounded-lg px-3 py-2">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
                       <Calendar size={13} /> Hết hạn
                     </span>
-                    <span className={`font-medium ${expired ? 'text-red-600' : 'text-slate-700'}`}>
+                    <span className={`font-medium ${expired ? 'text-red-600' : 'text-foreground'}`}>
                       {format(new Date(token.expiresAt), 'dd/MM/yyyy', { locale: vi })}
                       {!expired && (
-                        <span className="text-slate-400 font-normal ml-1 text-xs">
+                        <span className="text-muted-foreground font-normal ml-1 text-xs">
                           ({formatDistanceToNow(new Date(token.expiresAt), { locale: vi, addSuffix: true })})
                         </span>
                       )}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-sm bg-slate-50 rounded-lg px-3 py-2">
-                    <span className="text-slate-500 flex items-center gap-1.5">
+                  <div className="flex items-center justify-between text-sm bg-muted rounded-lg px-3 py-2">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
                       <Clock size={13} /> Lần cuối dùng
                     </span>
-                    <span className="font-medium text-slate-700">
+                    <span className="font-medium text-foreground">
                       {token.lastUsed
                         ? formatDistanceToNow(new Date(token.lastUsed), { locale: vi, addSuffix: true })
                         : '—'}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-sm bg-slate-50 rounded-lg px-3 py-2">
-                    <span className="text-slate-500 flex items-center gap-1.5">
+                  <div className="flex items-center justify-between text-sm bg-muted rounded-lg px-3 py-2">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
                       <Key size={13} /> Quyền truy cập
                     </span>
-                    <span className="font-medium text-slate-700 text-xs">{token.scopeLabel ?? token.scope}</span>
+                    <span className="font-medium text-foreground text-xs">{token.scopeLabel ?? token.scope}</span>
                   </div>
                 </div>
 
@@ -397,7 +397,7 @@ export function OAuthTokens() {
                   )}
                   <button
                     onClick={() => revokeToken(token.id, token.name)}
-                    className={`${expired ? 'flex-1' : 'w-full'} flex items-center justify-center gap-2 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-medium hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors text-sm`}
+                    className={`${expired ? 'flex-1' : 'w-full'} flex items-center justify-center gap-2 py-2 bg-card border border-border text-foreground rounded-lg font-medium hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors text-sm`}
                   >
                     <Trash2 size={15} /> Thu hồi quyền
                   </button>
@@ -411,17 +411,17 @@ export function OAuthTokens() {
       {/* ── Add connection modal ──────────────────────────────────── */}
       {showAdd && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
 
             {/* Modal header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-100 shrink-0">
+            <div className="flex items-center justify-between p-6 border-b border-border shrink-0">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Thêm kết nối mới</h2>
-                <p className="text-sm text-slate-500 mt-0.5">Chọn dịch vụ bạn muốn kết nối với MoneyFlow</p>
+                <h2 className="text-xl font-bold text-card-foreground">Thêm kết nối mới</h2>
+                <p className="text-sm text-muted-foreground mt-0.5">Chọn dịch vụ bạn muốn kết nối với MoneyFlow</p>
               </div>
               <button
                 onClick={() => { setShowAdd(false); setConnecting(null); }}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-500"
+                className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground"
               >
                 <X size={20} />
               </button>
@@ -436,7 +436,7 @@ export function OAuthTokens() {
                   className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
                     addCategory === key
                       ? 'bg-slate-800 text-white'
-                      : 'text-slate-500 hover:bg-slate-100'
+                      : 'text-muted-foreground hover:bg-muted'
                   }`}
                 >
                   {label}
@@ -447,7 +447,7 @@ export function OAuthTokens() {
             {/* Provider list */}
             <div className="p-6 overflow-y-auto flex-1">
               {availableProviders.length === 0 ? (
-                <div className="py-12 text-center text-slate-500">
+                <div className="py-12 text-center text-muted-foreground">
                   <CheckCircle size={36} className="mx-auto text-green-400 mb-3" />
                   <p className="font-medium">Tất cả dịch vụ trong danh mục này đã được kết nối!</p>
                 </div>
@@ -458,7 +458,7 @@ export function OAuthTokens() {
                     return (
                       <div
                         key={provider.id}
-                        className="flex items-center gap-4 p-4 border border-slate-200 rounded-xl hover:border-slate-300 hover:bg-slate-50 transition-colors"
+                        className="flex items-center gap-4 p-4 border border-border rounded-xl hover:border-border hover:bg-muted transition-colors"
                       >
                         {/* Icon */}
                         <div
@@ -470,11 +470,11 @@ export function OAuthTokens() {
 
                         {/* Info */}
                         <div className="flex-1 min-w-0">
-                          <div className="font-bold text-slate-900">{provider.name}</div>
-                          <div className="text-sm text-slate-500 mt-0.5">{provider.description}</div>
+                          <div className="font-bold text-card-foreground">{provider.name}</div>
+                          <div className="text-sm text-muted-foreground mt-0.5">{provider.description}</div>
                           <div className="flex items-center gap-1 mt-1">
-                            <Key size={11} className="text-slate-400" />
-                            <span className="text-xs text-slate-400 font-mono">{provider.scope}</span>
+                            <Key size={11} className="text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground font-mono">{provider.scope}</span>
                           </div>
                         </div>
 
@@ -499,7 +499,7 @@ export function OAuthTokens() {
 
             {/* Modal footer */}
             <div className="px-6 pb-6 shrink-0">
-              <p className="text-xs text-slate-400 text-center">
+              <p className="text-xs text-muted-foreground text-center">
                 Bằng cách kết nối, bạn đồng ý cho phép MoneyFlow truy cập dữ liệu theo phạm vi đã liệt kê theo chuẩn OAuth 2.0.
                 Bạn có thể thu hồi bất cứ lúc nào.
               </p>
