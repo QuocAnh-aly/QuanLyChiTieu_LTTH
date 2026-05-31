@@ -79,6 +79,7 @@ export function Deposit() {
   const [showCustom, setShowCustom] = useState(false);
   const [isAddOpen,  setIsAddOpen]  = useState(false);
   const [editTarget, setEditTarget] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   const { from: rangeFrom, to: rangeTo } = useMemo(() => {
     if (preset === "custom") return {
@@ -105,20 +106,24 @@ export function Deposit() {
 
   const incomes = useMemo(() => allTx.filter(t => t.isIncome), [allTx]);
 
-  const filtered = useMemo(() =>
-    incomes.filter(t =>
-      (t.description ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.categoryName.toLowerCase().includes(searchTerm.toLowerCase())
-    ), [incomes, searchTerm]);
-
-  const totalIncome = incomes.reduce((s, t) => s + t.totalAmount, 0);
-  const avgIncome   = incomes.length > 0 ? totalIncome / incomes.length : 0;
-
   const sourceData = useMemo(() => {
     const map = new Map();
     incomes.forEach(t => map.set(t.categoryName, (map.get(t.categoryName) || 0) + t.totalAmount));
     return [...map.entries()].map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
   }, [incomes]);
+
+  const filtered = useMemo(() =>
+    incomes.filter(t => {
+      if (selectedCategory !== null) {
+        const catName = sourceData[selectedCategory]?.name;
+        if (t.categoryName !== catName) return false;
+      }
+      return (t.description ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.categoryName.toLowerCase().includes(searchTerm.toLowerCase());
+    }), [incomes, searchTerm, selectedCategory, sourceData]);
+
+  const totalIncome = incomes.reduce((s, t) => s + t.totalAmount, 0);
+  const avgIncome   = incomes.length > 0 ? totalIncome / incomes.length : 0;
 
   const dailyData = useMemo(() => {
     const map = new Map();
@@ -253,12 +258,40 @@ export function Deposit() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={sourceData} cx="42%" cy="50%" innerRadius={58} outerRadius={88}
-                    dataKey="value" nameKey="name" paddingAngle={2}>
-                    {sourceData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                    dataKey="value" nameKey="name" paddingAngle={2}
+                    activeIndex={selectedCategory !== null ? selectedCategory : undefined}
+                    activeShape={{ outerRadius: 98, stroke: "#fff", strokeWidth: 3 }}
+                    onClick={(_, index) => setSelectedCategory(prev => prev === index ? null : index)}
+                    style={{ cursor: "pointer" }}>
+                    {sourceData.map((_, i) => (
+                      <Cell
+                        key={i}
+                        fill={PIE_COLORS[i % PIE_COLORS.length]}
+                        opacity={selectedCategory !== null
+                          ? (selectedCategory === i ? 1 : 0.3)
+                          : 0.85}
+                        style={{ cursor: "pointer" }}
+                      />
+                    ))}
                   </Pie>
                   <Tooltip content={tooltip} />
-                  <Legend layout="vertical" align="right" verticalAlign="middle"
-                    formatter={v => <span className="text-xs text-muted-foreground">{v}</span>} />
+                  <Legend
+                    layout="vertical" align="right" verticalAlign="middle"
+                    onClick={(data) => {
+                      const idx = sourceData.findIndex(s => s.name === data.value);
+                      if (idx >= 0) setSelectedCategory(prev => prev === idx ? null : idx);
+                    }}
+                    wrapperStyle={{ cursor: "pointer" }}
+                    formatter={(value) => {
+                      const idx = sourceData.findIndex(s => s.name === value);
+                      const isActive = selectedCategory === idx;
+                      return (
+                        <span className={`text-xs transition-colors ${isActive ? "text-green-600 font-bold" : selectedCategory !== null ? "text-muted-foreground/50" : "text-muted-foreground"}`}>
+                          {value}
+                        </span>
+                      );
+                    }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -285,12 +318,21 @@ export function Deposit() {
       {/* Transaction table */}
       <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
         <div className="p-4 border-b border-border bg-muted/50 flex items-center gap-3">
-          <div className="relative flex-1">
+          <div className="relative flex-1 max-w-sm">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg text-sm bg-card focus:outline-none focus:ring-2 focus:ring-green-400"
               placeholder="Tìm kiếm mô tả hoặc nguồn thu..." />
           </div>
+            {selectedCategory !== null && (
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-full text-xs font-semibold hover:bg-green-200 dark:hover:bg-green-900/60 transition-colors shrink-0"
+              >
+                <span>Nguồn: {sourceData[selectedCategory]?.name}</span>
+                <span className="ml-0.5 text-green-500 hover:text-green-700">&times;</span>
+              </button>
+            )}
         </div>
 
         {isLoading ? (

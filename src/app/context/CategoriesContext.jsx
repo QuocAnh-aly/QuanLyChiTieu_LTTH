@@ -1,25 +1,28 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { accountApi } from "../api/accountApi";
+import { useAuth } from "./AuthContext";
 
 const DEFAULT_EXPENSE_CATEGORIES = [
-  { accountId: "", name: "Ăn uống", iconName: "Pizza", color: "red" },
+  { accountId: "", name: "Ăn uống",    iconName: "Pizza",               color: "red"     },
+  { accountId: "", name: "Di chuyển", iconName: "Car",                 color: "blue"    },
+  { accountId: "", name: "Mua sắm",   iconName: "ShoppingBag",          color: "purple"  },
 ];
 
 const DEFAULT_INCOME_SOURCES = [
-  {
-    accountId: "",
-    name: "Lương",
-    iconName: "BriefcaseBusiness",
-    color: "green",
-  },
+  { accountId: "", name: "Lương",       iconName: "BriefcaseBusiness", color: "green"   },
+  { accountId: "", name: "Đầu tư",      iconName: "TrendingUp",       color: "purple"  },
+  { accountId: "", name: "Thu nhập phụ", iconName: "Wallet",           color: "orange"  },
 ];
 
 const DEFAULT_TAGS = [
-  { id: "1", name: "DuLich", color: "blue" },
-  { id: "2", name: "KinhDoanh", color: "emerald" },
-  { id: "3", name: "GiaDinh", color: "orange" },
-  { id: "4", name: "GiaoDuc", color: "purple" },
-  { id: "5", name: "KhuyenMai", color: "pink" },
+  { id: "1", name: "Quan trọng",     color: "red"     },
+  { id: "2", name: "Cần thiết",      color: "blue"    },
+  { id: "3", name: "Không cần thiết", color: "gray"   },
+  { id: "4", name: "DuLich",         color: "emerald" },
+  { id: "5", name: "KinhDoanh",      color: "orange"  },
+  { id: "6", name: "GiaDinh",        color: "purple"  },
+  { id: "7", name: "GiaoDuc",        color: "indigo"  },
+  { id: "8", name: "KhuyenMai",      color: "pink"    },
 ];
 
 const DEFAULT_OBJECT_GROUPS = [
@@ -39,53 +42,68 @@ function load(key, fallback) {
 const CategoriesContext = createContext(null);
 
 export function CategoriesProvider({ children }) {
-  const [expenseCategories, setExpenseCategories] = useState(() =>
-    load("expense_categories", []),
-  );
-  const [incomeSources, setIncomeSources] = useState(() =>
-    load("income_sources", []),
-  );
+  const [expenseCategories, setExpenseCategories] = useState([]);
+  const [incomeSources, setIncomeSources] = useState([]);
+
+  const { user } = useAuth();
+
+  // ── Clear cached categories when user logs out ─────────────────────────
+  useEffect(() => {
+    if (!user) {
+      localStorage.removeItem("expense_categories");
+      localStorage.removeItem("income_sources");
+      localStorage.removeItem("app_tags");
+      localStorage.removeItem("app_object_groups");
+      setExpenseCategories([]);
+      setIncomeSources([]);
+      setTags([]);
+      setObjectGroups([]);
+    }
+  }, [user]);
+
+  // ── Fetch categories from API when user changes ────────────────────────
+  const fetchCategories = useCallback(async () => {
+    if (!user) return;
+    try {
+      const [expenseRes, incomeRes, liabilityRes] = await Promise.all([
+        accountApi.getByType(5),
+        accountApi.getByType(4),
+        accountApi.getByType(2),
+      ]);
+      const allExpenseCategories = [
+        ...(expenseRes ?? []),
+        ...(liabilityRes ?? []),
+      ];
+
+      const allIncomeCategories = [...(incomeRes ?? [])];
+      const finalExpense =
+        allExpenseCategories.length > 0
+          ? allExpenseCategories
+          : DEFAULT_EXPENSE_CATEGORIES;
+      const finalIncome =
+        allIncomeCategories.length > 0
+          ? allIncomeCategories
+          : DEFAULT_INCOME_SOURCES;
+
+      setExpenseCategories(finalExpense);
+      setIncomeSources(finalIncome);
+
+      localStorage.setItem(
+        "expense_categories",
+        JSON.stringify(finalExpense),
+      );
+      localStorage.setItem("income_sources", JSON.stringify(finalIncome));
+    } catch (err) {
+      setExpenseCategories(
+        load("expense_categories", DEFAULT_EXPENSE_CATEGORIES),
+      );
+      setIncomeSources(load("income_sources", DEFAULT_INCOME_SOURCES));
+    }
+  }, [user]);
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const [expenseRes, incomeRes, liabilityRes] = await Promise.all([
-          accountApi.getByType(5),
-          accountApi.getByType(4),
-          accountApi.getByType(2),
-        ]);
-        const allExpenseCategories = [
-          ...(expenseRes ?? []),
-          ...(liabilityRes ?? []),
-        ];
-
-        const allIncomeCategories = [...(incomeRes ?? [])];
-        setExpenseCategories(
-          allExpenseCategories.length > 0
-            ? allExpenseCategories
-            : [DEFAULT_EXPENSE_CATEGORIES],
-        );
-        setIncomeSources(
-          allIncomeCategories.length > 0
-            ? allIncomeCategories
-            : [DEFAULT_INCOME_SOURCES],
-        );
-
-        localStorage.setItem(
-          "expense_categories",
-          JSON.stringify(expenseCategories),
-        );
-        localStorage.setItem("income_sources", JSON.stringify(incomeSources));
-      } catch (err) {
-        setExpenseCategories(
-          load("expense_categories", DEFAULT_EXPENSE_CATEGORIES),
-        );
-        setIncomeSources(load("income_sources", DEFAULT_INCOME_SOURCES));
-      }
-    };
-
     fetchCategories();
-  }, []);
+  }, [fetchCategories]);
 
   const [tags, setTags] = useState(() => load("app_tags", DEFAULT_TAGS));
   const [objectGroups, setObjectGroups] = useState(() =>

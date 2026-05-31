@@ -39,6 +39,7 @@ export function Dashboard() {
   const [monthlyTrend, setMonthlyTrend] = useState([]);
   const [categorySpending, setCategorySpending] = useState([]);
   const [recentTransactions, setRecentTransactions] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -255,9 +256,22 @@ export function Dashboard() {
                     outerRadius={90}
                     dataKey="amount"
                     nameKey="name"
+                    activeIndex={selectedCategory !== null ? selectedCategory : undefined}
+                    activeShape={{ outerRadius: 100, stroke: "#fff", strokeWidth: 3 }}
+                    onClick={(_, index) => {
+                      setSelectedCategory(prev => prev === index ? null : index);
+                    }}
+                    style={{ cursor: "pointer" }}
                   >
                     {categorySpending.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={CHART_COLORS[index % CHART_COLORS.length]}
+                        opacity={selectedCategory
+                          ? (categorySpending[selectedCategory].name === categorySpending[index].name ? 1 : 0.3)
+                          : 0.85}
+                        style={{ cursor: "pointer" }}
+                      />
                     ))}
                   </Pie>
                   <Tooltip
@@ -267,18 +281,30 @@ export function Dashboard() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="mt-3 space-y-2">
-                {categorySpending.slice(0, 5).map((s, i) => (
-                  <div key={s.name} className="flex items-center justify-between text-sm">
+                {categorySpending.slice(0, 5).map((s, i) => {
+                  const isActive = selectedCategory === i;
+                  return (
+                  <div
+                    key={s.name}
+                    onClick={() => setSelectedCategory(prev => prev === i ? null : i)}
+                    className={`flex items-center justify-between text-sm px-2 py-1.5 rounded-lg transition-all cursor-pointer ${
+                      isActive
+                        ? "bg-purple-50 dark:bg-purple-900/30 ring-1 ring-purple-300 dark:ring-purple-600"
+                        : selectedCategory !== null
+                          ? "opacity-40 hover:opacity-70 hover:bg-muted"
+                          : "hover:bg-muted"
+                    }`}
+                  >
                     <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
-                      <span className="text-muted-foreground truncate max-w-[140px]">{s.name}</span>
+                      <div className={`w-2.5 h-2.5 rounded-full shrink-0 transition-transform ${isActive ? "scale-150" : ""}`} style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                      <span className={`truncate max-w-[140px] ${isActive ? "font-bold text-foreground" : "text-muted-foreground"}`}>{s.name}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground text-xs">{s.pct.toFixed(1)}%</span>
-                      <span className="font-semibold text-foreground">{fmt(s.amount)}</span>
+                      <span className={`font-semibold transition-all ${isActive ? "text-foreground" : "text-foreground"}`}>{fmt(s.amount)}</span>
                     </div>
                   </div>
-                ))}
+                );})}
               </div>
             </>
           ) : (
@@ -290,7 +316,18 @@ export function Dashboard() {
       {/* Recent Transactions */}
       <div className="bg-card rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-border">
         <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <h2 className="text-base sm:text-xl font-bold text-card-foreground">Giao dịch gần đây</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-base sm:text-xl font-bold text-card-foreground">Giao dịch gần đây</h2>
+            {selectedCategory !== null && (
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-full text-xs font-semibold hover:bg-purple-200 dark:hover:bg-purple-900/60 transition-colors"
+              >
+                <span>Danh mục: {categorySpending[selectedCategory]?.name}</span>
+                <span className="ml-0.5 text-purple-500 hover:text-purple-700">&times;</span>
+              </button>
+            )}
+          </div>
           <Link
             to="/transactions"
             className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors"
@@ -303,7 +340,13 @@ export function Dashboard() {
           <p className="text-center text-muted-foreground py-8">Không có giao dịch gần đây</p>
         ) : (
           <div className="divide-y divide-border">
-            {recentTransactions.map((t) => {
+            {recentTransactions
+              .filter(t => {
+                if (selectedCategory === null) return true;
+                const catName = categorySpending[selectedCategory]?.name;
+                return t.categoryName === catName;
+              })
+              .map((t) => {
               const iconBg    = t.isTransfer ? "bg-blue-500/10" : t.isIncome ? "bg-green-500/15"  : "bg-red-500/10";
               const Icon      = t.isTransfer ? ArrowLeftRight   : t.isIncome ? ArrowUpRight   : ArrowDownRight;
               const iconCls   = t.isTransfer ? "text-blue-400"  : t.isIncome ? "text-green-400" : "text-red-400";

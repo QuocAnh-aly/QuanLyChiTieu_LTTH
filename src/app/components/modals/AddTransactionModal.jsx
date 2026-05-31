@@ -183,21 +183,21 @@ export function AddTransactionModal({
       className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
       onClick={onClose}>
       <div
-        className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
+        className="bg-card rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200 sticky top-0 bg-white rounded-t-2xl z-10">
-          <h2 className="text-lg font-bold text-slate-900">Thêm giao dịch</h2>
+        <div className="flex justify-between items-center px-6 py-4 border-b border-border sticky top-0 bg-card rounded-t-2xl z-10">
+          <h2 className="text-lg font-bold text-card-foreground">Thêm giao dịch</h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
+            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">
             <X size={18} />
           </button>
         </div>
 
         {/* Type tabs */}
         <div className="px-6 pt-4">
-          <div className="flex gap-1 bg-slate-100 rounded-xl p-1">
+          <div className="flex gap-1 bg-muted rounded-xl p-1">
             {TX_TYPES.map(({ key, label, Icon, activeCls }) => (
               <button
                 key={key}
@@ -206,7 +206,7 @@ export function AddTransactionModal({
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-sm font-semibold transition-all ${
                   txType === key
                     ? activeCls
-                    : "text-slate-500 hover:text-slate-700"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}>
                 <Icon size={14} />
                 <span>{label}</span>
@@ -219,11 +219,11 @@ export function AddTransactionModal({
           <div className="px-6 py-4 space-y-4">
             {/* Amount */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              <label className="block text-sm font-semibold text-foreground mb-1.5">
                 Số tiền <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium text-sm">
                   {currencySymbol}
                 </span>
                 <input
@@ -231,7 +231,7 @@ export function AddTransactionModal({
                   type="number"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-lg font-semibold"
+                  className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-lg font-semibold"
                   placeholder="0"
                   step="1000"
                   min="0"
@@ -242,14 +242,14 @@ export function AddTransactionModal({
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              <label className="block text-sm font-semibold text-foreground mb-1.5">
                 Mô tả
               </label>
               <input
                 type="text"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 placeholder={
                   txType === "expense"
                     ? "VD: Mua đồ ăn tối, cà phê sáng..."
@@ -264,13 +264,13 @@ export function AddTransactionModal({
             {txType === "expense" && (
               <>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">
                     Thanh toán từ ví <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={walletId}
                     onChange={(e) => setWalletId(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                    className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                     required>
                     <option value="">Chọn ví thanh toán</option>
                     {assetAccounts.map((a) => (
@@ -287,7 +287,7 @@ export function AddTransactionModal({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">
                     Danh mục chi tiêu <span className="text-red-500">*</span>
                   </label>
                   <div className="grid grid-cols-2 gap-2">
@@ -305,8 +305,8 @@ export function AddTransactionModal({
                         className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
                           expenseCategory.accountId === cat.accountId &&
                           expenseCategory.accountId !== 0
-                            ? "border-red-400 bg-red-50 text-red-700"
-                            : "border-slate-200 hover:border-slate-300 text-slate-700"
+                            ? "border-red-500 bg-red-500/10 text-red-500"
+                            : "border-border hover:border-border text-foreground"
                         }`}>
                         {cat.name}
                       </button>
@@ -319,8 +319,8 @@ export function AddTransactionModal({
                       }}
                       className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
                         showCustomCategory
-                          ? "border-red-400 bg-red-50 text-red-700"
-                          : "border-slate-200 hover:border-slate-300 text-slate-700"
+                          ? "border-red-500 bg-red-500/10 text-red-500"
+                          : "border-border hover:border-border text-foreground"
                       }`}>
                       + Danh mục mới
                     </button>
@@ -333,13 +333,13 @@ export function AddTransactionModal({
             {txType === "income" && (
               <>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">
                     Nhận vào ví <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={walletId}
                     onChange={(e) => setWalletId(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                    className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                     required>
                     <option value="">Chọn ví nhận</option>
                     {assetAccounts.map((a) => (
@@ -356,7 +356,7 @@ export function AddTransactionModal({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">
                     Nguồn thu nhập <span className="text-red-500">*</span>
                   </label>
                   <div className="grid grid-cols-2 gap-2">
@@ -374,8 +374,8 @@ export function AddTransactionModal({
                         className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
                           incomeCategory.accountId === src.accountId &&
                           incomeCategory.accountId !== 0
-                            ? "border-green-400 bg-green-50 text-green-700"
-                            : "border-slate-200 hover:border-slate-300 text-slate-700"
+                            ? "border-green-500 bg-green-500/10 text-green-500"
+                            : "border-border hover:border-border text-foreground"
                         }`}>
                         {src.name}
                       </button>
@@ -388,8 +388,8 @@ export function AddTransactionModal({
                       }}
                       className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
                         showCustomCategory
-                          ? "border-green-400 bg-green-50 text-green-700"
-                          : "border-slate-200 hover:border-slate-300 text-slate-700"
+                          ? "border-green-500 bg-green-500/10 text-green-500"
+                          : "border-border hover:border-border text-foreground"
                       }`}>
                       + Nguồn thu mới
                     </button>
@@ -422,7 +422,7 @@ export function AddTransactionModal({
                     });
                   }
                 }}
-                className="w-full mt-2 px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                className="w-full mt-2 px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
               />
             )}
 
@@ -430,13 +430,13 @@ export function AddTransactionModal({
             {txType === "transfer" && (
               <>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">
                     Từ ví <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={walletId}
                     onChange={(e) => setWalletId(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                    className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                     required>
                     <option value="">Chọn ví nguồn</option>
                     {assetAccounts.map((a) => (
@@ -453,7 +453,7 @@ export function AddTransactionModal({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">
                     Sang ví <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -461,8 +461,8 @@ export function AddTransactionModal({
                     onChange={(e) => setToWalletId(e.target.value)}
                     className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm ${
                       sameWalletError
-                        ? "border-red-400 bg-red-50"
-                        : "border-slate-200"
+                        ? "border-red-500 bg-red-500/10"
+                        : "border-border"
                     }`}
                     required>
                     <option value="">Chọn ví đích</option>
@@ -497,22 +497,22 @@ export function AddTransactionModal({
 
             {/* Date */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              <label className="block text-sm font-semibold text-foreground mb-1.5">
                 Ngày giao dịch
               </label>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
               />
             </div>
 
             {/* Tags */}
             {tags && tags.length > 0 && (
               <div>
-                <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-2">
-                  <Tag size={14} className="text-slate-400" /> Nhãn
+                <label className="flex items-center gap-1.5 text-sm font-semibold text-foreground mb-2">
+                  <Tag size={14} className="text-muted-foreground" /> Nhãn
                 </label>
                 <div className="flex flex-wrap gap-1.5">
                   {tags.map((tag) => {
@@ -526,7 +526,7 @@ export function AddTransactionModal({
                         className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${
                           active
                             ? colorCls
-                            : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                            : "bg-card border-border text-muted-foreground hover:border-border"
                         }`}>
                         {tag.name}
                       </button>
@@ -538,29 +538,29 @@ export function AddTransactionModal({
 
             {/* Notes */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              <label className="block text-sm font-semibold text-foreground mb-1.5">
                 Ghi chú
               </label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm resize-none"
+                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm resize-none"
                 placeholder="Thêm ghi chú chi tiết..."
               />
             </div>
           </div>
 
           {/* Footer */}
-          <div className="px-6 pb-4 border-t border-slate-200 pt-4 space-y-3">
+          <div className="px-6 pb-4 border-t border-border pt-4 space-y-3">
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={createAnother}
                 onChange={(e) => setCreateAnother(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 accent-purple-600"
+                className="w-4 h-4 rounded border-border accent-purple-600"
               />
-              <span className="text-sm text-slate-600">
+              <span className="text-sm text-muted-foreground">
                 Thêm giao dịch tiếp theo
               </span>
             </label>
@@ -572,7 +572,7 @@ export function AddTransactionModal({
                   reset();
                   onClose();
                 }}
-                className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-semibold text-sm">
+                className="flex-1 px-4 py-2.5 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold text-sm">
                 Hủy
               </button>
               <button

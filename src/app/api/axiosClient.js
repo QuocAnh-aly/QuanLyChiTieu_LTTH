@@ -57,6 +57,8 @@ axiosClient.interceptors.response.use(
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user_id');
+      localStorage.removeItem('app_tags');
+      localStorage.removeItem('app_object_groups');
       window.dispatchEvent(new Event('auth:logout'));
       return Promise.reject(error);
     }
@@ -101,6 +103,8 @@ axiosClient.interceptors.response.use(
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user_id');
+      localStorage.removeItem('app_tags');
+      localStorage.removeItem('app_object_groups');
       window.dispatchEvent(new Event('auth:logout'));
       return Promise.reject(refreshError);
     } finally {
