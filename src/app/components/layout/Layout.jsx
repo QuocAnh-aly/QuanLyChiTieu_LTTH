@@ -83,7 +83,7 @@ function SubMenuItem({ to, icon: Icon, label }) {
 function CollapsibleMenu({ icon: Icon, label, children, matchPaths = [] }) {
   const location = useLocation();
   const isAnyChildActive = matchPaths.some((p) =>
-    location.pathname.startsWith(p)
+    location.pathname.startsWith(p),
   );
   const [open, setOpen] = useState(isAnyChildActive);
 
@@ -171,16 +171,8 @@ export function Layout() {
           <SectionLabel label="Kiểm soát tài chính" />
 
           <NavItem to="/budgets" icon={TrendingUp} label="Ngân sách" />
-          <NavItem
-            to="/subscriptions"
-            icon={Repeat2}
-            label="Hóa đơn định kỳ"
-          />
-          <NavItem
-            to="/piggy-banks"
-            icon={PiggyBank}
-            label="Lợn tiết kiệm"
-          />
+          <NavItem to="/subscriptions" icon={Repeat2} label="Hóa đơn định kỳ" />
+          <NavItem to="/piggy-banks" icon={PiggyBank} label="Lợn tiết kiệm" />
 
           <Divider />
 
@@ -222,11 +214,7 @@ export function Layout() {
             matchPaths={["/rules", "/recurring", "/webhooks"]}
           >
             <SubMenuItem to="/rules" icon={BookOpen} label="Quy tắc" />
-            <SubMenuItem
-              to="/recurring"
-              icon={Repeat2}
-              label="Định kỳ"
-            />
+            <SubMenuItem to="/recurring" icon={Repeat2} label="Định kỳ" />
             <SubMenuItem to="/webhooks" icon={Webhook} label="Webhooks" />
           </CollapsibleMenu>
 
@@ -241,11 +229,7 @@ export function Layout() {
             label="Tài khoản"
             matchPaths={["/accounts"]}
           >
-            <SubMenuItem
-              to="/accounts/asset"
-              icon={Wallet}
-              label="Tài sản"
-            />
+            <SubMenuItem to="/accounts/asset" icon={Wallet} label="Tài sản" />
             <SubMenuItem
               to="/accounts/expense"
               icon={CreditCard}
@@ -269,11 +253,7 @@ export function Layout() {
             label="Phân loại"
             matchPaths={["/categories", "/tags", "/object-groups"]}
           >
-            <SubMenuItem
-              to="/categories"
-              icon={BookOpen}
-              label="Danh mục"
-            />
+            <SubMenuItem to="/categories" icon={BookOpen} label="Danh mục" />
             <SubMenuItem to="/tags" icon={Tag} label="Nhãn" />
             <SubMenuItem
               to="/object-groups"
@@ -283,11 +263,7 @@ export function Layout() {
           </CollapsibleMenu>
 
           <NavItem to="/reports" icon={BarChart2} label="Báo cáo" />
-          <NavItem
-            to="/export"
-            icon={Download}
-            label="Xuất dữ liệu"
-          />
+          <NavItem to="/export" icon={Download} label="Xuất dữ liệu" />
 
           <Divider />
 
@@ -307,21 +283,13 @@ export function Layout() {
             ]}
           >
             <SubMenuItem to="/profile" icon={User} label="Hồ sơ cá nhân" />
-            <SubMenuItem
-              to="/profile/oauth"
-              icon={KeyRound}
-              label="Mã OAuth"
-            />
+            <SubMenuItem to="/profile/oauth" icon={KeyRound} label="Mã OAuth" />
             <SubMenuItem
               to="/preferences"
               icon={SlidersHorizontal}
               label="Tùy chọn hiển thị"
             />
-            <SubMenuItem
-              to="/currencies"
-              icon={DollarSign}
-              label="Tiền tệ"
-            />
+            <SubMenuItem to="/currencies" icon={DollarSign} label="Tiền tệ" />
             <SubMenuItem
               to="/exchange-rates"
               icon={Globe}
@@ -341,7 +309,10 @@ export function Layout() {
         </nav>
 
         {/* ── User Footer ── */}
-        <div className="p-3 border-t border-slate-100">
+        <div
+          className="p-3 border-t border-slate-100 cursor-pointer"
+          onClick={() => navigate("/profile")}
+        >
           <div className="flex items-center gap-3 px-2 py-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold text-xs shrink-0">
               {user?.avatarInitials || "U"}
