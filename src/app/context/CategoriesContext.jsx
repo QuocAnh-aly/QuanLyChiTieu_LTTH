@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { accountApi } from "../api/accountApi";
+import { useAuth } from "./AuthContext";
 
 const DEFAULT_EXPENSE_CATEGORIES = [
   { accountId: "", name: "Ăn uống", iconName: "Pizza", color: "red" },
@@ -45,6 +46,7 @@ export function CategoriesProvider({ children }) {
   const [incomeSources, setIncomeSources] = useState(() =>
     load("income_sources", []),
   );
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -78,8 +80,11 @@ export function CategoriesProvider({ children }) {
       }
     };
 
+    if (loading) return;
+    if (user) return;
+
     fetchCategories();
-  }, []);
+  }, [user, loading]);
 
   const [tags, setTags] = useState(() => load("app_tags", DEFAULT_TAGS));
   const [objectGroups, setObjectGroups] = useState(() =>
