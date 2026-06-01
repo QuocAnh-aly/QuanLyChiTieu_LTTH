@@ -49,57 +49,36 @@ export function CategoriesProvider({ children }) {
 
   // ── Clear cached categories when user logs out ─────────────────────────
   useEffect(() => {
-    if (!user) {
-      localStorage.removeItem("expense_categories");
-      localStorage.removeItem("income_sources");
-      localStorage.removeItem("app_tags");
-      localStorage.removeItem("app_object_groups");
-      setExpenseCategories([]);
-      setIncomeSources([]);
-      setTags([]);
-      setObjectGroups([]);
-    }
-  }, [user]);
+    const fetchCategories = async () => {
+      try {
+        const [expenseRes, incomeRes, liabilityRes] = await Promise.all([
+          accountApi.getByType(5),
+          accountApi.getByType(4),
+          accountApi.getByType(2),
+        ]);
+        const allExpenseCategories = [
+          ...(expenseRes.items ?? []),
+          ...(liabilityRes.items ?? []),
+        ];
 
-  // ── Fetch categories from API when user changes ────────────────────────
-  const fetchCategories = useCallback(async () => {
-    if (!user) return;
-    try {
-      const [expenseRes, incomeRes, liabilityRes] = await Promise.all([
-        accountApi.getByType(5),
-        accountApi.getByType(4),
-        accountApi.getByType(2),
-      ]);
-      const allExpenseCategories = [
-        ...(expenseRes ?? []),
-        ...(liabilityRes ?? []),
-      ];
-
-      const allIncomeCategories = [...(incomeRes ?? [])];
-      const finalExpense =
-        allExpenseCategories.length > 0
-          ? allExpenseCategories
-          : DEFAULT_EXPENSE_CATEGORIES;
-      const finalIncome =
-        allIncomeCategories.length > 0
-          ? allIncomeCategories
-          : DEFAULT_INCOME_SOURCES;
-
-      setExpenseCategories(finalExpense);
-      setIncomeSources(finalIncome);
-
-      localStorage.setItem(
-        "expense_categories",
-        JSON.stringify(finalExpense),
-      );
-      localStorage.setItem("income_sources", JSON.stringify(finalIncome));
-    } catch (err) {
-      setExpenseCategories(
-        load("expense_categories", DEFAULT_EXPENSE_CATEGORIES),
-      );
-      setIncomeSources(load("income_sources", DEFAULT_INCOME_SOURCES));
-    }
-  }, [user]);
+        const allIncomeCategories = [...(incomeRes.items ?? [])];
+        setExpenseCategories(
+          allExpenseCategories.length > 0
+            ? allExpenseCategories
+            : [DEFAULT_EXPENSE_CATEGORIES],
+        );
+        setIncomeSources(
+          allIncomeCategories.length > 0
+            ? allIncomeCategories
+            : [DEFAULT_INCOME_SOURCES],
+        );
+      } catch (err) {
+        setExpenseCategories(
+          load("expense_categories", DEFAULT_EXPENSE_CATEGORIES),
+        );
+        setIncomeSources(load("income_sources", DEFAULT_INCOME_SOURCES));
+      }
+    };
 
   useEffect(() => {
     fetchCategories();
@@ -110,6 +89,15 @@ export function CategoriesProvider({ children }) {
     load("app_object_groups", DEFAULT_OBJECT_GROUPS),
   );
 
+  useEffect(() => {
+    localStorage.setItem(
+      "expense_categories",
+      JSON.stringify(expenseCategories),
+    );
+  }, [expenseCategories]);
+  useEffect(() => {
+    localStorage.setItem("income_sources", JSON.stringify(incomeSources));
+  }, [incomeSources]);
   useEffect(() => {
     localStorage.setItem("app_tags", JSON.stringify(tags));
   }, [tags]);
