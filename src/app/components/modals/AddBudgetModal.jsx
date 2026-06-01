@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { useState } from "react";
 import { useCategories } from "../../context/CategoriesContext";
+import { formatVND, parseVND } from "../../utils/formatMoney";
 
 const periodTypes = [
   { value: "daily", label: "Hàng ngày" },
@@ -220,9 +221,9 @@ export function AddBudgetModal({ isOpen, onClose, onAdd }) {
                       Số tiền
                     </label>
                     <input
-                      type="number"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
+                      type="text"
+                      value={formatVND(amount)}
+                      onChange={(e) => setAmount(parseVND(e.target.value))}
                       className="flex-1 px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                       placeholder="0"
                       step="1"

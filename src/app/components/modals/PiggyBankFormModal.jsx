@@ -2,6 +2,7 @@ import { X, PiggyBank, Landmark } from "lucide-react";
 import { useState, useEffect } from "react";
 import { walletApi } from "../../api/walletApi";
 import { useSettings } from "../../context/SettingsContext";
+import { formatVND, parseVND } from "../../utils/formatMoney";
 
 export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
   const { fmt, currencies, currency } = useSettings();
@@ -52,17 +53,6 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
   }, [isOpen, goal, currency]);
 
   if (!isOpen) return null;
-
-  const formatVND = (value) => {
-    const digits = value.replace(/\D/g, "");
-    if (!digits) return "";
-    return Number(digits).toLocaleString("vi-VN");
-  };
-
-  const handleAmountChange = (e) => {
-    const digits = e.target.value.replace(/\D/g, "");
-    setTargetAmount(digits);
-  };
   const handleAccountChange = (e) => {
     const options = e.target.options;
     const values = [];
@@ -162,7 +152,9 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
                     <input
                       type="text"
                       value={formatVND(targetAmount)}
-                      onChange={handleAmountChange}
+                      onChange={(e) => {
+                        setTargetAmount(parseVND(e.target.value));
+                      }}
                       required
                       min="1"
                       step="1"
