@@ -11,6 +11,8 @@ dist-ssr/
 .env.local
 .env.*.local
 
+.codegraph/
+architecture.md
 
 # Editor / IDE
 .vscode/
