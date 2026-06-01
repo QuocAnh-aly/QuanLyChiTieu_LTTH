@@ -55,11 +55,11 @@ export function CategoriesProvider({ children }) {
           accountApi.getByType(2),
         ]);
         const allExpenseCategories = [
-          ...(expenseRes ?? []),
-          ...(liabilityRes ?? []),
+          ...(expenseRes.items ?? []),
+          ...(liabilityRes.items ?? []),
         ];
 
-        const allIncomeCategories = [...(incomeRes ?? [])];
+        const allIncomeCategories = [...(incomeRes.items ?? [])];
         setExpenseCategories(
           allExpenseCategories.length > 0
             ? allExpenseCategories
@@ -70,12 +70,6 @@ export function CategoriesProvider({ children }) {
             ? allIncomeCategories
             : [DEFAULT_INCOME_SOURCES],
         );
-
-        localStorage.setItem(
-          "expense_categories",
-          JSON.stringify(expenseCategories),
-        );
-        localStorage.setItem("income_sources", JSON.stringify(incomeSources));
       } catch (err) {
         setExpenseCategories(
           load("expense_categories", DEFAULT_EXPENSE_CATEGORIES),
@@ -92,6 +86,15 @@ export function CategoriesProvider({ children }) {
     load("app_object_groups", DEFAULT_OBJECT_GROUPS),
   );
 
+  useEffect(() => {
+    localStorage.setItem(
+      "expense_categories",
+      JSON.stringify(expenseCategories),
+    );
+  }, [expenseCategories]);
+  useEffect(() => {
+    localStorage.setItem("income_sources", JSON.stringify(incomeSources));
+  }, [incomeSources]);
   useEffect(() => {
     localStorage.setItem("app_tags", JSON.stringify(tags));
   }, [tags]);
