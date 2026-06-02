@@ -1,4 +1,4 @@
-import { X, Check, Landmark, Wallet, TrendingUp, CreditCard, PiggyBank, Home, Package } from "lucide-react";
+import { X, Check, Landmark, Wallet, TrendingUp, CreditCard, PiggyBank, Home, Package, HandCoins } from "lucide-react";
 import { useState, useEffect } from "react";
 import { accountApi } from "../../api/accountApi";
 
@@ -11,6 +11,7 @@ const COLOR_OPTIONS = [
   { value: 'red',     label: 'Đỏ',         from: '#ef4444', to: '#b91c1c'  },
   { value: 'slate',   label: 'Xám',        from: '#64748b', to: '#475569'  },
   { value: 'pink',    label: 'Hồng',       from: '#ec4899', to: '#be185d'  },
+  { value: 'amber',   label: 'Hổ phách',  from: '#f59e0b', to: '#d97706'  },
 ];
 
 const COLOR_MAP = Object.fromEntries(COLOR_OPTIONS.map(c => [c.value, c]));  const DEFAULT_COLORS = { 1: 'blue', 2: 'slate', 4: 'emerald', 5: 'orange' };
@@ -22,13 +23,14 @@ const ASSET_SUBTYPES = [
   { key: 'savings',    label: 'Tiết kiệm',            iconName: 'PiggyBank',   color: 'green',   from: '#22c55e', to: '#15803d'  },
   { key: 'investment', label: 'Đầu tư',               iconName: 'TrendingUp',  color: 'purple',  from: '#a855f7', to: '#7e22ce'  },
   { key: 'property',   label: 'Bất động sản',         iconName: 'Home',        color: 'orange',  from: '#f97316', to: '#c2410c'  },
+  { key: 'receivable', label: 'Vay mượn',   iconName: 'HandCoins',   color: 'amber',   from: '#f59e0b', to: '#d97706'  },
   { key: 'credit',     label: 'Thẻ tín dụng / Trả góp', iconName: 'CreditCard', color: 'red',    from: '#ef4444', to: '#b91c1c'  },
   { key: 'other',      label: 'Tài sản khác',         iconName: 'Package',     color: 'slate',   from: '#64748b', to: '#475569'  },
 ];
 
 const ASSET_SUBTYPE_MAP = Object.fromEntries(ASSET_SUBTYPES.map(s => [s.key, s]));
 
-const SUBTYPE_ICONS = { Landmark, Wallet, PiggyBank, TrendingUp, Home, CreditCard, Package };
+const SUBTYPE_ICONS = { Landmark, Wallet, PiggyBank, TrendingUp, Home, CreditCard, Package, HandCoins };
 
 // typeId: 1 = Asset, 2 = Liabilities, 4 = Revenue, 5 = Expense
 export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId }) {
@@ -91,7 +93,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
     if (!isOpen) return;
     if (account) {
       // Determine asset sub-type from existing iconName
-      const iconToKey = { Landmark: 'bank', Wallet: 'cash', WalletIcon: 'cash', PiggyBank: 'savings', TrendingUp: 'investment', Home: 'property', CreditCard: 'credit', Package: 'other' };
+      const iconToKey = { Landmark: 'bank', Wallet: 'cash', WalletIcon: 'cash', PiggyBank: 'savings', TrendingUp: 'investment', Home: 'property', CreditCard: 'credit', Package: 'other', HandCoins: 'receivable' };
       const detectedSubtype = iconToKey[account.iconName] || '';
       setForm({
         name:           account.name        || '',

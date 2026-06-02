@@ -185,8 +185,7 @@ export function Budgets() {
   const warningCount = budgets.filter(b => b.percentage >= 80 && b.percentage <= 100).length;
   const onTrackCount = budgets.filter(b => b.percentage < 80).length;
 
-  const pieData = budgets.filter(b => b.spent > 0).map(b => ({ name: b.name, value: b.spent, color: b.pieColor }));
-  const displayBudgets = budgets;
+  const pieData = budgets.filter(b => b.spent > 0).map(b => ({ id: b.id, name: b.name, value: b.spent, color: b.pieColor }));    const displayBudgets = budgets;
 
   const handleAddBudget = async (data) => {
     try { await budgetApi.createExpenseBudget(data); await fetchBudgets(); toast.success("Đã thêm ngân sách!"); addNotification({ type: 'success', title: 'Ngân sách mới', message: 'Đã tạo ngân sách thành công', link: '/budgets' }); }
@@ -371,7 +370,7 @@ export function Budgets() {
               </ResponsiveContainer>
               <div className="mt-3 space-y-2">
                 {pieData.slice(0, 5).map(d => (
-                  <div key={d.name} className="flex items-center justify-between text-xs">
+                  <div key={d.id} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
                       <span className="text-muted-foreground truncate">{d.name}</span>
