@@ -203,28 +203,25 @@ export function Profile() {
   }, []);
 
   // ── Filtered transactions ──────────────────────────────────────────────────
-  const filtered = useMemo(() =>
-    transactions.filter((t) => {
-      const matchSearch =
-        (t.description || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (t.categoryName || "").toLowerCase().includes(searchTerm.toLowerCase());
-      const matchType =
-        filterType === "all" ||
-        (filterType === "income" && t.isIncome) ||
-        (filterType === "transfer" && t.isTransfer) ||
-        (filterType === "expense" && !t.isIncome && !t.isTransfer);
-      const matchDate =
-        !dateRange?.from ||
-        (() => {
-          const txDate = format(new Date(t.transactionDate), "yyyy-MM-dd");
-          const from = format(dateRange.from, "yyyy-MM-dd");
-          const to = dateRange.to ? format(dateRange.to, "yyyy-MM-dd") : from;
-          return txDate >= from && txDate <= to;
-        })();
-      return matchSearch && matchType && matchDate;
-    }),
-    [transactions, searchTerm, filterType, dateRange],
-  );
+  // const filtered = transactions.filter((t) => {
+  //   const matchSearch =
+  //     (t.description || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     (t.categoryName || "").toLowerCase().includes(searchTerm.toLowerCase());
+  const filtered = transactions.filter((t) => {
+    const matchSearch =
+      (t.description || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (t.categoryName || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchType =
+      filterType === "all" ||
+      (filterType === "income" && t.isIncome) ||
+      (filterType === "transfer" && t.isTransfer) ||
+      (filterType === "expense" && !t.isIncome && !t.isTransfer);
+    const matchDate =
+      !dateRange ||
+      format(new Date(t.transactionDate), "yyyy-MM-dd") ===
+        format(dateRange, "yyyy-MM-dd");
+    return matchSearch && matchType && matchDate;
+  });
 
   // ── Export CSV ─────────────────────────────────────────────────────────────
   const exportCSV = () => {
@@ -237,7 +234,9 @@ export function Profile() {
       (t.isIncome ? "+" : t.isTransfer ? "" : "-") + Math.abs(t.totalAmount),
     ]);
     const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(["\uFEFF" + csv], {
+      type: "text/csv;charset=utf-8;",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -251,9 +250,16 @@ export function Profile() {
   const handleSaveProfile = async () => {
     try {
       setIsSavingProfile(true);
-      await authApi.updateProfile({ fullName: profile.fullName, email: profile.email });
+      await authApi.updateProfile({
+        fullName: profile.fullName,
+        email: profile.email,
+      });
       toast.success("Đã cập nhật hồ sơ");
-      addNotification({ type: "success", title: "Đã cập nhật hồ sơ", message: "Thông tin cá nhân đã được lưu" });
+      addNotification({
+        type: "success",
+        title: "Đã cập nhật hồ sơ",
+        message: "Thông tin cá nhân đã được lưu",
+      });
     } catch (err) {
       const msg = err?.response?.data?.message ?? err?.response?.data;
       toast.error(typeof msg === "string" ? msg : "Không thể cập nhật hồ sơ");
@@ -271,19 +277,31 @@ export function Profile() {
     }
     const failedRules = PASSWORD_RULES.filter((r) => !r.test(pwForm.next));
     if (failedRules.length > 0) {
-      toast.error("Mật khẩu mới chưa đáp ứng đủ yêu cầu (8 ký tự, 1 chữ hoa, 1 ký tự đặc biệt)");
+      toast.error(
+        "Mật khẩu mới chưa đáp ứng đủ yêu cầu (8 ký tự, 1 chữ hoa, 1 ký tự đặc biệt)",
+      );
       return;
     }
     try {
       setIsSavingPw(true);
-      await authApi.changePassword({ currentPassword: pwForm.current, newPassword: pwForm.next });
+      await authApi.changePassword({
+        currentPassword: pwForm.current,
+
+        newPassword: pwForm.next,
+      });
       toast.success("Đã đổi mật khẩu thành công");
-      addNotification({ type: "success", title: "Đã đổi mật khẩu", message: "Mật khẩu của bạn đã được cập nhật" });
+      addNotification({
+        type: "success",
+        title: "Đã đổi mật khẩu",
+        message: "Mật khẩu của bạn đã được cập nhật",
+      });
       setPwForm({ current: "", next: "", confirm: "" });
       setShowPwForm(false);
     } catch (err) {
       const msg = err?.response?.data?.message ?? err?.response?.data;
-      toast.error(typeof msg === "string" ? msg : "Mật khẩu hiện tại không đúng");
+      toast.error(
+        typeof msg === "string" ? msg : "Mật khẩu hiện tại không đúng",
+      );
     } finally {
       setIsSavingPw(false);
     }
@@ -380,20 +398,25 @@ export function Profile() {
                 {cashFlow.totalExpense.toLocaleString()} {currency}
               </p>
               <p className="text-red-600 text-sm mt-1">
-                {filtered.filter((t) => !t.isIncome && !t.isTransfer).length} giao dịch
+                {filtered.filter((t) => !t.isIncome && !t.isTransfer).length}{" "}
+                giao dịch
               </p>
             </div>
 
             <div className="bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl p-6 text-white">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-purple-100">Dòng tiền ròng</span>
-                <div className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center">
-                  <User size={20} className="text-white" />
-                </div>
+                <div className="w-2 h-2 rounded-full bg-purple-200" />
               </div>
-              <p className={`text-3xl font-bold ${cashFlow.totalIncome - cashFlow.totalExpense < 0 ? "text-red-200" : ""}`}>
-                {(cashFlow.totalIncome - cashFlow.totalExpense).toLocaleString()} {currency}
+              <p
+                className={`text-3xl font-bold ${cashFlow.totalIncome - cashFlow.totalExpense < 0 ? "text-red-200" : ""}`}
+              >
+                {(
+                  cashFlow.totalIncome - cashFlow.totalExpense
+                ).toLocaleString()}{" "}
+                {currency}
               </p>
+
               <p className="text-purple-100 text-sm mt-1">
                 {filtered.length} giao dịch
               </p>
@@ -405,13 +428,16 @@ export function Profile() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Search */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                <Search
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  size={18}
+                />
                 <input
                   type="text"
                   placeholder="Tìm kiếm giao dịch..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm bg-card"
+                  className="w-full pl-10 pr-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                 />
               </div>
 
@@ -434,13 +460,19 @@ export function Profile() {
 
               {/* Date picker */}
               <div className="relative">
-                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                <CalendarIcon
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  size={18}
+                />
                 <button
                   onClick={() => setShowCalendar((v) => !v)}
                   className="w-full pl-10 pr-4 py-2.5 border border-border rounded-lg text-left bg-card text-sm hover:border-purple-400 transition-colors"
                 >
                   {dateRange?.from && dateRange?.to
-                    ? `${format(dateRange.from, "dd/MM/yyyy")} - ${format(dateRange.to, "dd/MM/yyyy")}`
+                    ? `${format(dateRange.from, "dd/MM/yyyy")} - ${format(
+                        dateRange.to,
+                        "dd/MM/yyyy",
+                      )}`
                     : "Lọc theo khoảng ngày"}
                 </button>
                 {showCalendar && (
@@ -453,10 +485,13 @@ export function Profile() {
                     />
                     {dateRange && (
                       <button
-                        onClick={() => { setDateRange(undefined); setShowCalendar(false); }}
+                        onClick={() => {
+                          setDateRange(undefined);
+                          setShowCalendar(false);
+                        }}
                         className="w-full mt-1 px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted text-sm transition-colors"
                       >
-                        Tắt bộ lọc ngày
+                        Tắt bộ lọc ngày
                       </button>
                     )}
                   </div>
@@ -471,29 +506,70 @@ export function Profile() {
               <table className="w-full">
                 <thead className="bg-muted border-b border-border">
                   <tr>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-foreground">Giao dịch</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-foreground">Danh mục</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-foreground">Ngày</th>
-                    <th className="text-right px-6 py-4 text-sm font-semibold text-foreground">Số tiền</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-foreground">
+                      Giao dịch
+                    </th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-foreground">
+                      Danh mục
+                    </th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-foreground">
+                      Ngày
+                    </th>
+                    <th className="text-right px-6 py-4 text-sm font-semibold text-foreground">
+                      Số tiền
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {isLoading
-                    ? Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
+                    ? Array.from({ length: 5 }).map((_, i) => (
+                        <SkeletonRow key={i} />
+                      ))
                     : filtered.map((t) => {
-                        const iconBg = t.isTransfer ? "bg-blue-500/10" : t.isIncome ? "bg-green-500/15" : "bg-red-500/10";
-                        const TxIcon = t.isTransfer ? ArrowLeftRight : t.isIncome ? ArrowUpRight : ArrowDownRight;
-                        const iconCls = t.isTransfer ? "text-blue-500" : t.isIncome ? "text-green-600" : "text-red-500";
-                        const amtCls = t.isTransfer ? "text-blue-600" : t.isIncome ? "text-green-600" : "text-card-foreground";
-                        const prefix = t.isIncome ? "+" : t.isTransfer ? "" : "-";
+                        const iconBg = t.isTransfer
+                          ? "bg-blue-500/10"
+                          : t.isIncome
+                            ? "bg-green-500/15"
+                            : "bg-red-500/10";
+                        const Icon = t.isTransfer
+                          ? ArrowLeftRight
+                          : t.isIncome
+                            ? ArrowUpRight
+                            : ArrowDownRight;
+                        const iconCls = t.isTransfer
+                          ? "text-blue-500"
+                          : t.isIncome
+                            ? "text-green-600"
+                            : "text-red-500";
+                        const amtCls = t.isTransfer
+                          ? "text-blue-600"
+                          : t.isIncome
+                            ? "text-green-600"
+                            : "text-card-foreground";
+                        const prefix = t.isIncome
+                          ? "+"
+                          : t.isTransfer
+                            ? ""
+                            : "-";
                         return (
-                          <tr key={t.journalId} className="hover:bg-muted transition-colors">
+                          <tr
+                            key={t.journalId}
+                            className="hover:bg-muted transition-colors"
+                          >
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
-                                <div className={`w-9 h-9 rounded-full ${iconBg} flex items-center justify-center shrink-0`}>
-                                  <TxIcon size={16} className={iconCls} />
+                                <div
+                                  className={`w-9 h-9 rounded-full ${iconBg} flex items-center justify-center`}
+                                >
+                                  <div
+                                    className={`w-9 h-9 rounded-full ${iconBg} flex items-center justify-center`}
+                                  >
+                                    <Icon size={16} className={iconCls} />
+                                  </div>
+                                  <span className="font-medium text-card-foreground">
+                                    {t.description || "—"}
+                                  </span>
                                 </div>
-                                <span className="font-medium text-card-foreground">{t.description || "—"}</span>
                               </div>
                             </td>
                             <td className="px-6 py-4">
@@ -502,11 +578,16 @@ export function Profile() {
                               </span>
                             </td>
                             <td className="px-6 py-4 text-sm text-muted-foreground">
-                              {format(new Date(t.transactionDate), "dd/MM/yyyy")}
+                              {format(
+                                new Date(t.transactionDate),
+                                "dd/MM/yyyy",
+                              )}
                             </td>
                             <td className="px-6 py-4 text-right">
                               <span className={`font-bold ${amtCls}`}>
-                                {prefix}{Math.abs(t.totalAmount).toLocaleString()} {currency}
+                                {prefix}
+                                {Math.abs(t.totalAmount).toLocaleString()}{" "}
+                                {currency}
                               </span>
                             </td>
                           </tr>
@@ -516,8 +597,13 @@ export function Profile() {
               </table>
               {!isLoading && filtered.length === 0 && (
                 <div className="text-center py-16">
-                  <Search size={40} className="mx-auto mb-3 text-muted-foreground" />
-                  <p className="text-muted-foreground">Không tìm thấy giao dịch phù hợp</p>
+                  <Search
+                    size={40}
+                    className="mx-auto mb-3 text-muted-foreground"
+                  />
+                  <p className="text-muted-foreground">
+                    Không tìm thấy giao dịch phù hợp
+                  </p>
                 </div>
               )}
             </div>
@@ -528,42 +614,10 @@ export function Profile() {
       {/* ── Tab: Hồ sơ ─────────────────────────────────────────────────────── */}
       {activeTab === "profile" && (
         <div className="max-w-2xl space-y-6">
-          {isLoading ? (
-            <>
-              {/* Avatar + info card skeleton */}
-              <div className="bg-card rounded-2xl p-6 border border-border space-y-5">
-                <div className="flex items-center gap-5 mb-6">
-                  <div className="w-16 h-16 rounded-2xl bg-muted animate-pulse" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-5 w-40 bg-muted rounded animate-pulse" />
-                    <div className="h-4 w-24 bg-muted rounded animate-pulse" />
-                  </div>
-                </div>
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="space-y-2">
-                    <div className="h-4 w-28 bg-muted rounded animate-pulse" />
-                    <div className="h-11 w-full bg-muted rounded-lg animate-pulse" />
-                  </div>
-                ))}
-                <div className="h-11 w-full bg-muted rounded-lg animate-pulse" />
-              </div>
-              {/* Change password skeleton */}
-              <div className="bg-card rounded-2xl border border-border p-6 space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-muted animate-pulse" />
-                  <div className="flex-1 space-y-1.5">
-                    <div className="h-4 w-28 bg-muted rounded animate-pulse" />
-                    <div className="h-3 w-44 bg-muted rounded animate-pulse" />
-                  </div>
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
           {/* Avatar + info card */}
           <div className="bg-card rounded-2xl p-6 border border-border">
             <div className="flex items-center gap-5 mb-6">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xl font-bold shrink-0">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
                 {initials}
               </div>
               <div>
@@ -578,33 +632,45 @@ export function Profile() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-foreground mb-1.5">Tên đăng nhập</label>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
+                  Tên đăng nhập
+                </label>
                 <input
                   type="text"
                   value={profile.userName}
                   disabled
                   className="w-full px-4 py-3 border border-border rounded-lg bg-muted text-muted-foreground cursor-not-allowed text-sm"
                 />
-                <p className="text-xs text-muted-foreground mt-1">Tên đăng nhập không thể thay đổi</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Tên đăng nhập không thể thay đổi
+                </p>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-foreground mb-1.5">Họ và tên</label>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
+                  Họ và tên
+                </label>
                 <input
                   type="text"
                   value={profile.fullName}
-                  onChange={(e) => setProfile((p) => ({ ...p, fullName: e.target.value }))}
+                  onChange={(e) =>
+                    setProfile((p) => ({ ...p, fullName: e.target.value }))
+                  }
                   className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                   placeholder="Nhập họ và tên"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-foreground mb-1.5">Email</label>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
+                  Email
+                </label>
                 <input
                   type="email"
                   value={profile.email}
-                  onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))}
+                  onChange={(e) =>
+                    setProfile((p) => ({ ...p, email: e.target.value }))
+                  }
                   className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                   placeholder="email@example.com"
                 />
@@ -631,8 +697,12 @@ export function Profile() {
                   <KeyRound size={18} className="text-red-500" />
                 </div>
                 <div className="text-left">
-                  <p className="font-semibold text-card-foreground">Đổi mật khẩu</p>
-                  <p className="text-xs text-muted-foreground">Cập nhật mật khẩu đăng nhập</p>
+                  <p className="font-semibold text-card-foreground">
+                    Đổi mật khẩu
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Cập nhật mật khẩu đăng nhập
+                  </p>
                 </div>
               </div>
               {showPwForm ? (
@@ -643,19 +713,40 @@ export function Profile() {
             </button>
 
             {showPwForm && (
-              <form onSubmit={handleChangePassword} className="px-6 pb-6 space-y-4 border-t border-border pt-4">
+              <form
+                onSubmit={handleChangePassword}
+                className="px-6 pb-6 space-y-4 border-t border-border pt-4"
+              >
+                {/* Current password */}
                 {[
-                  { key: "current", label: "Mật khẩu hiện tại", placeholder: "Nhập mật khẩu hiện tại" },
-                  { key: "next", label: "Mật khẩu mới", placeholder: "Tối thiểu 8 ký tự, 1 chữ hoa, 1 ký tự đặc biệt" },
-                  { key: "confirm", label: "Xác nhận mật khẩu", placeholder: "Nhập lại mật khẩu mới" },
+                  {
+                    key: "current",
+                    label: "Mật khẩu hiện tại",
+                    placeholder: "Nhập mật khẩu hiện tại",
+                  },
+                  {
+                    key: "next",
+                    label: "Mật khẩu mới",
+                    placeholder:
+                      "Tối thiểu 8 ký tự, 1 chữ hoa, 1 ký tự đặc biệt",
+                  },
+                  {
+                    key: "confirm",
+                    label: "Xác nhận mật khẩu",
+                    placeholder: "Nhập lại mật khẩu mới",
+                  },
                 ].map(({ key, label, placeholder }) => (
                   <div key={key}>
-                    <label className="block text-sm font-semibold text-foreground mb-1.5">{label}</label>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">
+                      {label}
+                    </label>
                     <div className="relative">
                       <input
                         type={showPw[key] ? "text" : "password"}
                         value={pwForm[key]}
-                        onChange={(e) => setPwForm((p) => ({ ...p, [key]: e.target.value }))}
+                        onChange={(e) =>
+                          setPwForm((p) => ({ ...p, [key]: e.target.value }))
+                        }
                         placeholder={placeholder}
                         maxLength={128}
                         required
@@ -663,20 +754,27 @@ export function Profile() {
                       />
                       <button
                         type="button"
-                        onClick={() => setShowPw((p) => ({ ...p, [key]: !p[key] }))}
+                        onClick={() =>
+                          setShowPw((p) => ({ ...p, [key]: !p[key] }))
+                        }
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
                       >
                         {showPw[key] ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
-                    {key === "next" && <PasswordStrengthIndicator password={pwForm.next} />}
+                    {key === "next" && (
+                      <PasswordStrengthIndicator password={pwForm.next} />
+                    )}
                   </div>
                 ))}
 
                 <div className="flex gap-3 pt-1">
                   <button
                     type="button"
-                    onClick={() => { setShowPwForm(false); setPwForm({ current: "", next: "", confirm: "" }); }}
+                    onClick={() => {
+                      setShowPwForm(false);
+                      setPwForm({ current: "", next: "", confirm: "" });
+                    }}
                     className="flex-1 px-4 py-3 border border-border text-foreground rounded-lg hover:bg-muted transition-colors text-sm font-semibold"
                   >
                     Hủy
@@ -692,86 +790,77 @@ export function Profile() {
               </form>
             )}
           </div>
-          </>
-        )}
-      </div>
+        </div>
       )}
 
       {/* ── Tab: Cài đặt ───────────────────────────────────────────────────── */}
       {activeTab === "settings" && (
         <div className="max-w-2xl space-y-6">
-          {isLoading ? (
-            <>
-              {/* Notifications skeleton */}
-              <div className="bg-card rounded-2xl p-6 border border-border space-y-5">
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="w-10 h-10 rounded-xl bg-muted animate-pulse" />
-                  <div className="space-y-2 flex-1">
-                    <div className="h-4 w-28 bg-muted rounded animate-pulse" />
-                    <div className="h-3 w-48 bg-muted rounded animate-pulse" />
-                  </div>
-                </div>
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="flex items-center justify-between py-3">
-                    <div className="space-y-1.5 flex-1">
-                      <div className="h-4 w-32 bg-muted rounded animate-pulse" />
-                      <div className="h-3 w-40 bg-muted rounded animate-pulse" />
-                    </div>
-                    <div className="w-12 h-6 bg-muted rounded-full animate-pulse" />
-                  </div>
-                ))}
-              </div>
-              {/* Currency skeleton */}
-              <div className="bg-card rounded-2xl p-6 border border-border space-y-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-xl bg-muted animate-pulse" />
-                  <div className="space-y-2 flex-1">
-                    <div className="h-4 w-28 bg-muted rounded animate-pulse" />
-                    <div className="h-3 w-44 bg-muted rounded animate-pulse" />
-                  </div>
-                </div>
-                <div className="h-4 w-16 bg-muted rounded animate-pulse" />
-                <div className="h-11 w-full bg-muted rounded-lg animate-pulse" />
-              </div>
-              {/* Security skeleton */}
-              <div className="bg-card rounded-2xl p-6 border border-border space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-muted animate-pulse" />
-                  <div className="space-y-2 flex-1">
-                    <div className="h-4 w-20 bg-muted rounded animate-pulse" />
-                    <div className="h-3 w-44 bg-muted rounded animate-pulse" />
-                  </div>
-                </div>
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="h-12 w-full bg-muted rounded-lg animate-pulse" />
-                ))}
-              </div>
-            </>
-          ) : (
-            <>
           {/* Notifications */}
           <div className="bg-card rounded-2xl p-6 border border-border">
             <div className="flex items-center gap-3 mb-5">
+              {" "}
               <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center">
                 <Bell size={18} className="text-purple-600" />
               </div>
               <div>
                 <h2 className="font-bold text-card-foreground">Thông báo</h2>
-                <p className="text-xs text-muted-foreground">Quản lý cách nhận thông báo</p>
+                <p className="text-xs text-muted-foreground">
+                  Quản lý cách nhận thông báo
+                </p>
               </div>
             </div>
             <div className="space-y-4">
               {[
-                { key: "email", label: "Thông báo Email", desc: "Nhận cập nhật qua email" },
-                { key: "push", label: "Thông báo đẩy", desc: "Thông báo trên thiết bị" },
-                { key: "sms", label: "Thông báo SMS", desc: "Cảnh báo qua tin nhắn" },
+                {
+                  key: "email",
+                  label: "Thông báo Email",
+                  desc: "Nhận cập nhật qua email",
+                },
+                {
+                  key: "push",
+                  label: "Thông báo đẩy",
+                  desc: "Thông báo trên thiết bị",
+                },
+                {
+                  key: "sms",
+                  label: "Thông báo SMS",
+                  desc: "Cảnh báo qua tin nhắn",
+                },
+                {
+                  key: "email",
+                  label: "Thông báo Email",
+                  desc: "Nhận cập nhật qua email",
+                },
+                {
+                  key: "push",
+                  label: "Thông báo đẩy",
+                  desc: "Thông báo trên thiết bị",
+                },
+                {
+                  key: "sms",
+                  label: "Thông báo SMS",
+                  desc: "Cảnh báo qua tin nhắn",
+                },
               ].map(({ key, label, desc }) => (
-                <div key={key} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                <div
+                  key={key}
+                  className="flex items-center justify-between py-2 border-b border-border last:border-0"
+                >
                   <div>
-                    <p className="font-medium text-card-foreground text-sm">{label}</p>
+                    <p className="font-medium text-card-foreground text-sm">
+                      {label}
+                    </p>
                     <p className="text-xs text-muted-foreground">{desc}</p>
                   </div>
-                  <Toggle value={notifications[key]} onChange={() => toggleNotif(key)} />
+                  <Toggle
+                    value={notifications[key]}
+                    onChange={() => toggleNotif(key)}
+                  />
+                  <Toggle
+                    value={notifications[key]}
+                    onChange={() => toggleNotif(key)}
+                  />
                 </div>
               ))}
             </div>
@@ -785,11 +874,15 @@ export function Profile() {
               </div>
               <div>
                 <h2 className="font-bold text-card-foreground">Cài đặt vùng</h2>
-                <p className="text-xs text-muted-foreground">Đơn vị tiền tệ hiển thị</p>
+                <p className="text-xs text-muted-foreground">
+                  Đơn vị tiền tệ hiển thị
+                </p>
               </div>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">Tiền tệ</label>
+              <label className="block text-sm font-semibold text-foreground mb-2">
+                Tiền tệ
+              </label>
               <select
                 value={currency}
                 onChange={(e) => handleCurrencyChange(e.target.value)}
@@ -813,37 +906,54 @@ export function Profile() {
               </div>
               <div>
                 <h2 className="font-bold text-card-foreground">Bảo mật</h2>
-                <p className="text-xs text-muted-foreground">Thông tin bảo mật tài khoản</p>
+                <p className="text-xs text-muted-foreground">
+                  Thông tin bảo mật tài khoản
+                </p>
               </div>
             </div>
             <div className="space-y-3">
               <div className="flex items-center justify-between py-3 border-b border-border">
                 <div>
-                  <p className="text-sm font-medium text-card-foreground">Đổi mật khẩu</p>
-                  <p className="text-xs text-muted-foreground">Cập nhật trong tab Hồ sơ</p>
+                  <p className="text-sm font-medium text-card-foreground">
+                    Đổi mật khẩu
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Cập nhật trong tab Hồ sơ
+                  </p>
                 </div>
-                <button onClick={() => setActiveTab("profile")} className="text-xs text-purple-600 hover:text-purple-700 font-medium">
+                <button
+                  onClick={() => setActiveTab("profile")}
+                  className="text-xs text-purple-600 hover:text-purple-700 font-medium"
+                >
                   Đến hồ sơ →
                 </button>
               </div>
               <div className="flex items-center justify-between py-3 border-b border-border">
                 <div>
-                  <p className="text-sm font-medium text-card-foreground">Xác thực hai yếu tố</p>
+                  <p className="text-sm font-medium text-card-foreground">
+                    Xác thực hai yếu tố
+                  </p>
                   <p className="text-xs text-muted-foreground">Sắp ra mắt</p>
                 </div>
-                <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">Sắp ra mắt</span>
+                <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+                  Sắp ra mắt
+                </span>
               </div>
               <div className="flex items-center justify-between py-3">
                 <div>
-                  <p className="text-sm font-medium text-card-foreground">Phiên đăng nhập</p>
-                  <p className="text-xs text-muted-foreground">Quản lý thiết bị đã kết nối</p>
+                  <p className="text-sm font-medium text-card-foreground">
+                    Phiên đăng nhập
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Quản lý thiết bị đã kết nối
+                  </p>
                 </div>
-                <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">Sắp ra mắt</span>
+                <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+                  Sắp ra mắt
+                </span>
               </div>
             </div>
           </div>
-            </>
-          )}
         </div>
       )}
     </PageLayout>

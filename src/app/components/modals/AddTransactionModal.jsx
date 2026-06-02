@@ -11,6 +11,7 @@ import { useState, useEffect } from "react";
 import { walletApi } from "../../api/walletApi";
 import { useCategories } from "../../context/CategoriesContext";
 import { useSettings } from "../../context/SettingsContext";
+import { formatVND, parseVND } from "../../utils/formatMoney";
 
 const TX_TYPES = [
   {
@@ -194,16 +195,19 @@ export function AddTransactionModal({
   return (
     <div
       className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
-      onClick={onClose}>
+      onClick={onClose}
+    >
       <div
-        className="bg-card rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
-        onClick={(e) => e.stopPropagation()}>
+        className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-border sticky top-0 bg-card rounded-t-2xl z-10">
           <h2 className="text-lg font-bold text-card-foreground">Thêm giao dịch</h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">
+            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400"
+          >
             <X size={18} />
           </button>
         </div>
@@ -219,8 +223,9 @@ export function AddTransactionModal({
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-sm font-semibold transition-all ${
                   txType === key
                     ? activeCls
-                    : "text-muted-foreground hover:text-foreground"
-                }`}>
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
                 <Icon size={14} />
                 <span>{label}</span>
               </button>
@@ -241,10 +246,10 @@ export function AddTransactionModal({
                 </span>
                 <input
                   autoFocus
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-lg font-semibold"
+                  type="text"
+                  value={formatVND(amount)}
+                  onChange={(e) => setAmount(parseVND(e.target.value))}
+                  className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-lg font-semibold"
                   placeholder="0"
                   step="1000"
                   min="0"
@@ -283,8 +288,9 @@ export function AddTransactionModal({
                   <select
                     value={walletId}
                     onChange={(e) => setWalletId(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                    required>
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                    required
+                  >
                     <option value="">Chọn ví thanh toán</option>
                     {assetAccounts.map((a) => (
                       <option key={a.accountId} value={a.accountId}>
@@ -318,9 +324,10 @@ export function AddTransactionModal({
                         className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
                           expenseCategory.accountId === cat.accountId &&
                           expenseCategory.accountId !== 0
-                            ? "border-red-500 bg-red-500/10 text-red-500"
-                            : "border-border hover:border-border text-foreground"
-                        }`}>
+                            ? "border-red-400 bg-red-50 text-red-700"
+                            : "border-slate-200 hover:border-slate-300 text-slate-700"
+                        }`}
+                      >
                         {cat.name}
                       </button>
                     ))}
@@ -332,9 +339,10 @@ export function AddTransactionModal({
                       }}
                       className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
                         showCustomCategory
-                          ? "border-red-500 bg-red-500/10 text-red-500"
-                          : "border-border hover:border-border text-foreground"
-                      }`}>
+                          ? "border-red-400 bg-red-50 text-red-700"
+                          : "border-slate-200 hover:border-slate-300 text-slate-700"
+                      }`}
+                    >
                       + Danh mục mới
                     </button>
                   </div>
@@ -352,8 +360,9 @@ export function AddTransactionModal({
                   <select
                     value={walletId}
                     onChange={(e) => setWalletId(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                    required>
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                    required
+                  >
                     <option value="">Chọn ví nhận</option>
                     {assetAccounts.map((a) => (
                       <option key={a.accountId} value={a.accountId}>
@@ -387,9 +396,10 @@ export function AddTransactionModal({
                         className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
                           incomeCategory.accountId === src.accountId &&
                           incomeCategory.accountId !== 0
-                            ? "border-green-500 bg-green-500/10 text-green-500"
-                            : "border-border hover:border-border text-foreground"
-                        }`}>
+                            ? "border-green-400 bg-green-50 text-green-700"
+                            : "border-slate-200 hover:border-slate-300 text-slate-700"
+                        }`}
+                      >
                         {src.name}
                       </button>
                     ))}
@@ -401,9 +411,10 @@ export function AddTransactionModal({
                       }}
                       className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
                         showCustomCategory
-                          ? "border-green-500 bg-green-500/10 text-green-500"
-                          : "border-border hover:border-border text-foreground"
-                      }`}>
+                          ? "border-green-400 bg-green-50 text-green-700"
+                          : "border-slate-200 hover:border-slate-300 text-slate-700"
+                      }`}
+                    >
                       + Nguồn thu mới
                     </button>
                   </div>
@@ -449,8 +460,9 @@ export function AddTransactionModal({
                   <select
                     value={walletId}
                     onChange={(e) => setWalletId(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                    required>
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                    required
+                  >
                     <option value="">Chọn ví nguồn</option>
                     {assetAccounts.map((a) => (
                       <option key={a.accountId} value={a.accountId}>
@@ -504,25 +516,16 @@ export function AddTransactionModal({
                           ? "border-red-300 focus:ring-red-500 bg-red-50/30"
                           : "border-border focus:ring-purple-500"
                     }`}
-                    required>
-                    <option value="">
-                      {isDebtPayment ? "Chọn khoản nợ cần thanh toán" : "Chọn ví đích"}
-                    </option>
-                    {isDebtPayment
-                      ? liabilityAccounts
-                          .filter((a) => Math.abs(a.balance ?? 0) > 0)
-                          .map((a) => (
-                            <option key={a.accountId} value={a.accountId}>
-                              {debtWalletLabel(a)}
-                            </option>
-                          ))
-                      : assetAccounts
-                          .filter((a) => String(a.accountId) !== walletId)
-                          .map((a) => (
-                            <option key={a.accountId} value={a.accountId}>
-                              {walletLabel(a)}
-                            </option>
-                          ))}
+                    required
+                  >
+                    <option value="">Chọn ví đích</option>
+                    {assetAccounts
+                      .filter((a) => String(a.accountId) !== walletId)
+                      .map((a) => (
+                        <option key={a.accountId} value={a.accountId}>
+                          {walletLabel(a)}
+                        </option>
+                      ))}
                   </select>
                   {isDebtPayment && liabilityAccounts.filter(a => Math.abs(a.balance ?? 0) > 0).length === 0 && (
                     <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
@@ -579,8 +582,9 @@ export function AddTransactionModal({
                         className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${
                           active
                             ? colorCls
-                            : "bg-card border-border text-muted-foreground hover:border-border"
-                        }`}>
+                            : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                        }`}
+                      >
                         {tag.name}
                       </button>
                     );
@@ -625,13 +629,15 @@ export function AddTransactionModal({
                   reset();
                   onClose();
                 }}
-                className="flex-1 px-4 py-2.5 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold text-sm">
+                className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-semibold text-sm"
+              >
                 Hủy
               </button>
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className={`flex-1 px-4 py-2.5 text-white rounded-lg transition-colors font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed ${SUBMIT_CLS[txType]}`}>
+                className={`flex-1 px-4 py-2.5 text-white rounded-lg transition-colors font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed ${SUBMIT_CLS[txType]}`}
+              >
                 {SUBMIT_LABEL[txType]}
               </button>
             </div>
