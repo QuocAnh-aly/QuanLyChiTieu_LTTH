@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Receipt, Plus, Pencil, Trash2, GripVertical,
+  Receipt, Plus, Pencil, Trash2,
   CheckCircle2, AlertCircle, MinusCircle, Clock,
   TrendingDown, CalendarClock, Layers,
 } from "lucide-react";
@@ -49,7 +49,6 @@ function PaidBadge({ status }) {
   );
 }
 
-import PaginationBar from "../../components/ui/navigation/PaginationBar";
 import { PageLayout } from "../../components/layout/PageLayout";
 
 export function Subscriptions() {
@@ -60,24 +59,27 @@ export function Subscriptions() {
   const [isLoading,setIsLoading]= useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editBill, setEditBill] = useState(null);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [totalCount, setTotalCount] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
 
   const load = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await billApi.getAll({ page, pageSize });
-      setBills(data.items || data || []);
-      setTotalCount(data.totalCount ?? (data.items || data || []).length);
-      setTotalPages(data.totalPages ?? 1);
+      // Bills are grouped and summarised across the whole set, so load every
+      // page (the API caps pageSize at 100) instead of a single page — the
+      // summary cards and group subtotals must reflect ALL bills.
+      const first = await billApi.getAll({ page: 1, pageSize: 100 });
+      let items = first.items || first || [];
+      const pages = first.totalPages ?? 1;
+      for (let p = 2; p <= pages; p++) {
+        const next = await billApi.getAll({ page: p, pageSize: 100 });
+        items = items.concat(next.items || []);
+      }
+      setBills(items);
     } catch {
       toast.error("Không thể tải danh sách hóa đơn");
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
@@ -209,7 +211,7 @@ export function Subscriptions() {
           <p className="font-medium text-muted-foreground">Chưa có hóa đơn nào</p>
           <p className="text-sm text-muted-foreground mt-1">Nhấn "Thêm hóa đơn" để bắt đầu</p>
         </div>
-      ) : totalPages > 0 && (
+      ) : (
         <div className="space-y-4">
           {sortedGroups.map(([groupName, groupBills]) => {
             const groupMonthly = groupBills.filter(b => b.active).reduce((sum, b) => {
@@ -239,9 +241,6 @@ export function Subscriptions() {
                     return (
                       <div key={bill.billId}
                         className={`px-3 sm:px-4 py-3 hover:bg-muted transition-colors flex items-center gap-2 sm:gap-3 group flex-wrap sm:flex-nowrap ${!bill.active ? "opacity-60" : ""}`}>
-                        {/* Drag handle (visual only) */}
-                        <GripVertical size={16} className="text-muted-foreground shrink-0 cursor-grab hidden sm:block" />
-
                         {/* Icon */}
                         <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center shrink-0 ${bill.active ? "bg-purple-100" : "bg-muted"}`}>
                           <Receipt size={14} className={bill.active ? "text-purple-600" : "text-muted-foreground"} />
@@ -336,18 +335,6 @@ export function Subscriptions() {
             </div>
           )}
         </div>
-      )}
-
-      {/* Pagination */}
-      {totalPages > 1 && bills.length > 0 && (
-        <PaginationBar
-          currentPage={page}
-          totalPages={totalPages}
-          totalCount={totalCount}
-          pageSize={pageSize}
-          onPageChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-          onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(1); }}
-        />
       )}
 
       {/* Modals */}

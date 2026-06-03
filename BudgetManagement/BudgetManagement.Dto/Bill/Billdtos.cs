@@ -66,3 +66,11 @@ public class MatchedTransactionDto
     public string? Description { get; set; }
     public decimal Amount { get; set; }
 }
+
+// A candidate expense transaction considered when (re)scanning a bill.
+public class BillMatchCandidate
+{
+    public int JournalId { get; set; }
+    public DateTime TransactionDate { get; set; }
+    public decimal Amount { get; set; }
+}

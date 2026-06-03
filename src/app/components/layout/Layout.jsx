@@ -264,18 +264,6 @@ function SidebarContent({ onNavClick }) {
             onClick={onNavClick}
           />
           <SubMenuItem
-            to="/accounts/expense"
-            icon={ArrowDownLeft}
-            label="Chi tiêu"
-            onClick={onNavClick}
-          />
-          <SubMenuItem
-            to="/accounts/income"
-            icon={ArrowUpRight}
-            label="Thu nhập"
-            onClick={onNavClick}
-          />
-          <SubMenuItem
             to="/accounts/liabilities"
             icon={FileText}
             label="Nợ phải trả"

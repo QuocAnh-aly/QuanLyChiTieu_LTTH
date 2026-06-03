@@ -81,4 +81,35 @@ public class BillRepository : BaseRepository<Bill>, IBillRepository
             .Where(j => matchingIds.Contains(j.JournalId) && j.BillId == null)
             .ExecuteUpdateAsync(s => s.SetProperty(j => j.BillId, billId));
     }
+
+    public async Task<List<BillMatchCandidate>> GetMatchCandidatesAsync(
+        int userId, decimal amountMin, decimal amountMax, DateTime fromDate, DateTime toDate)
+    {
+        // One row per unlinked expense entry in the date range, with its total debit.
+        var candidates = await _context.JournalEntries
+            .Where(j => j.UserId == userId && j.BillId == null
+                && j.TransactionDate >= fromDate && j.TransactionDate < toDate)
+            .Select(j => new BillMatchCandidate
+            {
+                JournalId       = j.JournalId,
+                TransactionDate = j.TransactionDate,
+                Amount          = j.JournalDetails.Where(d => d.Debit > 0).Sum(d => d.Debit ?? 0),
+            })
+            .ToListAsync();
+
+        // Amount band applied in-memory (set is already bounded by the date range).
+        return candidates
+            .Where(c => c.Amount >= amountMin && c.Amount <= amountMax)
+            .ToList();
+    }
+
+    public async Task LinkEntriesAsync(int billId, IEnumerable<int> journalIds)
+    {
+        var ids = journalIds.Distinct().ToList();
+        if (ids.Count == 0) return;
+
+        await _context.JournalEntries
+            .Where(j => ids.Contains(j.JournalId) && j.BillId == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(j => j.BillId, billId));
+    }
 }

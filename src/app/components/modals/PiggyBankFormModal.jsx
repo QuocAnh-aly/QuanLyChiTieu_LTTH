@@ -3,8 +3,18 @@ import { useState, useEffect } from "react";
 import { walletApi } from "../../api/walletApi";
 import { useSettings } from "../../context/SettingsContext";
 import { formatVND, parseVND } from "../../utils/formatMoney";
+import { splitTitle, joinTitle } from "../../utils/savingsGroup";
 
-export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
+export function PiggyBankFormModal({
+  isOpen,
+  onClose,
+  onSave,
+  goal = null,
+  presetGroup = "",
+  presetAccountId = null,
+  presetColor = null,
+  presetCurrency = null,
+}) {
   const { fmt, currencies, currency } = useSettings();
   const isEdit = !!goal;
 
@@ -31,55 +41,55 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
       .then((data) => setAccounts(data.items || data || []))
       .catch(() => {});
     if (goal) {
-      setName(goal.title ?? "");
+      // The parent group is encoded into the stored title ("<group> :: <sub>").
+      // Split it so the user edits the sub-goal name and group separately.
+      const { group, name: subName, standalone } = splitTitle(goal.title ?? "");
+      setName(subName);
       setTargetAmount(String(goal.targetAmount ?? ""));
       setSelectedCurrency(goal.currency ?? currency);
       setSelectedAccounts(goal.accountId ? [String(goal.accountId)] : []);
       setTargetDate(goal.targetDate ?? "");
       setNotes(goal.notes ?? "");
-      setObjectGroup(goal.objectGroup ?? "");
+      setObjectGroup(standalone ? "" : group);
       setMonthly(String(goal.savePerMonth ?? ""));
     } else {
       setName("");
       setTargetAmount("");
-      setSelectedCurrency(currency);
-      setSelectedAccounts([]);
+      setSelectedCurrency(presetCurrency || currency);
+      setSelectedAccounts(presetAccountId ? [String(presetAccountId)] : []);
       setTargetDate("");
       setNotes("");
-      setObjectGroup("");
+      setObjectGroup(presetGroup || "");
       setMonthly("");
       setReturnHere(false);
     }
-  }, [isOpen, goal, currency]);
+  }, [isOpen, goal, currency, presetGroup, presetAccountId, presetCurrency]);
 
   if (!isOpen) return null;
-  const handleAccountChange = (e) => {
-    const options = e.target.options;
-    const values = [];
-    for (let i = 0; i < options.length; i++) {
-      if (options[i].selected) {
-        values.push(options[i].value);
-      }
-    }
-    setSelectedAccounts(values);
-  };
+
+  // A goal links to exactly one savings account. The link can't change after
+  // creation (backend ignores AccountId on update), and a sub-goal added to a
+  // group must stay on the group's account — so lock the picker in those cases.
+  const accountLocked = isEdit || !!presetGroup;
 
   const canSubmit = name.trim() && targetAmount && selectedAccounts.length > 0;
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!canSubmit) return;
+    const group = objectGroup.trim();
     onSave({
       accountId: parseInt(selectedAccounts[0]) || (goal?.accountId ?? 0),
-      title: name.trim(),
+      // Re-encode the parent group into the title so grouping survives a round-trip.
+      title: joinTitle(group, name.trim()),
       targetAmount: parseFloat(targetAmount),
       monthlyContribution: parseFloat(monthly) || 0,
       targetDate: targetDate || null,
       notes: notes.trim() || null,
       currency: selectedCurrency,
-      objectGroup: objectGroup.trim() || null,
+      objectGroup: group || null,
       iconName: goal?.iconName || "PiggyBank",
-      color: goal?.color || "green",
+      color: goal?.color || presetColor || "green",
       returnHere,
     });
     if (returnHere && !isEdit) {
@@ -186,29 +196,27 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
 
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
                     <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">
-                      Lưu vào tài khoản
+                      Tài khoản tiết kiệm <span className="text-red-500">*</span>
                     </label>
                     <div className="flex-1">
                       <select
-                        multiple
-                        size={6}
-                        value={selectedAccounts}
-                        onChange={handleAccountChange}
+                        value={selectedAccounts[0] ?? ""}
+                        onChange={(e) => setSelectedAccounts(e.target.value ? [e.target.value] : [])}
                         required
-                        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card"
+                        disabled={accountLocked}
+                        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card disabled:opacity-70 disabled:cursor-not-allowed"
                       >
+                        <option value="">Chọn tài khoản</option>
                         {accounts.map((a) => (
-                          <option
-                            key={a.accountId}
-                            value={a.accountId}
-                            className="py-1 hover:bg-purple-50"
-                          >
+                          <option key={a.accountId} value={a.accountId}>
                             {a.name}
                           </option>
                         ))}
                       </select>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Chỉ chấp nhận tài khoản cùng loại tiền tệ.
+                        {accountLocked
+                          ? "Mỗi mục tiêu liên kết cố định với một tài khoản tiết kiệm — không thể đổi sau khi tạo."
+                          : "Chỉ chấp nhận tài khoản cùng loại tiền tệ."}
                       </p>
                     </div>
                   </div>
@@ -278,16 +286,21 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0">
-                      Nhóm
+                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">
+                      Mục tiêu chung
                     </label>
-                    <input
-                      type="text"
-                      value={objectGroup}
-                      onChange={(e) => setObjectGroup(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="Nhóm"
-                    />
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={objectGroup}
+                        onChange={(e) => setObjectGroup(e.target.value)}
+                        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="VD: Mua xe cho gia đình"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Để trống nếu đây là mục tiêu độc lập. Các mục tiêu cùng "mục tiêu chung" sẽ được gom nhóm.
+                      </p>
+                    </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 hidden">

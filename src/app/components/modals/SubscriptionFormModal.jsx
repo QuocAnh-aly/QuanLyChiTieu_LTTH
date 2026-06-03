@@ -18,7 +18,7 @@ export function SubscriptionFormModal({
   onSave,
   bill = null,
 }) {
-  const { currencies, currency } = useSettings();
+  const { currency } = useSettings();
   const isEdit = !!bill;
 
   const [name, setName] = useState("");
@@ -73,7 +73,12 @@ export function SubscriptionFormModal({
 
   if (!isOpen) return null;
 
-  const canSubmit = name.trim() && amountMin && amountMax && date && repeatFreq;
+  const minVal = parseFloat(amountMin);
+  const maxVal = parseFloat(amountMax);
+  const rangeInvalid =
+    amountMin !== "" && amountMax !== "" && !isNaN(minVal) && !isNaN(maxVal) && minVal > maxVal;
+  const canSubmit =
+    name.trim() && amountMin && amountMax && date && repeatFreq && !rangeInvalid;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -158,24 +163,7 @@ export function SubscriptionFormModal({
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                     <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0">
-                      Tiền tệ
-                    </label>
-                    <select
-                      value={selectedCurrency}
-                      onChange={(e) => setSelectedCurrency(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card"
-                    >
-                      {currencies?.map((c) => (
-                        <option key={c.code} value={c.code}>
-                          {c.name} ({c.symbol})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0">
-                      Số tiền tối thiểu
+                      Số tiền tối thiểu <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -188,19 +176,28 @@ export function SubscriptionFormModal({
                     />
                   </div>
 
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0">
-                      Số tiền tối đa
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
+                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">
+                      Số tiền tối đa <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={formatVND(amountMax)}
-                      onChange={(e) => setAmountMax(parseVND(e.target.value))}
-                      required
-                      min="0"
-                      step="1"
-                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={formatVND(amountMax)}
+                        onChange={(e) => setAmountMax(parseVND(e.target.value))}
+                        required
+                        min="0"
+                        step="1"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 ${
+                          rangeInvalid ? "border-red-400 focus:ring-red-400" : "border-border focus:ring-purple-500"
+                        }`}
+                      />
+                      {rangeInvalid && (
+                        <p className="text-xs text-red-500 mt-1">
+                          Số tiền tối đa phải lớn hơn hoặc bằng số tiền tối thiểu.
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
@@ -281,23 +278,6 @@ export function SubscriptionFormModal({
 
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
                     <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">
-                      Ngày gia hạn
-                    </label>
-                    <div className="flex-1">
-                      <input
-                        type="date"
-                        value={extensionDate}
-                        onChange={(e) => setExtensionDate(e.target.value)}
-                        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Không bắt buộc. Ngày phải gia hạn hoặc hủy.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">
                       Ghi chú
                     </label>
                     <div className="flex-1">
@@ -314,26 +294,6 @@ export function SubscriptionFormModal({
                           Markdown
                         </a>
                         .
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">
-                      Tệp đính kèm
-                    </label>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <label className="cursor-pointer bg-muted hover:bg-muted text-foreground px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
-                          Chọn tệp
-                          <input type="file" className="hidden" />
-                        </label>
-                        <span className="text-sm text-muted-foreground">
-                          Chưa chọn tệp
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Kích thước tối đa: 2 MB
                       </p>
                     </div>
                   </div>

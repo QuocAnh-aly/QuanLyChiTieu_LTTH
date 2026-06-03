@@ -131,7 +131,38 @@ public class BillService : IBillService
         if (!bill.Active) throw new InvalidOperationException("Cannot rescan an inactive bill.");
 
         await _billRepo.UnlinkAllEntriesAsync(billId);
-        await _billRepo.LinkEntriesByAmountAsync(billId, userId, bill.AmountMin, bill.AmountMax);
+
+        var today    = DateTime.Today;
+        var interval = bill.Skip + 1;
+        // The bill stops being expected after its extension date (or end date).
+        var effectiveEnd = bill.ExtensionDate?.Date ?? bill.EndDate?.Date;
+
+        // Candidates: unlinked expense entries in the bill's amount band, dated from
+        // the bill's start up to today (never link future transactions).
+        var upper = today.AddDays(1);
+        if (effectiveEnd.HasValue && effectiveEnd.Value < today) upper = effectiveEnd.Value.AddDays(1);
+
+        var candidates = await _billRepo.GetMatchCandidatesAsync(
+            userId, bill.AmountMin, bill.AmountMax, bill.Date.Date, upper);
+
+        // Link at most one transaction per billing period — the earliest candidate
+        // whose date falls inside that period window [periodStart, periodEnd).
+        var chosen  = new List<int>();
+        var current = bill.Date.Date;
+        while (current <= today && (effectiveEnd == null || current <= effectiveEnd.Value))
+        {
+            var periodEnd = AdvanceDate(current, bill.RepeatFreq, interval).Date;
+            var match = candidates
+                .Where(c => !chosen.Contains(c.JournalId)
+                    && c.TransactionDate.Date >= current
+                    && c.TransactionDate.Date < periodEnd)
+                .OrderBy(c => c.TransactionDate)
+                .FirstOrDefault();
+            if (match != null) chosen.Add(match.JournalId);
+            current = periodEnd;
+        }
+
+        await _billRepo.LinkEntriesAsync(billId, chosen);
 
         var entries = (await _billRepo.GetLinkedEntriesAsync(billId)).ToList();
         return MapToDto(bill, DateTime.Today, entries, false);
@@ -144,7 +175,7 @@ public class BillService : IBillService
     {
         var next        = ComputeNextExpectedMatch(b, today);
         var paidStatus  = ComputePaidStatus(b, today, next, entries);
-        var periodTxId  = GetCurrentPeriodTransactionId(b, today, next, entries);
+        var periodTxId  = GetCurrentPeriodTransactionId(b, today, entries);
         var avgAmount   = (b.AmountMin + b.AmountMax) / 2m;
 
         var dto = new BillDto
@@ -211,7 +242,10 @@ public class BillService : IBillService
         var periodStart = GetPeriodStart(b, today);
         if (periodStart == null) return "not_expected"; // bill hasn't started yet
 
-        var periodEnd = next ?? AdvanceDate(periodStart.Value, b.RepeatFreq, b.Skip + 1);
+        // The current period runs [periodStart, periodStart + interval). Deriving the
+        // end from periodStart (not the next-expected date) keeps the window correct
+        // even when today is exactly the due date.
+        var periodEnd = AdvanceDate(periodStart.Value, b.RepeatFreq, b.Skip + 1);
 
         var hasPaid = entries.Any(e =>
             e.TransactionDate.Date >= periodStart.Value.Date &&
@@ -220,15 +254,17 @@ public class BillService : IBillService
         return hasPaid ? "paid" : "expected_unpaid";
     }
 
-    private static int GetCurrentPeriodTransactionId(Bill b, DateTime today, DateTime? next,
+    private static int GetCurrentPeriodTransactionId(Bill b, DateTime today,
         List<JournalEntry> entries)
     {
         var periodStart = GetPeriodStart(b, today);
-        if (periodStart == null || next == null) return 0;
+        if (periodStart == null) return 0;
+
+        var periodEnd = AdvanceDate(periodStart.Value, b.RepeatFreq, b.Skip + 1);
 
         var tx = entries.FirstOrDefault(e =>
             e.TransactionDate.Date >= periodStart.Value.Date &&
-            e.TransactionDate.Date < next.Value.Date);
+            e.TransactionDate.Date < periodEnd.Date);
 
         return tx?.JournalId ?? 0;
     }
