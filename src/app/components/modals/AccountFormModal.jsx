@@ -1,6 +1,8 @@
-import { X, Check, Landmark, Wallet, TrendingUp, CreditCard, PiggyBank, Home, Package, HandCoins } from "lucide-react";
-import { useState, useEffect } from "react";
+import { X, Check, Landmark, Wallet, TrendingUp, CreditCard, PiggyBank, Home, Package, HandCoins, Tag, ArrowLeftRight, DollarSign } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 import { accountApi } from "../../api/accountApi";
+import { formatVND, parseVND } from "../../utils/formatMoney";
+import { useSettings } from "../../context/SettingsContext";
 
 const COLOR_OPTIONS = [
   { value: 'blue',    label: 'Xanh dương', from: '#3b82f6', to: '#1d4ed8'  },
@@ -14,30 +16,39 @@ const COLOR_OPTIONS = [
   { value: 'amber',   label: 'Hổ phách',  from: '#f59e0b', to: '#d97706'  },
 ];
 
-const COLOR_MAP = Object.fromEntries(COLOR_OPTIONS.map(c => [c.value, c]));  const DEFAULT_COLORS = { 1: 'blue', 2: 'slate', 4: 'emerald', 5: 'orange' };
+const COLOR_MAP = Object.fromEntries(COLOR_OPTIONS.map(c => [c.value, c]));
+const DEFAULT_COLORS = { 1: 'blue', 2: 'slate', 4: 'emerald', 5: 'orange' };
+
+const TYPE_ICONS = {
+  1: { icon: Landmark,  gradient: 'from-purple-500 to-purple-700', label: 'Tài sản' },
+  2: { icon: HandCoins, gradient: 'from-red-500 to-red-700',     label: 'Nợ' },
+  4: { icon: TrendingUp, gradient: 'from-emerald-500 to-emerald-700', label: 'Thu nhập' },
+  5: { icon: CreditCard, gradient: 'from-orange-500 to-orange-700', label: 'Chi tiêu' },
+};
 
 // Sub-types for Assets (typeId=1)
 const ASSET_SUBTYPES = [
-  { key: 'bank',       label: 'Tài khoản ngân hàng',  iconName: 'Landmark',    color: 'blue',    from: '#3b82f6', to: '#1d4ed8'  },
-  { key: 'cash',       label: 'Tiền mặt',             iconName: 'Wallet',      color: 'emerald', from: '#10b981', to: '#047857'  },
-  { key: 'savings',    label: 'Tiết kiệm',            iconName: 'PiggyBank',   color: 'green',   from: '#22c55e', to: '#15803d'  },
-  { key: 'investment', label: 'Đầu tư',               iconName: 'TrendingUp',  color: 'purple',  from: '#a855f7', to: '#7e22ce'  },
-  { key: 'property',   label: 'Bất động sản',         iconName: 'Home',        color: 'orange',  from: '#f97316', to: '#c2410c'  },
-  { key: 'receivable', label: 'Vay mượn',   iconName: 'HandCoins',   color: 'amber',   from: '#f59e0b', to: '#d97706'  },
-  { key: 'credit',     label: 'Thẻ tín dụng / Trả góp', iconName: 'CreditCard', color: 'red',    from: '#ef4444', to: '#b91c1c'  },
-  { key: 'other',      label: 'Tài sản khác',         iconName: 'Package',     color: 'slate',   from: '#64748b', to: '#475569'  },
+  { key: 'bank',       label: 'Ngân hàng',     iconName: 'Landmark',    color: 'blue',    from: '#3b82f6', to: '#1d4ed8'  },
+  { key: 'cash',       label: 'Tiền mặt',      iconName: 'Wallet',      color: 'emerald', from: '#10b981', to: '#047857'  },
+  { key: 'savings',    label: 'Tiết kiệm',     iconName: 'PiggyBank',   color: 'green',   from: '#22c55e', to: '#15803d'  },
+  { key: 'investment', label: 'Đầu tư',        iconName: 'TrendingUp',  color: 'purple',  from: '#a855f7', to: '#7e22ce'  },
+  { key: 'property',   label: 'Bất động sản',  iconName: 'Home',        color: 'orange',  from: '#f97316', to: '#c2410c'  },
+  { key: 'receivable', label: 'Vay mượn',      iconName: 'HandCoins',   color: 'amber',   from: '#f59e0b', to: '#d97706'  },
+  { key: 'credit',     label: 'Thẻ tín dụng',  iconName: 'CreditCard',  color: 'red',     from: '#ef4444', to: '#b91c1c'  },
+  { key: 'other',      label: 'Khác',          iconName: 'Package',     color: 'slate',   from: '#64748b', to: '#475569'  },
 ];
 
 const ASSET_SUBTYPE_MAP = Object.fromEntries(ASSET_SUBTYPES.map(s => [s.key, s]));
-
 const SUBTYPE_ICONS = { Landmark, Wallet, PiggyBank, TrendingUp, Home, CreditCard, Package, HandCoins };
 
 // typeId: 1 = Asset, 2 = Liabilities, 4 = Revenue, 5 = Expense
 export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId }) {
+  const { currencySymbol } = useSettings();
   const isEdit      = !!account;
   const isLiability = typeId === 2;
   const isExpense   = typeId === 5;
   const isAsset     = typeId === 1;
+  const isRevenue   = typeId === 4;
 
   const TITLES = {
     create: { 1: 'Thêm tài sản', 2: 'Thêm khoản nợ', 4: 'Thêm nguồn thu', 5: 'Thêm tài khoản chi' },
@@ -48,7 +59,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
     edit:   { 1: 'Lưu thay đổi', 2: 'Lưu thay đổi',  4: 'Lưu thay đổi',   5: 'Lưu thay đổi'   },
   };
   const PLACEHOLDERS = {
-    1: 'VD: MB Bank, Tiền mặt trong nhà...',
+    1: 'VD: MB Bank, Tiền mặt...',
     2: 'VD: Vay mua xe, Nợ thẻ tín dụng...',
     4: 'VD: Lương công ty ABC, Cho thuê nhà...',
     5: 'VD: Thẻ Visa VIB, Ví MoMo...',
@@ -71,8 +82,44 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
   const [loadingSources, setLoadingSources] = useState(false);
 
   const selectedSubtype = isAsset ? ASSET_SUBTYPE_MAP[form.assetSubtype] : null;
+  const hasSource = form.sourceAccountId && !isEdit;
 
-  // Fetch asset accounts for source selection (chỉ khi tạo mới và là Liability)
+  // Computed preview values
+  const preview = useMemo(() => {
+    const amount = parseFloat(form.balance) || 0;
+    if (isLiability && hasSource) {
+      // Source account path: controller creates transaction
+      const sourceAcc = sourceAccounts.find(a => String(a.accountId) === form.sourceAccountId);
+      return {
+        balanceAfter: -amount,
+        initialBalanceAfter: -amount,
+        description: `Vay ${formatVND(amount)}${sourceAcc ? ` → ${sourceAcc.name}` : ''}`,
+      };
+    }
+    if (isLiability) {
+      const initBal = parseFloat(form.initialBalance) || amount;
+      return {
+        balanceAfter: -amount,
+        initialBalanceAfter: -initBal,
+        description: `Nợ ${formatVND(amount)}${initBal !== amount ? ` (gốc ${formatVND(initBal)})` : ''}`,
+      };
+    }
+    if (isAsset) {
+      const initBal = parseFloat(form.initialBalance) || 0;
+      return {
+        balanceAfter: amount,
+        initialBalanceAfter: initBal,
+        description: amount > 0 ? `Số dư ${formatVND(amount)}` : 'Chưa nhập số dư',
+      };
+    }
+    return {
+      balanceAfter: amount,
+      initialBalanceAfter: 0,
+      description: amount > 0 ? formatVND(amount) : '',
+    };
+  }, [form.balance, form.initialBalance, form.sourceAccountId, isLiability, hasSource, sourceAccounts]);
+
+  // Fetch asset accounts for source selection
   useEffect(() => {
     if (!isOpen || isEdit || !isLiability) return;
     const fetchSources = async () => {
@@ -92,12 +139,10 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
   useEffect(() => {
     if (!isOpen) return;
     if (account) {
-      // Determine asset sub-type from existing iconName
       const iconToKey = { Landmark: 'bank', Wallet: 'cash', WalletIcon: 'cash', PiggyBank: 'savings', TrendingUp: 'investment', Home: 'property', CreditCard: 'credit', Package: 'other', HandCoins: 'receivable' };
-      const detectedSubtype = iconToKey[account.iconName] || '';
       setForm({
         name:           account.name        || '',
-        assetSubtype:   detectedSubtype,
+        assetSubtype:   iconToKey[account.iconName] || '',
         color:          account.color       || DEFAULT_COLORS[typeId] || 'blue',
         cardNumber:     account.cardNumber  || '',
         balance:        account.balance        != null ? String(Math.abs(account.balance))        : '',
@@ -113,7 +158,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
 
   if (!isOpen) return null;
 
-  const set = (key) => (e) => {
+  const set = (key) => async (e) => {
     setForm(f => ({ ...f, [key]: e.target.value }));
     setError('');
   };
@@ -121,30 +166,28 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
   const handleSubtypeSelect = (key) => {
     const st = ASSET_SUBTYPE_MAP[key];
     if (!st) return;
-    setForm(f => ({
-      ...f,
-      assetSubtype: key,
-      color:    st.color,
-    }));
+    setForm(f => ({ ...f, assetSubtype: key, color: st.color }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const name = form.name.trim();
     if (!name) { setError('Tên không được để trống'); return; }
+    if (isAsset && !selectedSubtype && !isEdit) {
+      setError('Vui lòng chọn loại tài sản');
+      return;
+    }
 
     let col;
     let iconName;
-
     if (isAsset && selectedSubtype) {
-      col = COLOR_MAP[form.color] || COLOR_MAP.blue;  // form.color is set by sub-type selection, but can be overridden manually
+      col = COLOR_MAP[form.color] || COLOR_MAP.blue;
       iconName = selectedSubtype.iconName;
     } else {
       col = COLOR_MAP[form.color] || COLOR_MAP.blue;
       iconName = null;
     }
 
-    const hasSource = form.sourceAccountId && !isEdit;
     const data = {
       name,
       iconName,
@@ -158,10 +201,10 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
     if (isLiability) {
       const amount = parseFloat(form.balance) || 0;
       if (hasSource) {
-        // Gán nợ vào tài khoản bank: gửi balance dương, controller tạo transaction
         data.sourceAccountId = parseInt(form.sourceAccountId);
-        data.balance = amount; // Positive amount, controller xử lý
-        data.initialBalance = 0;
+        data.balance = amount;
+        // Fix: set initialBalance = -amount để progress bar hoạt động
+        data.initialBalance = -amount;
       } else {
         data.balance        = -amount;
         data.initialBalance = -(parseFloat(form.initialBalance) || amount);
@@ -182,7 +225,6 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
     if (isExpense) {
       data.cardNumber = form.cardNumber.trim() || null;
     } else if (isAsset && !isEdit) {
-      // Auto-generate a random card number on create (timestamp-based to minimize duplicates)
       const now = Date.now();
       const rand = Math.floor(100 + Math.random() * 900);
       data.cardNumber = `•••• ${String(now % 10000).padStart(4, '0')}${rand}`;
@@ -191,285 +233,379 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
     onSubmit(data);
   };
 
+  const selectedColor = COLOR_MAP[form.color] || COLOR_MAP.blue;
+  const HeadingIcon = TYPE_ICONS[typeId]?.icon || Landmark;
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       <div
-        className="bg-card rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto"
+        className="bg-card rounded-2xl shadow-2xl w-full max-w-lg mx-auto max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-card rounded-t-2xl z-10">
-          <h2 className="text-lg font-bold text-card-foreground">
-            {TITLES[isEdit ? 'edit' : 'create'][typeId]}
-          </h2>
-          <button type="button" onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">
-            <X size={18} />
-          </button>
+        {/* Header with gradient */}
+        <div className={`relative overflow-hidden bg-gradient-to-r ${TYPE_ICONS[typeId]?.gradient || 'from-purple-500 to-purple-700'} px-6 py-5`}>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -mr-16 -mt-16 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-5 rounded-full -ml-12 -mb-12 pointer-events-none" />
+          <div className="flex items-center justify-between relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center backdrop-blur-sm">
+                <HeadingIcon size={20} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">
+                  {TITLES[isEdit ? 'edit' : 'create'][typeId]}
+                </h2>
+                <p className="text-xs text-white/70 mt-0.5">
+                  {isEdit ? 'Chỉnh sửa thông tin tài khoản' : 'Điền thông tin bên dưới để tạo mới'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-white/15 text-white/70 hover:text-white transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="px-6 py-5 space-y-4">
-            {/* Name */}
+          <div className="px-6 py-5 space-y-5">
+            {/* ═══ SECTION: Thông tin cơ bản ═══ */}
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-1.5">
-                Tên <span className="text-red-500">*</span>
-              </label>
-              <input
-                autoFocus
-                type="text"
-                value={form.name}
-                onChange={set('name')}
-                placeholder={PLACEHOLDERS[typeId]}
-                className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-              {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+              <div className="flex items-center gap-2 mb-3">
+                <Tag size={13} className="text-muted-foreground" />
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Thông tin cơ bản</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+
+              {/* Name */}
+              <div className="mb-3">
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
+                  Tên <span className="text-red-500">*</span>
+                </label>
+                <input
+                  autoFocus
+                  type="text"
+                  value={form.name}
+                  onChange={set('name')}
+                  placeholder={PLACEHOLDERS[typeId]}
+                  className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
+                />
+                {error && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />{error}</p>}
+              </div>
+
+              {/* Asset sub-type selector (only for assets) */}
+              {isAsset && !isEdit && (
+                <div className="mb-3">
+                  <label className="block text-sm font-semibold text-foreground mb-2">
+                    Loại tài sản <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {ASSET_SUBTYPES.map(st => {
+                      const isActive = form.assetSubtype === st.key;
+                      const SubIcon = SUBTYPE_ICONS[st.iconName] || Landmark;
+                      return (
+                        <button
+                          key={st.key}
+                          type="button"
+                          onClick={() => handleSubtypeSelect(st.key)}
+                          className={`flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl border-2 transition-all duration-200 ${
+                            isActive
+                              ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 shadow-sm'
+                              : 'border-border hover:border-border hover:bg-muted'
+                          }`}
+                        >
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 transition-transform duration-200"
+                            style={{
+                              background: isActive
+                                ? `linear-gradient(135deg, ${st.from}, ${st.to})`
+                                : 'var(--color-muted)',
+                              transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                            }}
+                          >
+                            <SubIcon size={14} />
+                          </div>
+                          <span className={`text-[10px] font-semibold text-center leading-tight ${isActive ? 'text-purple-700 dark:text-purple-300' : 'text-muted-foreground'}`}>
+                            {st.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedSubtype && (
+                    <div
+                      className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg text-white text-xs font-semibold animate-in fade-in slide-in-from-top-1 duration-200"
+                      style={{ background: `linear-gradient(90deg, ${selectedSubtype.from}, ${selectedSubtype.to})` }}
+                    >
+                      {(() => {
+                        const PreviewIcon = SUBTYPE_ICONS[selectedSubtype.iconName] || Landmark;
+                        return <PreviewIcon size={14} />;
+                      })()}
+                      {selectedSubtype.label}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* Color picker */}
+            {/* ═══ SECTION: Màu sắc ═══ */}
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">Màu sắc</label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-3 h-3 rounded-full" style={{ background: selectedColor.from }} />
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Màu sắc</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+              <div className="grid grid-cols-5 sm:grid-cols-9 gap-1.5 mb-2">
                 {COLOR_OPTIONS.map(opt => (
                   <button
                     key={opt.value}
                     type="button"
                     onClick={() => setForm(f => ({ ...f, color: opt.value }))}
-                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border-2 transition-all ${
+                    className={`w-full aspect-square rounded-xl border-2 transition-all duration-200 ${
                       form.color === opt.value
-                        ? 'border-purple-500 bg-purple-50'
-                        : 'border-border hover:border-border'
+                        ? 'border-purple-500 ring-2 ring-purple-200 scale-110'
+                        : 'border-border hover:border-muted-foreground/30'
                     }`}
-                  >
-                    <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: opt.from }} />
-                    <span className="text-xs text-foreground">{opt.label}</span>
-                  </button>
+                    style={{ background: `linear-gradient(135deg, ${opt.from}, ${opt.to})` }}
+                    title={opt.label}
+                  />
                 ))}
               </div>
-
-              {/* Preview gradient strip */}
               <div
-                className="mt-2 h-2 rounded-full"
-                style={{ background: `linear-gradient(90deg, ${(COLOR_MAP[form.color] || COLOR_MAP.blue).from}, ${(COLOR_MAP[form.color] || COLOR_MAP.blue).to})` }}
+                className="h-2 rounded-full transition-all duration-300"
+                style={{ background: `linear-gradient(90deg, ${selectedColor.from}, ${selectedColor.to})` }}
               />
             </div>
 
-            {/* Asset sub-type selector */}
-            {isAsset && !isEdit && (
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Loại tài sản <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {ASSET_SUBTYPES.map(st => {
-                    const isActive = form.assetSubtype === st.key;
-                    const SubIcon = SUBTYPE_ICONS[st.iconName] || Landmark;
-                    return (
-                      <button
-                        key={st.key}
-                        type="button"
-                        onClick={() => handleSubtypeSelect(st.key)}
-                        className={`flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl border-2 transition-all ${
-                          isActive
-                            ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30'
-                            : 'border-border hover:border-border hover:bg-muted'
-                        }`}
-                      >
-                        <div
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0"
-                          style={{ background: isActive ? `linear-gradient(135deg, ${st.from}, ${st.to})` : 'var(--color-muted)' }}
-                        >
-                          <SubIcon size={14} />
-                        </div>
-                        <span className={`text-[10px] font-semibold text-center leading-tight ${isActive ? 'text-purple-700 dark:text-purple-300' : 'text-muted-foreground'}`}>
-                          {st.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-                {selectedSubtype && (
-                  <div
-                    className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg text-white text-xs font-semibold"
-                    style={{ background: `linear-gradient(90deg, ${selectedSubtype.from}, ${selectedSubtype.to})` }}
+            {/* ═══ SECTION: Số tiền ═══ */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <DollarSign size={13} className="text-muted-foreground" />
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Số tiền</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+
+              {/* Liability: source account selector */}
+              {isLiability && !isEdit && (
+                <div className="mb-3">
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">
+                    Gán nợ vào tài khoản <span className="text-muted-foreground font-normal">(tùy chọn)</span>
+                  </label>
+                  <select
+                    value={form.sourceAccountId}
+                    onChange={e => setForm(f => ({ ...f, sourceAccountId: e.target.value, balance: '', initialBalance: '' }))}
+                    className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
                   >
-                    {(() => {
-                      const PreviewIcon = SUBTYPE_ICONS[selectedSubtype.iconName] || Landmark;
-                      return <PreviewIcon size={14} />;
-                    })()}
-                    {selectedSubtype.label}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Card number — Expense only (Assets get auto-generated) */}
-            {isExpense && (
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-1.5">
-                  Số thẻ / Số tài khoản
-                </label>
-                <input
-                  type="text"
-                  value={form.cardNumber}
-                  onChange={set('cardNumber')}
-                  placeholder="VD: **** 1234"
-                  maxLength={9}
-                  className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-            )}
-
-            {/* Liability: source account (gán nợ vào tài khoản bank) */}
-            {isLiability && !isEdit && (
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-1.5">
-                  Gán nợ vào tài khoản <span className="text-muted-foreground font-normal">(tùy chọn)</span>
-                </label>
-                <select
-                  value={form.sourceAccountId}
-                  onChange={e => setForm(f => ({ ...f, sourceAccountId: e.target.value }))}
-                  className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card"
-                >
-                  <option value="">Không gán vào tài khoản</option>
-                  {loadingSources ? (
-                    <option disabled>Đang tải...</option>
-                  ) : sourceAccounts.length === 0 ? (
-                    <option disabled>Không có tài khoản ngân hàng</option>
-                  ) : (
-                    sourceAccounts.map(acc => (
-                      <option key={acc.accountId} value={acc.accountId}>
-                        {acc.name} — {Intl.NumberFormat('vi-VN').format(acc.balance ?? 0)}đ
-                      </option>
-                    ))
+                    <option value="">— Tạo nợ thông thường —</option>
+                    {loadingSources ? (
+                      <option disabled>Đang tải...</option>
+                    ) : sourceAccounts.length === 0 ? (
+                      <option disabled>Không có tài khoản ngân hàng</option>
+                    ) : (
+                      sourceAccounts.map(acc => (
+                        <option key={acc.accountId} value={acc.accountId}>
+                          {acc.name} — {new Intl.NumberFormat('vi-VN').format(acc.balance ?? 0)}đ
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  {hasSource && (
+                    <div className="mt-2 p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                        <ArrowLeftRight size={12} />
+                        Số tiền vay sẽ được chuyển vào <strong>{sourceAccounts.find(a => String(a.accountId) === form.sourceAccountId)?.name || 'tài khoản đã chọn'}</strong> và ghi nhận là khoản nợ
+                      </p>
+                    </div>
                   )}
-                </select>
-                {form.sourceAccountId && (
-                  <p className="text-xs text-blue-600 mt-1">
-                    <Landmark size={12} className="inline mr-0.5" />
-                    Số tiền vay sẽ được chuyển vào tài khoản này
-                  </p>
-                )}
-              </div>
-            )}
+                </div>
+              )}
 
-            {/* Liability: amount fields */}
-            {isLiability && (
-              <>
-                {form.sourceAccountId ? (
-                  /* Gán nợ vào tài khoản: chỉ cần 1 số tiền */
+              {/* Liability: amount fields */}
+              {isLiability && hasSource && (
+                <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">
+                    Số tiền vay <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground font-medium text-sm">{currencySymbol}</span>
+                    <input
+                      type="text"
+                      value={formatVND(form.balance)}
+                      onChange={(e) => setForm(f => ({ ...f, balance: parseVND(e.target.value) }))}
+                      placeholder="100.000.000"
+                      className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Liability: no source */}
+              {isLiability && !hasSource && (
+                <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
                   <div>
                     <label className="block text-sm font-semibold text-foreground mb-1.5">
-                      Số tiền vay / Dư nợ
+                      Gốc
                     </label>
-                    <input
-                      type="number"
-                      value={form.balance}
-                      onChange={set('balance')}
-                      placeholder="100000000"
-                      min={0}
-                      className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
-                    <p className="text-xs text-blue-600 mt-1">
-                      <Landmark size={12} className="inline mr-0.5" />
-                      Số tiền này sẽ được chuyển vào tài khoản đã chọn và ghi nhận là khoản nợ
-                    </p>
-                  </div>
-                ) : (
-                  /* Tạo nợ thông thường: số tiền ban đầu và dư nợ còn lại */
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-semibold text-foreground mb-1.5">
-                        Số tiền ban đầu
-                      </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground font-medium text-sm">{currencySymbol}</span>
                       <input
-                        type="number"
-                        value={form.initialBalance}
-                        onChange={set('initialBalance')}
-                        placeholder="300000000"
-                        min={0}
-                        className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-foreground mb-1.5">
-                        Dư nợ còn lại
-                      </label>
-                      <input
-                        type="number"
-                        value={form.balance}
-                        onChange={set('balance')}
-                        placeholder="250000000"
-                        min={0}
-                        className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        type="text"
+                        value={formatVND(form.initialBalance)}
+                        onChange={(e) => setForm(f => ({ ...f, initialBalance: parseVND(e.target.value) }))}
+                        placeholder="300.000.000"
+                        className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
                       />
                     </div>
                   </div>
-                )}
-              </>
-            )}
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">
+                      Còn nợ <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground font-medium text-sm">{currencySymbol}</span>
+                      <input
+                        type="text"
+                        value={formatVND(form.balance)}
+                        onChange={(e) => setForm(f => ({ ...f, balance: parseVND(e.target.value) }))}
+                        placeholder="250.000.000"
+                        className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
-            {/* Revenue / Expense / Asset: balance fields */}
-            {!isLiability && (
-              <>
-                <div>
+              {/* Revenue / Expense / Asset */}
+              {!isLiability && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">
+                      {isAsset ? 'Số dư hiện tại' : isExpense ? 'Dư nợ hiện tại' : 'Tổng đã nhận'}
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground font-medium text-sm">{currencySymbol}</span>
+                      <input
+                        type="text"
+                        value={formatVND(form.balance)}
+                        onChange={(e) => setForm(f => ({ ...f, balance: parseVND(e.target.value) }))}
+                        placeholder="0"
+                        className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
+                      />
+                    </div>
+                  </div>
+                  {isAsset && (
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-1.5">
+                        Số dư ban đầu <span className="text-muted-foreground font-normal">(tùy chọn)</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground font-medium text-sm">{currencySymbol}</span>
+                        <input
+                          type="text"
+                          value={formatVND(form.initialBalance)}
+                          onChange={(e) => setForm(f => ({ ...f, initialBalance: parseVND(e.target.value) }))}
+                          placeholder="0"
+                          className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Card number (expense only) */}
+              {isExpense && (
+                <div className="mt-3">
                   <label className="block text-sm font-semibold text-foreground mb-1.5">
-                    {isAsset ? 'Số dư hiện tại' : isExpense ? 'Dư nợ hiện tại' : 'Tổng đã nhận'}
+                    Số thẻ / Số tài khoản
                   </label>
                   <input
-                    type="number"
-                    value={form.balance}
-                    onChange={set('balance')}
-                    placeholder="0"
-                    min={0}
-                    className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    type="text"
+                    value={form.cardNumber}
+                    onChange={set('cardNumber')}
+                    placeholder="VD: **** 1234"
+                    maxLength={9}
+                    className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
                   />
                 </div>
-                {isAsset && (
-                  <div>
-                    <label className="block text-sm font-semibold text-foreground mb-1.5">
-                      Số dư ban đầu <span className="text-muted-foreground font-normal">(tùy chọn)</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={form.initialBalance}
-                      onChange={set('initialBalance')}
-                      placeholder="0"
-                      min={0}
-                      className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
+              )}
+            </div>
+
+            {/* ═══ PREVIEW CARD ═══ */}
+            {(form.name.trim() || form.balance) && (
+              <div
+                className="rounded-xl p-4 text-white transition-all duration-300 animate-in fade-in slide-in-from-bottom-1"
+                style={{ background: `linear-gradient(135deg, ${selectedColor.from}, ${selectedColor.to})` }}
+              >
+                <div className="absolute top-0 right-0 w-24 h-24 bg-white opacity-5 rounded-full -mr-12 -mt-12 pointer-events-none" />
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] text-white/60 uppercase tracking-wider font-semibold">
+                      {TYPE_ICONS[typeId]?.label || 'Tài khoản'} {isEdit ? '(đã lưu)' : '(sẽ tạo)'}
+                    </span>
+                    <HeadingIcon size={14} className="text-white/60" />
                   </div>
-                )}
-              </>
+                  <p className="text-base font-bold truncate">
+                    {form.name.trim() || 'Chưa nhập tên'}
+                  </p>
+                  <p className="text-lg font-bold mt-1 tracking-tight">
+                    {isLiability ? '-' : ''}{formatVND(preview.balanceAfter)}
+                    <span className="text-xs font-normal text-white/60 ml-1.5">{currencySymbol}</span>
+                  </p>
+                  {(isAsset || isLiability) && (
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span className="text-[10px] text-white/70">
+                        Gốc: {formatVND(Math.abs(preview.initialBalanceAfter))} {currencySymbol}
+                      </span>
+                      {preview.initialBalanceAfter !== preview.balanceAfter && (
+                        <span className={`text-[10px] font-semibold ${Math.abs(preview.balanceAfter) < Math.abs(preview.initialBalanceAfter) ? 'text-green-300' : 'text-red-300'}`}>
+                          {Math.abs(preview.balanceAfter) < Math.abs(preview.initialBalanceAfter) ? '✓ đã trả' : '✗ vượt'}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
 
-            {/* Notes (optional for all) */}
+            {/* ═══ SECTION: Ghi chú ═══ */}
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-1.5">Ghi chú</label>
+              <div className="flex items-center gap-2 mb-3">
+                <Tag size={13} className="text-muted-foreground" />
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ghi chú</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
               <textarea
                 value={form.notes}
                 onChange={set('notes')}
                 placeholder="Thêm ghi chú tùy chọn..."
                 rows={2}
-                className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card resize-none transition-shadow"
               />
             </div>
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end gap-3 px-6 py-4 border-t border-border">
+          <div className="flex justify-end gap-3 px-6 py-4 border-t border-border bg-muted/30 rounded-b-2xl">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              className="px-5 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
             >
               Hủy
             </button>
             <button
               type="submit"
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 text-white text-sm font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-md active:scale-[0.98]"
+              style={{
+                background: `linear-gradient(135deg, ${selectedColor.from}, ${selectedColor.to})`,
+              }}
             >
               <Check size={16} />
               {SUBMIT_LABELS[isEdit ? 'edit' : 'create'][typeId]}

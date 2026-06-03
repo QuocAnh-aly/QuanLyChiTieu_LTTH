@@ -91,6 +91,9 @@ public class AccountController : BaseController
 
             // Tạo account với balance = 0 (transaction sẽ cập nhật balance)
             request.Balance = 0;
+            // Safety: set initialBalance để progress bar hoạt động
+            if (typeId == 2) // Liability
+                request.InitialBalance = -amount;
             var result = await _accountService.CreateAsync(GetUserId(), request);
 
             if (typeId == 2) // Liability: gán nợ vào tài khoản bank
