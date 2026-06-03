@@ -123,6 +123,22 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ============================================
+   Smooth scrolling for all scrollable containers
+   ============================================ */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  .overflow-y-auto,
+  .overflow-y-scroll,
+  .overflow-auto,
+  .overflow-scroll {
+    scroll-behavior: smooth;
+  }
+}
+
 /* Smooth transition for theme switching */
 html,
 html *,
@@ -151,6 +167,34 @@ html.theme-transitioning * {
 .max-h-\[95vh\]::-webkit-scrollbar,
 .flex-1.overflow-y-auto::-webkit-scrollbar {
   width: 7px;
+}
+
+/* Radix Select dropdown scrollbar */
+[data-slot="select-content"]::-webkit-scrollbar {
+  width: 5px;
+}
+
+[data-slot="select-content"]::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+
+[data-slot="select-content"]::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+
+[data-slot="select-content"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Radix Select dropdown Firefox */
+[data-slot="select-content"] {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
 
 ::-webkit-scrollbar-track {
