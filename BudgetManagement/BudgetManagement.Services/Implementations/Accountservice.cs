@@ -90,8 +90,6 @@ public class AccountService : IAccountService
             InitialBalance = request.InitialBalance ?? request.Balance ?? 0,
             CardNumber     = request.CardNumber   ?? "•••• ••••",
             CurrencyCode = request.CurrencyCode,
-            DueDate      = request.DueDate,
-            InterestRate = request.InterestRate,
             IsActive     = true,
             CreatedAt    = DateTime.UtcNow
         };
@@ -115,8 +113,6 @@ public class AccountService : IAccountService
         account.GradientTo   = request.GradientTo   ?? account.GradientTo;
         account.CardNumber     = request.CardNumber     ?? account.CardNumber;
         account.CurrencyCode   = request.CurrencyCode   ?? account.CurrencyCode;
-        account.DueDate        = request.DueDate        ?? account.DueDate;
-        account.InterestRate   = request.InterestRate   ?? account.InterestRate;
         account.IsActive       = request.IsActive       ?? account.IsActive;
 
         var updated = await _accountRepo.UpdateAsync(account);
@@ -228,8 +224,6 @@ public class AccountService : IAccountService
         Balance        = a.Balance        ?? 0,
         InitialBalance = a.InitialBalance ?? 0,
         CardNumber     = a.CardNumber,
-        DueDate        = a.DueDate,
-        InterestRate   = a.InterestRate,
         CurrencyCode = a.CurrencyCode,
         IsActive     = a.IsActive ?? true,
         CreatedAt    = a.CreatedAt

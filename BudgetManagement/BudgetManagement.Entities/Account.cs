@@ -17,8 +17,6 @@ public class Account
     public decimal? InitialBalance { get; set; }
     public string? CardNumber { get; set; }
     public string CurrencyCode { get; set; } = "VND";
-    public DateTime? DueDate { get; set; }          // Hạn trả nợ (Liabilities)
-    public decimal? InterestRate { get; set; }       // Lãi suất % (Liabilities)
     public bool? IsActive { get; set; }
     public DateTime? CreatedAt { get; set; }
 

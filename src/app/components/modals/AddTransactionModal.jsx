@@ -600,27 +600,13 @@ export function AddTransactionModal({
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className={`font-semibold truncate ${isPaidOff ? 'line-through' : ''}`}>{a.name}</p>
-                              {a.dueDate && (
-                                <p className={`text-[10px] mt-0.5 ${
-                                  new Date(a.dueDate) < new Date() && !isPaidOff
-                                    ? 'text-red-500 font-semibold'
-                                    : 'text-muted-foreground'
-                                }`}>
-                                  📅 {new Date(a.dueDate).toLocaleDateString('vi-VN')}
-                                  {new Date(a.dueDate) < new Date() && !isPaidOff && ' ⚠️ Quá hạn'}
-                                </p>
-                              )}
+
                             </div>
                             <div className="text-right shrink-0">
                               {isPaidOff ? (
                                 <span className="text-xs font-semibold text-green-500">✓ Đã tất toán</span>
                               ) : (
-                                <>
-                                  <p className="text-sm font-bold">{fmt(remaining)}</p>
-                                  {a.interestRate != null && a.interestRate > 0 && (
-                                    <p className="text-[10px] text-muted-foreground">{a.interestRate}%/năm</p>
-                                  )}
-                                </>
+                                <p className="text-sm font-bold">{fmt(remaining)}</p>
                               )}
                             </div>
                           </button>
@@ -637,24 +623,7 @@ export function AddTransactionModal({
                       <HandCoins size={16} />
                       <span className="font-semibold">Trả {selectedLiability.name}</span>
                     </div>
-                    {/* DueDate & InterestRate của khoản nợ đã chọn */}
-                    <div className="flex items-center gap-3 mt-1.5 text-[11px]">
-                      {selectedLiability.dueDate && (
-                        <span className={`flex items-center gap-1 ${
-                          new Date(selectedLiability.dueDate) < new Date()
-                            ? 'text-red-500 font-semibold'
-                            : 'text-red-600/70'
-                        }`}>
-                          📅 Hạn: {new Date(selectedLiability.dueDate).toLocaleDateString('vi-VN')}
-                          {new Date(selectedLiability.dueDate) < new Date() && ' ⚠️'}
-                        </span>
-                      )}
-                      {selectedLiability.interestRate != null && selectedLiability.interestRate > 0 && (
-                        <span className="text-red-600/70 flex items-center gap-1">
-                          📊 Lãi suất: {selectedLiability.interestRate}%/năm
-                        </span>
-                      )}
-                    </div>
+
                     <div className="flex items-center justify-between mt-1.5 text-xs text-red-600">
                       <span>
                         Trả từ ví{' '}

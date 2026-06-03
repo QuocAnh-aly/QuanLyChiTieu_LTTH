@@ -26,32 +26,6 @@ ELSE
     PRINT '– currency_code already exists in Accounts';
 GO
 
--- Accounts: thêm due_date (hạn trả nợ)
-IF NOT EXISTS (
-    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE TABLE_NAME = 'Accounts' AND COLUMN_NAME = 'due_date'
-)
-BEGIN
-    ALTER TABLE Accounts ADD due_date DATE NULL;
-    PRINT '✓ Added due_date to Accounts';
-END
-ELSE
-    PRINT '– due_date already exists in Accounts';
-GO
-
--- Accounts: thêm interest_rate (lãi suất %)
-IF NOT EXISTS (
-    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE TABLE_NAME = 'Accounts' AND COLUMN_NAME = 'interest_rate'
-)
-BEGIN
-    ALTER TABLE Accounts ADD interest_rate DECIMAL(5,2) NULL;
-    PRINT '✓ Added interest_rate to Accounts';
-END
-ELSE
-    PRINT '– interest_rate already exists in Accounts';
-GO
-
 -- Journal_Entries: thiếu foreign_amount và foreign_currency_code
 IF NOT EXISTS (
     SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
