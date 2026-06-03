@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useNotifications } from "../../context/NotificationContext";
 import { SubscriptionFormModal } from "../../components/modals/SubscriptionFormModal";
 import { useSettings } from "../../context/SettingsContext";
+import { shouldShowToast } from "../../utils/toastOnce";
 
 const FREQ_LABELS = {
   daily:       "Hàng ngày",
@@ -75,7 +76,9 @@ export function SubscriptionDetail() {
       const data = await billApi.getById(id);
       setBill(data);
     } catch {
-      toast.error("Không thể tải dữ liệu");
+      if (shouldShowToast(`subscription-load-error:${id}`)) {
+        toast.error("Không thể tải dữ liệu");
+      }
     } finally {
       setIsLoading(false);
     }

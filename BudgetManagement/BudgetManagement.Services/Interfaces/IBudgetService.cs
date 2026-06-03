@@ -26,4 +26,7 @@ public interface IBudgetService
 
     // Cập nhật số tiền đã chi / đã tiết kiệm
     Task UpdateSpentAmountAsync(int budgetId, decimal delta);
+
+    // Budget period reset — called by RecurringHostedService at midnight
+    Task ResetExpiredPeriodsAsync();
 }

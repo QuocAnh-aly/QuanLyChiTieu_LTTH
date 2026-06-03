@@ -2,6 +2,7 @@ using BudgetManagement.Dto;
 using BudgetManagement.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace BudgetManagement.APIService.Controllers;
 
@@ -97,6 +98,13 @@ public class TransactionController : BaseController
         {
             return StatusCode(403, new { message = ex.Message });
         }
+        catch (DbUpdateException ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            if (msg.Contains("FK") || msg.Contains("REFERENCE") || msg.Contains("conflicted"))
+                return BadRequest(new { message = "Không thể tạo giao dịch vì tài khoản liên quan không tồn tại hoặc đã bị xoá." });
+            return StatusCode(500, new { message = "Lỗi cơ sở dữ liệu. Vui lòng thử lại sau." });
+        }
     }
 
     // PUT api/transactions/{id}
@@ -116,6 +124,13 @@ public class TransactionController : BaseController
         {
             return StatusCode(403, new { message = ex.Message });
         }
+        catch (DbUpdateException ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            if (msg.Contains("FK") || msg.Contains("REFERENCE") || msg.Contains("conflicted"))
+                return BadRequest(new { message = "Không thể cập nhật giao dịch vì tài khoản liên quan không tồn tại hoặc đã bị xoá." });
+            return StatusCode(500, new { message = "Lỗi cơ sở dữ liệu. Vui lòng thử lại sau." });
+        }
     }
 
     // DELETE api/transactions/{id}
@@ -133,6 +148,13 @@ public class TransactionController : BaseController
         }        catch (UnauthorizedAccessException ex)
         {
             return StatusCode(403, new { message = ex.Message });
+        }
+        catch (DbUpdateException ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            if (msg.Contains("FK") || msg.Contains("REFERENCE") || msg.Contains("conflicted"))
+                return BadRequest(new { message = "Không thể xoá giao dịch vì dữ liệu liên quan đang được sử dụng." });
+            return StatusCode(500, new { message = "Lỗi cơ sở dữ liệu. Vui lòng thử lại sau." });
         }
     }
 }

@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { useState } from "react";
 import { formatVND, parseVND } from "../../utils/formatMoney";
+import { ICON_MAP, COLOR_MAP } from "../../utils/icons";
 
 const periodTypes = ["monthly", "weekly", "yearly", "custom"];
 
@@ -15,6 +16,8 @@ export function EditBudgetModal({ budget, onClose, onSave }) {
   const [title, setTitle] = useState(budget.name);
   const [amount, setAmount] = useState(String(budget.budget));
   const [periodType, setPeriodType] = useState(budget.periodType || "monthly");
+  const [iconName, setIconName] = useState(budget.iconName || "Coffee");
+  const [color, setColor] = useState(budget.color || "orange");
   const [startDate, setStartDate] = useState(
     budget.startDate
       ? new Date(budget.startDate).toISOString().slice(0, 10)
@@ -24,6 +27,9 @@ export function EditBudgetModal({ budget, onClose, onSave }) {
     budget.endDate ? new Date(budget.endDate).toISOString().slice(0, 10) : "",
   );
 
+  const PreviewIcon = ICON_MAP[iconName] || ICON_MAP.Coffee;
+  const previewStyle = COLOR_MAP[color] || COLOR_MAP.orange;
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const updates = {};
@@ -31,6 +37,8 @@ export function EditBudgetModal({ budget, onClose, onSave }) {
     const newAmount = parseFloat(amount);
     if (newAmount !== budget.budget) updates.targetAmount = newAmount;
     if (periodType !== budget.periodType) updates.periodType = periodType;
+    if (iconName !== budget.iconName) updates.iconName = iconName;
+    if (color !== budget.color) updates.color = color;
     if (startDate) updates.startDate = new Date(startDate).toISOString();
     if (endDate) updates.endDate = new Date(endDate).toISOString();
     else if (budget.endDate) updates.endDate = null;
@@ -43,7 +51,7 @@ export function EditBudgetModal({ budget, onClose, onSave }) {
       onClick={onClose}
     >
       <div
-        className="bg-card rounded-2xl w-full max-w-md mx-4 shadow-2xl"
+        className="bg-card rounded-2xl w-full max-w-md mx-4 shadow-2xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -61,6 +69,23 @@ export function EditBudgetModal({ budget, onClose, onSave }) {
 
         <form onSubmit={handleSubmit}>
           <div className="px-6 py-5 space-y-5">
+            {/* Preview */}
+            <div className="flex items-center gap-3 p-3 bg-muted rounded-xl">
+              <div
+                className={`w-12 h-12 rounded-xl ${previewStyle.bg} flex items-center justify-center`}
+              >
+                <PreviewIcon size={24} className={previewStyle.text} />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground text-sm">
+                  {title || "Tên ngân sách"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {formatVND(amount || "0")} / {PERIOD_LABELS[periodType] || periodType}
+                </p>
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-semibold text-foreground mb-1.5">
                 Tên ngân sách <span className="text-red-500">*</span>
@@ -87,6 +112,52 @@ export function EditBudgetModal({ budget, onClose, onSave }) {
                 min="0"
                 required
               />
+            </div>
+
+            {/* Biểu tượng */}
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-2">
+                Biểu tượng
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(ICON_MAP).map(([name, Icon]) => (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => setIconName(name)}
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+                      iconName === name
+                        ? "bg-purple-600 text-white ring-2 ring-purple-400"
+                        : "bg-card border border-border text-muted-foreground hover:border-purple-300"
+                    }`}
+                    title={name}
+                  >
+                    <Icon size={14} />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Màu sắc */}
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-2">
+                Màu sắc
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(COLOR_MAP).map(([name, { swatch }]) => (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => setColor(name)}
+                    className={`w-7 h-7 rounded-full ${swatch} transition-all ${
+                      color === name
+                        ? "ring-2 ring-offset-2 ring-slate-500 scale-110"
+                        : "hover:scale-105"
+                    }`}
+                    title={name}
+                  />
+                ))}
+              </div>
             </div>
 
             <div>

@@ -51,14 +51,12 @@ export function CategoriesProvider({ children }) {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const [expenseRes, incomeRes, liabilityRes] = await Promise.all([
+        const [expenseRes, incomeRes] = await Promise.all([
           accountApi.getByType(5),
           accountApi.getByType(4),
-          accountApi.getByType(2),
         ]);
         const allExpenseCategories = [
           ...(expenseRes.items ?? []),
-          ...(liabilityRes.items ?? []),
         ];
 
         const allIncomeCategories = [...(incomeRes.items ?? [])];
@@ -81,7 +79,7 @@ export function CategoriesProvider({ children }) {
     };
 
     if (loading) return;
-    if (user) return;
+    if (!user) return;
 
     fetchCategories();
   }, [user, loading]);

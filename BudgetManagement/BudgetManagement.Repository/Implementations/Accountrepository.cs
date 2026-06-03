@@ -11,7 +11,7 @@ public class AccountRepository : BaseRepository<Account>, IAccountRepository
 
     public async Task<IEnumerable<Account>> GetByUserIdAsync(int userId)
         => await _dbSet
-            .Where(a => a.UserId == userId && a.IsActive == true && !(a.TypeId == 3 && a.Name == "Initial"))
+            .Where(a => a.UserId == userId && a.IsActive == true && !(a.TypeId == 3 && a.Name == "Initial")) // 3=Equity, hidden system account
             .Include(a => a.AccountType)
             .OrderBy(a => a.TypeId)
             .ThenBy(a => a.Name)

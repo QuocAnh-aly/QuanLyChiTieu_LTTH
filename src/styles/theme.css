@@ -123,6 +123,22 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ============================================
+   Smooth scrolling for all scrollable containers
+   ============================================ */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  .overflow-y-auto,
+  .overflow-y-scroll,
+  .overflow-auto,
+  .overflow-scroll {
+    scroll-behavior: smooth;
+  }
+}
+
 /* Smooth transition for theme switching */
 html,
 html *,
@@ -136,20 +152,107 @@ html.theme-transitioning * {
   transition: none !important;
 }
 
-/* Custom scrollbar for dark mode */
-.dark ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* ============================================
+   Custom scrollbar — unified for light & dark
+   ============================================ */
+
+/* Global scrollbar (pages, panels) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
-.dark ::-webkit-scrollbar-track {
-  background: oklch(0.13 0.008 260);
+
+/* Modal scrollbar — slightly wider for touch area */
+.max-h-\[90vh\]::-webkit-scrollbar,
+.max-h-\[95vh\]::-webkit-scrollbar,
+.flex-1.overflow-y-auto::-webkit-scrollbar {
+  width: 7px;
 }
-.dark ::-webkit-scrollbar-thumb {
-  background: oklch(0.28 0.015 260);
-  border-radius: 4px;
+
+/* DataTable / table horizontal scrollbar */
+[data-slot="table-container"]::-webkit-scrollbar,
+[data-slot="table-container"]::-webkit-scrollbar:horizontal,
+.overflow-x-auto::-webkit-scrollbar:horizontal {
+  height: 5px;
 }
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.35 0.02 260);
+
+[data-slot="table-container"]::-webkit-scrollbar-thumb:horizontal,
+.overflow-x-auto::-webkit-scrollbar-thumb:horizontal {
+  background: var(--border);
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background-clip: content-box;
+  min-width: 40px;
+}
+
+[data-slot="table-container"]::-webkit-scrollbar-thumb:horizontal:hover,
+.overflow-x-auto::-webkit-scrollbar-thumb:horizontal:hover {
+  background: var(--muted-foreground);
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+
+[data-slot="table-container"]::-webkit-scrollbar-track:horizontal,
+.overflow-x-auto::-webkit-scrollbar-track:horizontal {
+  background: transparent;
+}
+
+/* Table containers Firefox */
+[data-slot="table-container"],
+.overflow-x-auto {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+/* Radix Select dropdown scrollbar */
+[data-slot="select-content"]::-webkit-scrollbar {
+  width: 5px;
+}
+
+[data-slot="select-content"]::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+
+[data-slot="select-content"]::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+
+[data-slot="select-content"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Radix Select dropdown Firefox */
+[data-slot="select-content"] {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
 
 /* Selection color for dark mode */

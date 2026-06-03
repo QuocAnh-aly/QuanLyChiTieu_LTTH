@@ -91,4 +91,27 @@ public class JournalRepository : BaseRepository<JournalEntry>, IJournalRepositor
         await _context.SaveChangesAsync();
         return true;
     }
+
+    public async Task<bool> UpdateEntryAmountAsync(int journalId, decimal newAmount)
+    {
+        var details = await _context.JournalDetails
+            .Where(d => d.JournalId == journalId)
+            .ToListAsync();
+
+        if (details.Count == 0) return false;
+
+        foreach (var detail in details)
+        {
+            if (detail.Debit > 0 && detail.Credit == 0)
+                detail.Debit = newAmount;
+            else if (detail.Credit > 0 && detail.Debit == 0)
+                detail.Credit = newAmount;
+        }
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> HasDetailsForAccountAsync(int accountId)
+        => await _context.JournalDetails.AnyAsync(d => d.AccountId == accountId);
 }
