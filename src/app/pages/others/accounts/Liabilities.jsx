@@ -95,8 +95,8 @@ export function Liabilities() {
       case "amount-desc": list.sort((a, b) => Math.abs(b.balance || 0) - Math.abs(a.balance || 0)); break;
       case "amount-asc": list.sort((a, b) => Math.abs(a.balance || 0) - Math.abs(b.balance || 0)); break;
       case "progress": list.sort((a, b) => {
-        const pA = a.initialBalance ? (1 - Math.abs(a.balance) / Math.abs(a.initialBalance)) * 100 : 0;
-        const pB = b.initialBalance ? (1 - Math.abs(b.balance) / Math.abs(b.initialBalance)) * 100 : 0;
+        const pA = a.initialBalance ? (1 - Math.abs(a.balance) / Math.abs(a.initialBalance)) * 100 : -1;
+        const pB = b.initialBalance ? (1 - Math.abs(b.balance) / Math.abs(b.initialBalance)) * 100 : -1;
         return pA - pB;
       }); break;
       case "name": list.sort((a, b) => a.name.localeCompare(b.name)); break;
@@ -107,14 +107,18 @@ export function Liabilities() {
   const totalDebt = accounts.reduce((s, a) => s + Math.abs(a.balance || 0), 0);
   const totalOriginal = accounts.reduce((s, a) => s + Math.abs(a.initialBalance || 0), 0);
   const totalPaid = Math.max(0, totalOriginal - totalDebt);
-  const overallProgress = totalOriginal > 0 ? (totalPaid / totalOriginal) * 100 : 0;
+  const overallProgress = totalOriginal > 0 ? (totalPaid / totalOriginal) * 100 : null;
+  const hasOverallProgress = totalOriginal > 0;
   const activeCount = accounts.filter(a => Math.abs(a.balance || 0) > 0).length;
   const paidOffCount = accounts.filter(a => Math.abs(a.balance || 0) === 0).length;
 
   const repayProgress = (acc) => {
-    if (!acc.initialBalance || acc.initialBalance === 0) return 0;
-    return Math.min(100, Math.max(0, (1 - acc.balance / acc.initialBalance) * 100));
+    const initBal = acc.initialBalance;
+    if (!initBal || initBal === 0) return null;
+    return Math.min(100, Math.max(0, (1 - acc.balance / initBal) * 100));
   };
+
+  const hasProgress = (acc) => repayProgress(acc) !== null;
 
   const pieData = useMemo(() => {
     const active = accounts.filter(a => Math.abs(a.balance || 0) > 0);
@@ -173,8 +177,7 @@ export function Liabilities() {
             icon={TrendingUp}
             label="Đã trả được"
             value={fmt(totalPaid)}
-            sublabel={`${overallProgress.toFixed(1)}% tổng nợ gốc`}
-            sublabelColor="text-green-600"
+            sublabel={hasOverallProgress ? `${overallProgress.toFixed(1)}% tổng nợ gốc` : 'Chưa có dữ liệu gốc'}
           />
           <StatCard
             icon={DollarSign}
@@ -191,34 +194,49 @@ export function Liabilities() {
       )}
 
       {/* ════════════════════ OVERALL PROGRESS ════════════════════ */}
-      {accounts.length > 0 && totalOriginal > 0 && (
+      {accounts.length > 0 && (
         <div className="bg-card rounded-2xl p-5 border border-border shadow-sm mb-6 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
               <Activity size={15} className="text-red-500" />
               Tiến độ trả nợ tổng thể
             </h2>
-            <span className="text-xl font-bold text-card-foreground">{overallProgress.toFixed(1)}%</span>
+            {hasOverallProgress ? (
+              <span className="text-xl font-bold text-card-foreground">{overallProgress.toFixed(1)}%</span>
+            ) : (
+              <span className="text-sm font-semibold text-muted-foreground">Chưa có dữ liệu gốc</span>
+            )}
           </div>
-          <div className="w-full bg-muted rounded-full h-3.5 mb-2 overflow-hidden shadow-inner">
-            <div
-              className="h-full rounded-full transition-all duration-700 ease-out"
-              style={{
-                width: `${overallProgress}%`,
-                background: `linear-gradient(90deg, #ef4444 ${Math.min(overallProgress, 50)}%, #f97316 ${Math.min(Math.max(overallProgress - 50, 0), 50)}%, #22c55e 100%)`,
-              }}
-            />
-          </div>
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span className="font-medium flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
-              Còn nợ: <span className="text-red-500 font-bold">{fmt(totalDebt)}</span>
-            </span>
-            <span className="font-medium flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-              Đã trả: <span className="text-green-600 font-bold">{fmt(totalPaid)}</span>
-            </span>
-          </div>
+          {hasOverallProgress ? (
+            <>
+              <div className="w-full bg-muted rounded-full h-3.5 mb-2 overflow-hidden shadow-inner">
+                <div
+                  className="h-full rounded-full transition-all duration-700 ease-out"
+                  style={{
+                    width: `${overallProgress}%`,
+                    background: `linear-gradient(90deg, #ef4444 ${Math.min(overallProgress, 50)}%, #f97316 ${Math.min(Math.max(overallProgress - 50, 0), 50)}%, #22c55e 100%)`,
+                  }}
+                />
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span className="font-medium flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
+                  Còn nợ: <span className="text-red-500 font-bold">{fmt(totalDebt)}</span>
+                </span>
+                <span className="font-medium flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
+                  Đã trả: <span className="text-green-600 font-bold">{fmt(totalPaid)}</span>
+                </span>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-center py-2">
+              <p className="text-xs text-muted-foreground">
+                Thiếu số tiền vay gốc (<span className="font-mono">initial_balance</span>). 
+                Hãy cập nhật khoản nợ để theo dõi tiến độ.
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -289,32 +307,46 @@ export function Liabilities() {
             <div className="space-y-3.5">
               {accounts
                 .filter(a => Math.abs(a.balance || 0) > 0)
-                .sort((a, b) => repayProgress(a) - repayProgress(b))
+                .sort((a, b) => {
+                  const pA = hasProgress(a) ? (repayProgress(a) ?? 0) : -1;
+                  const pB = hasProgress(b) ? (repayProgress(b) ?? 0) : -1;
+                  return pA - pB;
+                })
                 .slice(0, 6)
                 .map(acc => {
                   const progress = repayProgress(acc);
                   const remaining = Math.abs(acc.balance);
+                  const canCalc = hasProgress(acc);
                   return (
                     <div key={acc.accountId}>
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-xs font-semibold text-card-foreground truncate max-w-[140px]">{acc.name}</span>
                         <span className="text-xs font-medium text-muted-foreground">{fmt(remaining)}</span>
                       </div>
-                      <div className="w-full bg-muted rounded-full h-2 overflow-hidden shadow-inner">
-                        <div
-                          className={`h-2 rounded-full transition-all duration-500 ${
-                            progress >= 100 ? "bg-emerald-500" :
-                            progress >= 50 ? "bg-green-500" :
-                            progress >= 25 ? "bg-amber-500" :
-                            "bg-red-500"
-                          }`}
-                          style={{ width: `${Math.max(2, progress)}%` }}
-                        />
-                      </div>
-                      <div className="flex justify-between text-[10px] text-muted-foreground mt-0.5">
-                        <span>{progress.toFixed(0)}%</span>
-                        <span>{acc.initialBalance ? fmt(Math.abs(acc.initialBalance)) : ""}</span>
-                      </div>
+                      {canCalc ? (
+                        <>
+                          <div className="w-full bg-muted rounded-full h-2 overflow-hidden shadow-inner">
+                            <div
+                              className={`h-2 rounded-full transition-all duration-500 ${
+                                progress! >= 100 ? "bg-emerald-500" :
+                                progress! >= 50 ? "bg-green-500" :
+                                progress! >= 25 ? "bg-amber-500" :
+                                "bg-red-500"
+                              }`}
+                              style={{ width: `${Math.max(2, progress!)}%` }}
+                            />
+                          </div>
+                          <div className="flex justify-between text-[10px] text-muted-foreground mt-0.5">
+                            <span>{progress!.toFixed(0)}%</span>
+                            <span>{fmt(Math.abs(acc.initialBalance))}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-0.5">
+                          <span className="italic">—</span>
+                          <span className="italic">Không rõ gốc</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -418,7 +450,7 @@ export function Liabilities() {
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="font-semibold">Còn: <span className="text-red-500">{fmt(totalDebt)}</span></span>
               <span className="font-semibold">Gốc: {fmt(totalOriginal)}</span>
-              {totalOriginal > 0 && (
+              {hasOverallProgress && (
                 <span className="font-semibold">Đã trả: <span className="text-green-600">{fmt(totalPaid)}</span></span>
               )}
             </div>
@@ -491,7 +523,7 @@ export function Liabilities() {
                             <p className="text-sm font-semibold text-green-600">{fmt(paidAmount)}</p>
                           </div>
                         )}
-                        {!isPaidOff && (
+                        {!isPaidOff && progress !== null && (
                           <div className="min-w-[100px]">
                             <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
                               <span>{progress.toFixed(0)}%</span>
@@ -506,6 +538,13 @@ export function Liabilities() {
                                 }`}
                                 style={{ width: `${Math.max(2, progress)}%` }}
                               />
+                            </div>
+                          </div>
+                        )}
+                        {!isPaidOff && progress === null && (
+                          <div className="min-w-[100px]">
+                            <div className="flex justify-center text-[10px] italic text-muted-foreground">
+                              <span>—</span>
                             </div>
                           </div>
                         )}
@@ -583,7 +622,7 @@ export function Liabilities() {
           <div className="px-4 sm:px-6 py-3 border-t border-border bg-muted/30 flex items-center justify-between">
             <p className="text-[10px] text-muted-foreground">
               {activeCount} khoản chưa tất toán
-              {totalOriginal > 0 && ` • ${overallProgress.toFixed(0)}% tổng nợ gốc đã trả`}
+              {hasOverallProgress && ` • ${overallProgress.toFixed(0)}% tổng nợ gốc đã trả`}
             </p>
             <p className="text-[10px] text-muted-foreground font-semibold">
               {accounts.length === filtered.length
