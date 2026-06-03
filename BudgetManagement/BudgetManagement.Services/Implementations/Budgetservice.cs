@@ -16,6 +16,8 @@ public class BudgetService : IBudgetService
         _accountRepo = accountRepo;
     }
 
+    private const int TypeExpenseAccount = 5;
+
     // ─── Expense Budgets (Budget.jsx) ───────────────────────────────────────
 
     public async Task<IEnumerable<BudgetDto>> GetExpenseBudgetsAsync(int userId)
@@ -49,18 +51,19 @@ public class BudgetService : IBudgetService
 
     public async Task<BudgetDto> CreateExpenseBudgetAsync(int userId, CreateBudgetDto request)
     {
-        // Tự động tạo Expense account (typeId=5) gắn với budget này
-        var expenseAccount = await _accountRepo.CreateAsync(new Account
-        {
-            UserId    = userId,
-            TypeId    = 5,
-            Name      = request.Title,
-            IconName  = request.IconName ?? "Coffee",
-            Color     = request.Color    ?? "orange",
-            Balance   = 0,
-            IsActive  = true,
-            CreatedAt = DateTime.UtcNow,
-        });
+        // Kiểm tra AccountId hợp lệ
+        if (request.AccountId <= 0)
+            throw new ArgumentException("Phải chọn danh mục chi tiêu cho ngân sách.");
+
+        // Lấy Expense Account có sẵn — không tự động tạo mới
+        var expenseAccount = await _accountRepo.GetWithDetailsAsync(request.AccountId)
+                             ?? throw new KeyNotFoundException("Danh mục chi tiêu không tồn tại.");
+
+        if (expenseAccount.UserId != userId)
+            throw new UnauthorizedAccessException("Access denied.");
+
+        if (expenseAccount.TypeId != TypeExpenseAccount)
+            throw new ArgumentException("Danh mục được chọn phải là danh mục chi tiêu (Expense).");
 
         var budget = new Budget
         {
@@ -73,8 +76,8 @@ public class BudgetService : IBudgetService
             PeriodType          = request.PeriodType ?? "monthly",
             StartDate           = request.StartDate,
             EndDate             = request.EndDate,
-            IconName            = request.IconName ?? "Coffee",
-            Color               = request.Color    ?? "orange",
+            IconName            = expenseAccount.IconName ?? "Coffee",
+            Color               = expenseAccount.Color ?? "orange",
             IsActive            = true,
             CreatedAt           = DateTime.UtcNow
         };

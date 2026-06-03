@@ -187,30 +187,129 @@ public class BudgetServiceTests
     // ─── CreateExpenseBudgetAsync ──────────────────────────────────────────
 
     [Fact]
-    public async Task CreateExpenseBudgetAsync_CreatesAccountAndBudget()
+    public async Task CreateExpenseBudgetAsync_WithExistingCategory_CreatesBudget()
     {
+        var existingAccount = new Account
+        {
+            AccountId = 10,
+            UserId    = _userId,
+            TypeId    = 5,
+            Name      = "Ăn uống",
+            IconName  = "Coffee",
+            Color     = "orange",
+            IsActive  = true,
+        };
+
         var request = new CreateBudgetDto
         {
-            Title        = "New Budget",
+            AccountId    = 10,
+            Title        = "Budget Ăn uống T6",
             TargetAmount = 2000m,
             PeriodType   = "weekly",
             StartDate    = new DateTime(2026, 6, 1),
         };
 
         _accountRepoMock
-            .Setup(r => r.CreateAsync(It.Is<Account>(a => a.Name == "New Budget" && a.TypeId == 5)))
-            .ReturnsAsync(new Account { AccountId = 10, UserId = _userId, TypeId = 5, Name = "New Budget" });
+            .Setup(r => r.GetWithDetailsAsync(10))
+            .ReturnsAsync(existingAccount);
 
         _budgetRepoMock
-            .Setup(r => r.CreateAsync(It.Is<Budget>(b => b.Title == "New Budget" && b.TargetAmount == 2000m)))
-            .ReturnsAsync(MakeBudget(1, title: "New Budget", target: 2000m));
+            .Setup(r => r.CreateAsync(It.Is<Budget>(b => b.Title == "Budget Ăn uống T6" && b.TargetAmount == 2000m)))
+            .ReturnsAsync(MakeBudget(1, title: "Budget Ăn uống T6", target: 2000m));
 
         var result = await _service.CreateExpenseBudgetAsync(_userId, request);
 
-        result.Title.Should().Be("New Budget");
+        result.Title.Should().Be("Budget Ăn uống T6");
         result.TargetAmount.Should().Be(2000m);
-        _accountRepoMock.Verify(r => r.CreateAsync(It.IsAny<Account>()), Times.Once);
+        _accountRepoMock.Verify(r => r.CreateAsync(It.IsAny<Account>()), Times.Never);
         _budgetRepoMock.Verify(r => r.CreateAsync(It.IsAny<Budget>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateExpenseBudgetAsync_NoAccountId_ThrowsArgumentException()
+    {
+        var request = new CreateBudgetDto
+        {
+            AccountId    = 0,
+            Title        = "Budget",
+            TargetAmount = 1000m,
+            StartDate    = new DateTime(2026, 6, 1),
+        };
+
+        await FluentActions.Invoking(() => _service.CreateExpenseBudgetAsync(_userId, request))
+            .Should().ThrowAsync<ArgumentException>()
+            .WithMessage("Phải chọn danh mục chi tiêu cho ngân sách.");
+    }
+
+    [Fact]
+    public async Task CreateExpenseBudgetAsync_NonExistentAccount_ThrowsKeyNotFound()
+    {
+        _accountRepoMock.Setup(r => r.GetWithDetailsAsync(999))
+            .ReturnsAsync((Account?)null);
+
+        var request = new CreateBudgetDto
+        {
+            AccountId    = 999,
+            Title        = "Budget",
+            TargetAmount = 1000m,
+            StartDate    = new DateTime(2026, 6, 1),
+        };
+
+        await FluentActions.Invoking(() => _service.CreateExpenseBudgetAsync(_userId, request))
+            .Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public async Task CreateExpenseBudgetAsync_OtherUsersAccount_ThrowsUnauthorized()
+    {
+        var otherAccount = new Account
+        {
+            AccountId = 10,
+            UserId    = 99,
+            TypeId    = 5,
+            Name      = "Other's",
+            IsActive  = true,
+        };
+        _accountRepoMock.Setup(r => r.GetWithDetailsAsync(10))
+            .ReturnsAsync(otherAccount);
+
+        var request = new CreateBudgetDto
+        {
+            AccountId    = 10,
+            Title        = "Budget",
+            TargetAmount = 1000m,
+            StartDate    = new DateTime(2026, 6, 1),
+        };
+
+        await FluentActions.Invoking(() => _service.CreateExpenseBudgetAsync(_userId, request))
+            .Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
+    public async Task CreateExpenseBudgetAsync_NonExpenseAccount_ThrowsArgumentException()
+    {
+        var assetAccount = new Account
+        {
+            AccountId = 10,
+            UserId    = _userId,
+            TypeId    = 1,  // Assets, not Expense
+            Name      = "Checking",
+            IsActive  = true,
+        };
+        _accountRepoMock.Setup(r => r.GetWithDetailsAsync(10))
+            .ReturnsAsync(assetAccount);
+
+        var request = new CreateBudgetDto
+        {
+            AccountId    = 10,
+            Title        = "Budget",
+            TargetAmount = 1000m,
+            StartDate    = new DateTime(2026, 6, 1),
+        };
+
+        await FluentActions.Invoking(() => _service.CreateExpenseBudgetAsync(_userId, request))
+            .Should().ThrowAsync<ArgumentException>()
+            .WithMessage("Danh mục được chọn phải là danh mục chi tiêu (Expense).");
     }
 
     // ─── UpdateExpenseBudgetAsync ──────────────────────────────────────────

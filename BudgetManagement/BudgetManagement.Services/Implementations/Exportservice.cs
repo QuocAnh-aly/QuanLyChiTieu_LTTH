@@ -84,11 +84,12 @@ public class ExportService : IExportService
     {
         var budgets = await _db.Budgets
             .Include(b => b.Account)
+            .Include(b => b.PiggyBankEvents)
             .Where(b => b.UserId == userId)
             .OrderBy(b => b.BudgetType).ThenBy(b => b.Title)
             .ToListAsync();
 
-        var headers = new[] { "budget_id","title","type","account","target","current","period","start_date","end_date","is_active" };
+        var headers = new[] { "budget_id","title","type","account","target","current","period","start_date","end_date","is_active","events_count","net_deposited" };
         var rows = budgets.Select(b => new object?[]
         {
             b.BudgetId,
@@ -101,6 +102,8 @@ public class ExportService : IExportService
             b.StartDate,
             b.EndDate,
             b.IsActive ?? true,
+            b.PiggyBankEvents?.Count ?? 0,
+            (b.PiggyBankEvents?.Sum(e => e.Amount) ?? 0m),
         }).ToList();
 
         return (headers, rows);

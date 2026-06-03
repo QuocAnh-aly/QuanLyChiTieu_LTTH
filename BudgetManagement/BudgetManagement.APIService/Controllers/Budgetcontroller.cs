@@ -53,8 +53,23 @@ public class BudgetController : BaseController
     [HttpPost("expense")]
     public async Task<IActionResult> CreateExpenseBudget([FromBody] CreateBudgetDto request)
     {
-        var result = await _budgetService.CreateExpenseBudgetAsync(GetUserId(), request);
-        return CreatedAtAction(nameof(GetExpenseBudgetById), new { id = result.BudgetId }, result);
+        try
+        {
+            var result = await _budgetService.CreateExpenseBudgetAsync(GetUserId(), request);
+            return CreatedAtAction(nameof(GetExpenseBudgetById), new { id = result.BudgetId }, result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     // PUT api/budgets/expense/{id}

@@ -329,7 +329,7 @@ public class TransactionServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_ExpenseCategory_CreatesOrFindsExpenseAccount()
+    public async Task CreateAsync_ExpenseCategory_FindsExistingAccount_AndCreatesTransaction()
     {
         var request = new CreateTransactionDto
         {
@@ -342,12 +342,9 @@ public class TransactionServiceTests
         var expenseAccount = MakeAccount(10, typeId: 5, name: "Groceries");
         var creditAccount  = MakeAccount(2, typeId: 1, name: "Checking", balance: 500m);
 
-        // No existing expense account → should create one
+        // Existing expense account found by name
         _accountRepoMock
             .Setup(r => r.FindByUserAndNameAsync(_userId, 5, "Groceries"))
-            .ReturnsAsync((Account?)null);
-        _accountRepoMock
-            .Setup(r => r.CreateAsync(It.Is<Account>(a => a.Name == "Groceries" && a.TypeId == 5)))
             .ReturnsAsync(expenseAccount);
         _accountRepoMock.Setup(r => r.GetByIdAsync(10)).ReturnsAsync(expenseAccount);
         _accountRepoMock.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(creditAccount);
@@ -363,8 +360,33 @@ public class TransactionServiceTests
 
         var result = await _service.CreateAsync(_userId, request);
 
+        // Should NOT auto-create a new account
+        _accountRepoMock.Verify(r => r.CreateAsync(It.IsAny<Account>()), Times.Never);
         // Should update budget spent for expense account
         _budgetServiceMock.Verify(r => r.UpdateSpentAmountAsync(10, 100m), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ExpenseCategory_NotFound_ThrowsArgumentException()
+    {
+        var request = new CreateTransactionDto
+        {
+            CreditAccountId     = 2,
+            Amount              = 100m,
+            Description         = "Groceries",
+            ExpenseCategoryName = "NonExistentCategory",
+        };
+
+        var creditAccount = MakeAccount(2, typeId: 1, name: "Checking", balance: 500m);
+
+        // No existing expense account found by name
+        _accountRepoMock
+            .Setup(r => r.FindByUserAndNameAsync(_userId, 5, "NonExistentCategory"))
+            .ReturnsAsync((Account?)null);
+
+        await FluentActions.Invoking(() => _service.CreateAsync(_userId, request))
+            .Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*chưa tồn tại*");
     }
 
     [Fact]
@@ -498,9 +520,9 @@ public class TransactionServiceTests
         var from = new DateTime(2026, 5, 1);
         var to   = new DateTime(2026, 5, 31);
 
-        // Entry 1: revenue entry → income (typeId=4)
+        // Entry 1: revenue entry -> income (typeId=4)
         var revenueEntry = MakeEntry(1, creditAccId: 3);   // creditAcc has typeId=4 (Revenue)
-        // Entry 2: expense entry → expense (typeId=5)
+        // Entry 2: expense entry -> expense (typeId=5)
         var expenseEntry = MakeExpenseEntry(2);
 
         _journalRepoMock

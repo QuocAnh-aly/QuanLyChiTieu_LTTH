@@ -1,12 +1,20 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace BudgetManagement.Dto;
 
 // ─── Expense Budget Request (Budget.jsx) ─────────────────────────────────────
 
 public class CreateBudgetDto
 {
+    [Range(1, int.MaxValue, ErrorMessage = "Phải chọn danh mục chi tiêu")]
     public int      AccountId    { get; set; }
+
+    [Required(ErrorMessage = "Tên ngân sách không được để trống")]
     public string   Title        { get; set; } = null!;
+
+    [Range(0.01, double.MaxValue, ErrorMessage = "Số tiền ngân sách phải lớn hơn 0")]
     public decimal  TargetAmount { get; set; }
+
     public string?  PeriodType   { get; set; }
     public DateTime StartDate    { get; set; }
     public DateTime? EndDate     { get; set; }
@@ -50,9 +58,15 @@ public class BudgetDto
 
 public class CreateSavingsGoalDto
 {
+    [Range(1, int.MaxValue, ErrorMessage = "Phải chọn tài khoản đích")]
     public int      AccountId           { get; set; }
+
+    [Required(ErrorMessage = "Tên mục tiêu không được để trống")]
     public string   Title               { get; set; } = null!;
+
+    [Range(0.01, double.MaxValue, ErrorMessage = "Số tiền mục tiêu phải lớn hơn 0")]
     public decimal  TargetAmount        { get; set; }
+
     public decimal? InitialAmount       { get; set; }
     public decimal? MonthlyContribution { get; set; }
     public string?  TargetDate          { get; set; }   // ISO date string, e.g. "2026-12-31"

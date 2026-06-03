@@ -57,41 +57,21 @@ public class TransactionService : ITransactionService
 
     public async Task<TransactionDto> CreateAsync(int userId, CreateTransactionDto request)
     {
-        // Chi tiêu theo danh mục: tự tìm hoặc tạo Expense account
-        if (!string.IsNullOrWhiteSpace(request.ExpenseCategoryName))
+        // Chi tiêu: tìm Expense account có sẵn — KHÔNG tự động tạo mới
+        if (request.DebitAccountId <= 0 && !string.IsNullOrWhiteSpace(request.ExpenseCategoryName))
         {
-            var expenseAcct =
-                await _accountRepo.GetByIdAsync(request.DebitAccountId)
-                ?? await _accountRepo.CreateAsync(new Account
-                {
-                    UserId    = userId,
-                    TypeId    = TypeExpense,
-                    Name      = request.ExpenseCategoryName,
-                    IconName  = "ShoppingBag",
-                    Color     = "red",
-                    Balance   = 0,
-                    IsActive  = true,
-                    CreatedAt = DateTime.UtcNow,
-                });
+            var expenseAcct = await _accountRepo.FindByUserAndNameAsync(userId, TypeExpense, request.ExpenseCategoryName);
+            if (expenseAcct is null)
+                throw new ArgumentException($"Danh mục chi tiêu '{request.ExpenseCategoryName}' chưa tồn tại. Hãy tạo danh mục trước khi ghi giao dịch.");
             request.DebitAccountId = expenseAcct.AccountId;
         }
 
-        // Thu nhập: tự tìm hoặc tạo Revenue account
-        if (!string.IsNullOrWhiteSpace(request.IncomeCategoryName))
+        // Thu nhập: tìm Revenue account có sẵn — KHÔNG tự động tạo mới
+        if (request.CreditAccountId <= 0 && !string.IsNullOrWhiteSpace(request.IncomeCategoryName))
         {
-            var revenueAcct =
-                await _accountRepo.GetByIdAsync(request.CreditAccountId)
-                ?? await _accountRepo.CreateAsync(new Account
-                {
-                    UserId    = userId,
-                    TypeId    = TypeRevenue,
-                    Name      = request.IncomeCategoryName,
-                    IconName  = "DollarSign",
-                    Color     = "green",
-                    Balance   = 0,
-                    IsActive  = true,
-                    CreatedAt = DateTime.UtcNow,
-                });
+            var revenueAcct = await _accountRepo.FindByUserAndNameAsync(userId, TypeRevenue, request.IncomeCategoryName);
+            if (revenueAcct is null)
+                throw new ArgumentException($"Nguồn thu '{request.IncomeCategoryName}' chưa tồn tại. Hãy tạo nguồn thu trước khi ghi giao dịch.");
             request.CreditAccountId = revenueAcct.AccountId;
         }
 
