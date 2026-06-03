@@ -2,31 +2,33 @@ import { X, PiggyBank, Landmark } from "lucide-react";
 import { useState, useEffect } from "react";
 import { walletApi } from "../../api/walletApi";
 import { useSettings } from "../../context/SettingsContext";
+import { formatVND, parseVND } from "../../utils/formatMoney";
 
 export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
   const { fmt, currencies, currency } = useSettings();
   const isEdit = !!goal;
 
-  const [accounts,     setAccounts]     = useState([]);
-  
+  const [accounts, setAccounts] = useState([]);
+
   // Mandatory
-  const [name,         setName]         = useState("");
+  const [name, setName] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
   const [selectedCurrency, setSelectedCurrency] = useState("");
   const [selectedAccounts, setSelectedAccounts] = useState([]);
-  
-  // Optional
-  const [targetDate,   setTargetDate]   = useState("");
-  const [notes,        setNotes]        = useState("");
-  const [objectGroup,  setObjectGroup]  = useState("");
-  const [monthly,      setMonthly]      = useState("");
 
-  const [returnHere,   setReturnHere]   = useState(false);
+  // Optional
+  const [targetDate, setTargetDate] = useState("");
+  const [notes, setNotes] = useState("");
+  const [objectGroup, setObjectGroup] = useState("");
+  const [monthly, setMonthly] = useState("");
+
+  const [returnHere, setReturnHere] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
-    walletApi.getByType(1)
-      .then(data => setAccounts(data.items || data || []))
+    walletApi
+      .getByType(1)
+      .then((data) => setAccounts(data.items || data || []))
       .catch(() => {});
     if (goal) {
       setName(goal.title ?? "");
@@ -38,14 +40,19 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
       setObjectGroup(goal.objectGroup ?? "");
       setMonthly(String(goal.savePerMonth ?? ""));
     } else {
-      setName(""); setTargetAmount(""); setSelectedCurrency(currency); setSelectedAccounts([]);
-      setTargetDate(""); setNotes(""); setObjectGroup(""); setMonthly("");
+      setName("");
+      setTargetAmount("");
+      setSelectedCurrency(currency);
+      setSelectedAccounts([]);
+      setTargetDate("");
+      setNotes("");
+      setObjectGroup("");
+      setMonthly("");
       setReturnHere(false);
     }
   }, [isOpen, goal, currency]);
 
   if (!isOpen) return null;
-
   const handleAccountChange = (e) => {
     const options = e.target.options;
     const values = [];
@@ -63,27 +70,35 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
     e.preventDefault();
     if (!canSubmit) return;
     onSave({
-      accountId:           parseInt(selectedAccounts[0]) || (goal?.accountId ?? 0),
-      title:               name.trim(),
-      targetAmount:        parseFloat(targetAmount),
+      accountId: parseInt(selectedAccounts[0]) || (goal?.accountId ?? 0),
+      title: name.trim(),
+      targetAmount: parseFloat(targetAmount),
       monthlyContribution: parseFloat(monthly) || 0,
-      targetDate:          targetDate || null,
-      notes:               notes.trim() || null,
-      currency:            selectedCurrency,
-      objectGroup:         objectGroup.trim() || null,
-      iconName:            goal?.iconName || "PiggyBank",
-      color:               goal?.color || "green",
+      targetDate: targetDate || null,
+      notes: notes.trim() || null,
+      currency: selectedCurrency,
+      objectGroup: objectGroup.trim() || null,
+      iconName: goal?.iconName || "PiggyBank",
+      color: goal?.color || "green",
       returnHere,
     });
     if (returnHere && !isEdit) {
-      setName(""); setTargetAmount(""); setNotes(""); setSelectedAccounts([]);
+      setName("");
+      setTargetAmount("");
+      setNotes("");
+      setSelectedAccounts([]);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-card rounded-2xl w-full max-w-full sm:max-w-6xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
-        
+    <div
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-card rounded-2xl w-full max-w-full sm:max-w-6xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-card sticky top-0 z-10">
           <div className="flex items-center gap-3">
@@ -92,10 +107,15 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
             </div>
             <h2 className="text-xl font-bold text-foreground">
               Lợn tiết kiệm
-              <span className="text-sm font-normal text-muted-foreground ml-2">{isEdit ? "Sửa" : "Tạo mới"}</span>
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                {isEdit ? "Sửa" : "Tạo mới"}
+              </span>
             </h2>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
+          >
             <X size={20} />
           </button>
         </div>
@@ -106,50 +126,90 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
               {/* Mandatory Fields */}
               <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
                 <div className="px-4 py-3 border-b border-border bg-muted/50">
-                  <h3 className="font-semibold text-foreground">Trường bắt buộc</h3>
+                  <h3 className="font-semibold text-foreground">
+                    Trường bắt buộc
+                  </h3>
                 </div>
                 <div className="p-4 space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                     <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0">
                       Tên <span className="text-red-500">*</span>
                     </label>
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} required
-                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Tên mục tiêu" />
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="Tên mục tiêu"
+                    />
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                     <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0">
                       Số tiền mục tiêu <span className="text-red-500">*</span>
                     </label>
-                    <input type="number" value={targetAmount} onChange={e => setTargetAmount(e.target.value)} required min="1" step="1"
-                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    <input
+                      type="text"
+                      value={formatVND(targetAmount)}
+                      onChange={(e) => {
+                        setTargetAmount(parseVND(e.target.value));
+                      }}
+                      required
+                      min="1"
+                      step="1"
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">Tiền tệ</label>
+                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">
+                      Tiền tệ
+                    </label>
                     <div className="flex-1">
-                      <select value={selectedCurrency} onChange={e => setSelectedCurrency(e.target.value)}
-                        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card">
-                        {currencies?.map(c => (
-                          <option key={c.code} value={c.code}>{c.name} ({c.symbol})</option>
+                      <select
+                        value={selectedCurrency}
+                        onChange={(e) => setSelectedCurrency(e.target.value)}
+                        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card"
+                      >
+                        {currencies?.map((c) => (
+                          <option key={c.code} value={c.code}>
+                            {c.name} ({c.symbol})
+                          </option>
                         ))}
                       </select>
-                      <p className="text-xs text-muted-foreground mt-1">Lợn tiết kiệm chỉ nhận một loại tiền tệ.</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Lợn tiết kiệm chỉ nhận một loại tiền tệ.
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">Lưu vào tài khoản</label>
+                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">
+                      Lưu vào tài khoản
+                    </label>
                     <div className="flex-1">
-                      <select multiple size={6} value={selectedAccounts} onChange={handleAccountChange} required
-                        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card">
-                        {accounts.map(a => (
-                          <option key={a.accountId} value={a.accountId} className="py-1 hover:bg-purple-50">
+                      <select
+                        multiple
+                        size={6}
+                        value={selectedAccounts}
+                        onChange={handleAccountChange}
+                        required
+                        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card"
+                      >
+                        {accounts.map((a) => (
+                          <option
+                            key={a.accountId}
+                            value={a.accountId}
+                            className="py-1 hover:bg-purple-50"
+                          >
                             {a.name}
                           </option>
                         ))}
                       </select>
-                      <p className="text-xs text-muted-foreground mt-1">Chỉ chấp nhận tài khoản cùng loại tiền tệ.</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Chỉ chấp nhận tài khoản cùng loại tiền tệ.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -158,48 +218,90 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
               {/* Optional Fields */}
               <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
                 <div className="px-4 py-3 border-b border-border bg-muted/50">
-                  <h3 className="font-semibold text-foreground">Trường tùy chọn</h3>
+                  <h3 className="font-semibold text-foreground">
+                    Trường tùy chọn
+                  </h3>
                 </div>
                 <div className="p-4 space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0">Ngày mục tiêu</label>
-                    <input type="date" value={targetDate} onChange={e => setTargetDate(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0">
+                      Ngày mục tiêu
+                    </label>
+                    <input
+                      type="date"
+                      value={targetDate}
+                      onChange={(e) => setTargetDate(e.target.value)}
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">Ghi chú</label>
+                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">
+                      Ghi chú
+                    </label>
                     <div className="flex-1">
-                      <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={4}
-                        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y" placeholder="Ghi chú"></textarea>
-                      <p className="text-xs text-muted-foreground mt-1">Hỗ trợ <a href="#" className="text-purple-600 hover:underline">Markdown</a>.</p>
+                      <textarea
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        rows={4}
+                        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y"
+                        placeholder="Ghi chú"
+                      ></textarea>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Hỗ trợ{" "}
+                        <a href="#" className="text-purple-600 hover:underline">
+                          Markdown
+                        </a>
+                        .
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">Tệp đính kèm</label>
+                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">
+                      Tệp đính kèm
+                    </label>
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
                         <label className="cursor-pointer bg-muted hover:bg-muted text-foreground px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
                           Chọn tệp
                           <input type="file" className="hidden" />
                         </label>
-                        <span className="text-sm text-muted-foreground">Chưa chọn tệp</span>
+                        <span className="text-sm text-muted-foreground">
+                          Chưa chọn tệp
+                        </span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">Kích thước tối đa: 2 MB</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Kích thước tối đa: 2 MB
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0">Nhóm</label>
-                    <input type="text" value={objectGroup} onChange={e => setObjectGroup(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Nhóm" />
+                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0">
+                      Nhóm
+                    </label>
+                    <input
+                      type="text"
+                      value={objectGroup}
+                      onChange={(e) => setObjectGroup(e.target.value)}
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="Nhóm"
+                    />
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 hidden">
-                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0">Tiết kiệm hàng tháng</label>
-                    <input type="number" value={monthly} onChange={e => setMonthly(e.target.value)} min="0" step="1"
-                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0">
+                      Tiết kiệm hàng tháng
+                    </label>
+                    <input
+                      type="number"
+                      value={monthly}
+                      onChange={(e) => setMonthly(e.target.value)}
+                      min="0"
+                      step="1"
+                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
                   </div>
                 </div>
               </div>
@@ -212,19 +314,35 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
               </div>
               <div className="p-4">
                 <div className="flex items-center gap-4">
-                  <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0">Quay lại đây</label>
+                  <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0">
+                    Quay lại đây
+                  </label>
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={returnHere} onChange={e => setReturnHere(e.target.checked)} className="rounded border-border text-purple-600 focus:ring-purple-500" />
-                    <span className="text-sm text-muted-foreground">Sau khi lưu, quay lại để tạo tiếp.</span>
+                    <input
+                      type="checkbox"
+                      checked={returnHere}
+                      onChange={(e) => setReturnHere(e.target.checked)}
+                      className="rounded border-border text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      Sau khi lưu, quay lại để tạo tiếp.
+                    </span>
                   </label>
                 </div>
                 <div className="mt-4 flex justify-end gap-3">
-                  <button type="button" onClick={onClose}
-                    className="px-5 py-2.5 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold text-sm">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-5 py-2.5 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold text-sm"
+                  >
                     Hủy
                   </button>
-                  <button type="submit" disabled={!canSubmit} form="piggybank-form"
-                    className="px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-sm disabled:opacity-50">
+                  <button
+                    type="submit"
+                    disabled={!canSubmit}
+                    form="piggybank-form"
+                    className="px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-sm disabled:opacity-50"
+                  >
                     {isEdit ? "Cập nhật" : "Lưu mới"}
                   </button>
                 </div>

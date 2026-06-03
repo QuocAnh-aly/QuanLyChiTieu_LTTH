@@ -79,6 +79,7 @@ export function Withdrawal() {
   const [showCustom,  setShowCustom]  = useState(false);
   const [isAddOpen,   setIsAddOpen]   = useState(false);
   const [editTarget,  setEditTarget]  = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   const { from: rangeFrom, to: rangeTo } = useMemo(() => {
     if (preset === "custom") return {
@@ -105,20 +106,24 @@ export function Withdrawal() {
 
   const expenses = useMemo(() => allTx.filter(t => !t.isIncome && !t.isTransfer), [allTx]);
 
-  const filtered = useMemo(() =>
-    expenses.filter(t =>
-      (t.description ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.categoryName.toLowerCase().includes(searchTerm.toLowerCase())
-    ), [expenses, searchTerm]);
-
-  const totalExpense = expenses.reduce((s, t) => s + t.totalAmount, 0);
-  const avgExpense   = expenses.length > 0 ? totalExpense / expenses.length : 0;
-
   const categoryData = useMemo(() => {
     const map = new Map();
     expenses.forEach(t => map.set(t.categoryName, (map.get(t.categoryName) || 0) + t.totalAmount));
     return [...map.entries()].map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
   }, [expenses]);
+
+  const filtered = useMemo(() =>
+    expenses.filter(t => {
+      if (selectedCategory !== null) {
+        const catName = categoryData[selectedCategory]?.name;
+        if (t.categoryName !== catName) return false;
+      }
+      return (t.description ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.categoryName.toLowerCase().includes(searchTerm.toLowerCase());
+    }), [expenses, searchTerm, selectedCategory, categoryData]);
+
+  const totalExpense = expenses.reduce((s, t) => s + t.totalAmount, 0);
+  const avgExpense   = expenses.length > 0 ? totalExpense / expenses.length : 0;
 
   const dailyData = useMemo(() => {
     const map = new Map();
@@ -253,12 +258,40 @@ export function Withdrawal() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={categoryData} cx="42%" cy="50%" innerRadius={58} outerRadius={88}
-                    dataKey="value" nameKey="name" paddingAngle={2}>
-                    {categoryData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                    dataKey="value" nameKey="name" paddingAngle={2}
+                    activeIndex={selectedCategory !== null ? selectedCategory : undefined}
+                    activeShape={{ outerRadius: 98, stroke: "#fff", strokeWidth: 3 }}
+                    onClick={(_, index) => setSelectedCategory(prev => prev === index ? null : index)}
+                    style={{ cursor: "pointer" }}>
+                    {categoryData.map((_, i) => (
+                      <Cell
+                        key={i}
+                        fill={PIE_COLORS[i % PIE_COLORS.length]}
+                        opacity={selectedCategory !== null
+                          ? (selectedCategory === i ? 1 : 0.3)
+                          : 0.85}
+                        style={{ cursor: "pointer" }}
+                      />
+                    ))}
                   </Pie>
                   <Tooltip content={tooltip} />
-                  <Legend layout="vertical" align="right" verticalAlign="middle"
-                    formatter={v => <span className="text-xs text-muted-foreground">{v}</span>} />
+                  <Legend
+                    layout="vertical" align="right" verticalAlign="middle"
+                    onClick={(data) => {
+                      const idx = categoryData.findIndex(s => s.name === data.value);
+                      if (idx >= 0) setSelectedCategory(prev => prev === idx ? null : idx);
+                    }}
+                    wrapperStyle={{ cursor: "pointer" }}
+                    formatter={(value) => {
+                      const idx = categoryData.findIndex(s => s.name === value);
+                      const isActive = selectedCategory === idx;
+                      return (
+                        <span className={`text-xs transition-colors ${isActive ? "text-red-600 font-bold" : selectedCategory !== null ? "text-muted-foreground/50" : "text-muted-foreground"}`}>
+                          {value}
+                        </span>
+                      );
+                    }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -285,12 +318,21 @@ export function Withdrawal() {
       {/* Transaction table */}
       <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
         <div className="p-4 border-b border-border bg-muted/50 flex items-center gap-3">
-          <div className="relative flex-1">
+          <div className="relative flex-1 max-w-sm">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg text-sm bg-card focus:outline-none focus:ring-2 focus:ring-red-400"
               placeholder="Tìm kiếm mô tả hoặc danh mục..." />
           </div>
+            {selectedCategory !== null && (
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded-full text-xs font-semibold hover:bg-red-200 dark:hover:bg-red-900/60 transition-colors shrink-0"
+              >
+                <span>Danh mục: {categoryData[selectedCategory]?.name}</span>
+                <span className="ml-0.5 text-red-500 hover:text-red-700">&times;</span>
+              </button>
+            )}
         </div>
 
         {isLoading ? (

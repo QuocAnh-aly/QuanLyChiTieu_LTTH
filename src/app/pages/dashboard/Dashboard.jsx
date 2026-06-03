@@ -73,7 +73,6 @@ export function Dashboard() {
   const [monthlyTrend, setMonthlyTrend] = useState([]);
   const [categorySpending, setCategorySpending] = useState([]);
   const [recentTransactions, setRecentTransactions] = useState([]);
-  const [piggyBanks, setPiggyBanks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -432,22 +431,10 @@ export function Dashboard() {
                     outerRadius={90}
                     dataKey="amount"
                     nameKey="name"
-                    className="cursor-pointer"
-                    onClick={(d) => filterByCategory(d?.name)}
                   >
-                    {categorySpending.map((entry, index) => {
-                      const dimmed = activeFilter?.kind === "category" && activeFilter.value !== entry.name;
-                      const active = activeFilter?.kind === "category" && activeFilter.value === entry.name;
-                      return (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={CHART_COLORS[index % CHART_COLORS.length]}
-                          fillOpacity={dimmed ? 0.35 : 1}
-                          stroke={active ? "var(--color-foreground)" : undefined}
-                          strokeWidth={active ? 2 : undefined}
-                        />
-                      );
-                    })}
+                    {categorySpending.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    ))}
                   </Pie>
                   <Tooltip
                     contentStyle={{ backgroundColor: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: "8px", color: "var(--color-card-foreground)" }}
@@ -456,26 +443,18 @@ export function Dashboard() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="mt-3 space-y-2">
-                {categorySpending.slice(0, 5).map((s, i) => {
-                  const active = activeFilter?.kind === "category" && activeFilter.value === s.name;
-                  return (
-                    <button
-                      type="button"
-                      key={s.name}
-                      onClick={() => filterByCategory(s.name)}
-                      className={`w-full flex items-center justify-between text-sm rounded-lg px-2 py-1 transition-colors ${active ? "bg-muted ring-1 ring-purple-500/40" : "hover:bg-muted"}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
-                        <span className="text-muted-foreground truncate max-w-[140px]">{s.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground text-xs">{s.pct.toFixed(1)}%</span>
-                        <span className="font-semibold text-foreground">{fmt(s.amount)}</span>
-                      </div>
-                    </button>
-                  );
-                })}
+                {categorySpending.slice(0, 5).map((s, i) => (
+                  <div key={s.name} className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                      <span className="text-muted-foreground truncate max-w-[140px]">{s.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground text-xs">{s.pct.toFixed(1)}%</span>
+                      <span className="font-semibold text-foreground">{fmt(s.amount)}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </>
           ) : (
@@ -613,21 +592,8 @@ export function Dashboard() {
 
       {/* Recent Transactions */}
       <div className="bg-card rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-border">
-        <div className="flex items-center justify-between mb-4 sm:mb-6 gap-3 flex-wrap">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h2 className="text-base sm:text-xl font-bold text-card-foreground">Giao dịch gần đây</h2>
-            {activeFilter && (
-              <button
-                type="button"
-                onClick={() => setActiveFilter(null)}
-                className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
-                title="Bỏ lọc"
-              >
-                {activeFilter.label}
-                <X size={13} />
-              </button>
-            )}
-          </div>
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h2 className="text-base sm:text-xl font-bold text-card-foreground">Giao dịch gần đây</h2>
           <Link
             to="/transactions"
             className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors"
@@ -651,7 +617,7 @@ export function Dashboard() {
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {filteredTransactions.slice(0, 12).map((t) => {
+            {recentTransactions.map((t) => {
               const iconBg    = t.isTransfer ? "bg-blue-500/10" : t.isIncome ? "bg-green-500/15"  : "bg-red-500/10";
               const Icon      = t.isTransfer ? ArrowLeftRight   : t.isIncome ? ArrowUpRight   : ArrowDownRight;
               const iconCls   = t.isTransfer ? "text-blue-400"  : t.isIncome ? "text-green-400" : "text-red-400";
