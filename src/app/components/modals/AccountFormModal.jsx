@@ -646,7 +646,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
                 </p>
                 <div className="flex items-baseline gap-1.5 mt-1">
                   <span className="text-2xl font-bold tracking-tight">
-                    {isLiability ? '-' : ''}{formatVND(preview.balanceAfter)}
+                    {formatVND(preview.balanceAfter)}
                   </span>
                   <span className="text-xs font-semibold text-white/70">{currencySymbol}</span>
                 </div>
