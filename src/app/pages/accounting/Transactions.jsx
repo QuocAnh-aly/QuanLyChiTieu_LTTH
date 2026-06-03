@@ -1,5 +1,5 @@
 import {
-  useState, useEffect, useCallback, useMemo, Fragment,
+  useState, useEffect, useCallback, useMemo, Fragment, useRef,
 } from "react";
 import {
   ArrowUpRight, ArrowDownRight, ArrowLeftRight,
@@ -82,7 +82,50 @@ export function Transactions() {
   const [showCustom,      setShowCustom]      = useState(false);
   const [isAddModalOpen,  setIsAddModalOpen]  = useState(false);
   const [editTarget,      setEditTarget]      = useState(null);
+  const [isLoadingMore,   setIsLoadingMore]   = useState(false);
+  const [hasMore,         setHasMore]         = useState(true);
+  const [pageAccum,       setPageAccum]       = useState(1);
+  const sentinelRef = useRef(null);
   const PAGE_SIZE = 25;
+
+  // Load more pages (infinite scroll) — only in "all" mode
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore || !hasMore || useRange) return;
+    setIsLoadingMore(true);
+    try {
+      const nextPage = pageAccum + 1;
+      const data = await transactionApi.getAll({ page: nextPage, pageSize: PAGE_SIZE });
+      const newItems = (data.items || data || []).map(mapTransaction);
+      setTransactions(prev => {
+        const existingIds = new Set(prev.map(t => t.journalId));
+        const fresh = newItems.filter(t => !existingIds.has(t.journalId));
+        return [...prev, ...fresh];
+      });
+      setPageAccum(nextPage);
+      setHasMore(nextPage < (data.totalPages || 1));
+    } catch {
+      toast.error('Không thể tải thêm giao dịch');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, hasMore, useRange, pageAccum]);
+
+  // IntersectionObserver — auto-load when sentinel enters viewport
+  useEffect(() => {
+    if (useRange || !hasMore) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasMore && !isLoadingMore) {
+          loadMore();
+        }
+      },
+      { rootMargin: '300px' },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, useRange, loadMore]);
 
   // Resolve active date range
   const { from: rangeFrom, to: rangeTo } = useMemo(() => {
@@ -115,10 +158,12 @@ export function Transactions() {
           netCashFlow:  cfData.netCashFlow  ?? 0,
         });
       } else {
-        const data = await transactionApi.getAll({ page, pageSize: PAGE_SIZE });
+        const data = await transactionApi.getAll({ page: 1, pageSize: PAGE_SIZE });
         const items = (data.items || data || []).map(mapTransaction);
         setTransactions(items);
         setTotalCount(data.totalCount ?? data.total ?? items.length);
+        setPageAccum(1);
+        setHasMore((data.totalPages || 1) > 1);
         // Estimate cash flow from loaded page
         setCashFlow({
           totalIncome:  items.filter(t => t.isIncome).reduce((s, t) => s + t.totalAmount, 0),
@@ -132,7 +177,7 @@ export function Transactions() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [useRange, rangeFrom, rangeTo, page]);
+  }, [useRange, rangeFrom, rangeTo]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -143,7 +188,6 @@ export function Transactions() {
     } else {
       setShowCustom(false);
       setPreset(key);
-      setPage(1);
     }
   };
 
@@ -151,7 +195,6 @@ export function Transactions() {
     try {
       await transactionApi.create(data);
       await loadData(true);
-      setPage(1);
       toast.success("Đã thêm giao dịch!");
       addNotification({ type: 'success', title: 'Giao dịch mới', message: 'Đã thêm giao dịch thành công', link: '/transactions/all' });
     } catch {
@@ -212,8 +255,6 @@ export function Transactions() {
       });
     return map;
   }, [filtered]);
-
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const amountDisplay = (t) => {
     if (t.isTransfer) return <span className="text-blue-600">{fmt(t.totalAmount)}</span>;
@@ -496,63 +537,42 @@ export function Transactions() {
           )}
         </div>
 
-        {/* Pagination — only in "all" mode */}
-        {!useRange && totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-border flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Trang {page} / {totalPages} • {totalCount} giao dịch
-            </p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage(1)}
-                disabled={page === 1}
-                className="px-2.5 py-1.5 border border-border rounded-lg text-xs hover:bg-muted disabled:opacity-40"
-              >
-                «
-              </button>
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-3 py-1.5 border border-border rounded-lg text-sm hover:bg-muted disabled:opacity-40"
-              >
-                Trước
-              </button>
-
-              {/* Page numbers */}
-              {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                const start = Math.max(1, Math.min(page - 2, totalPages - 4));
-                const p = start + i;
-                if (p > totalPages) return null;
-                return (
+        {/* Infinite scroll footer — only in "all" mode */}
+        {!useRange && (
+          <div className="px-6 py-5 border-t border-border">
+            {isLoadingMore ? (
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  </svg>
+                  Đang tải thêm...
+                </div>
+              </div>
+            ) : hasMore ? (
+              <>
+                {/* Sentinel element for IntersectionObserver */}
+                <div ref={sentinelRef} className="h-1" />
+                <div className="flex flex-col items-center gap-2">
                   <button
-                    key={p}
-                    onClick={() => setPage(p)}
-                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
-                      p === page
-                        ? "bg-purple-600 text-white"
-                        : "border border-border hover:bg-muted text-muted-foreground"
-                    }`}
+                    onClick={loadMore}
+                    className="px-5 py-2 text-sm font-medium text-purple-600 border border-purple-200 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
                   >
-                    {p}
+                    Tải thêm giao dịch
                   </button>
-                );
-              })}
-
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-3 py-1.5 border border-border rounded-lg text-sm hover:bg-muted disabled:opacity-40"
-              >
-                Tiếp
-              </button>
-              <button
-                onClick={() => setPage(totalPages)}
-                disabled={page === totalPages}
-                className="px-2.5 py-1.5 border border-border rounded-lg text-xs hover:bg-muted disabled:opacity-40"
-              >
-                »
-              </button>
-            </div>
+                  <p className="text-xs text-muted-foreground">
+                    Đã hiển thị {transactions.length} / {totalCount} giao dịch
+                  </p>
+                </div>
+              </>
+            ) : transactions.length > 0 ? (
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">
+                  Đã hiển thị tất cả <span className="font-semibold text-foreground">{totalCount}</span> giao dịch
+                </p>
+              </div>
+            ) : null}
           </div>
         )}
       </div>
