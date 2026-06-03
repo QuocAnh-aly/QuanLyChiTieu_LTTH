@@ -136,20 +136,44 @@ html.theme-transitioning * {
   transition: none !important;
 }
 
-/* Custom scrollbar for dark mode */
-.dark ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* ============================================
+   Custom scrollbar — unified for light & dark
+   ============================================ */
+
+/* Global scrollbar (pages, panels) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
-.dark ::-webkit-scrollbar-track {
-  background: oklch(0.13 0.008 260);
+
+/* Modal scrollbar — slightly wider for touch area */
+.max-h-\[90vh\]::-webkit-scrollbar,
+.max-h-\[95vh\]::-webkit-scrollbar,
+.flex-1.overflow-y-auto::-webkit-scrollbar {
+  width: 7px;
 }
-.dark ::-webkit-scrollbar-thumb {
-  background: oklch(0.28 0.015 260);
-  border-radius: 4px;
+
+::-webkit-scrollbar-track {
+  background: transparent;
 }
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.35 0.02 260);
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
 
 /* Selection color for dark mode */
