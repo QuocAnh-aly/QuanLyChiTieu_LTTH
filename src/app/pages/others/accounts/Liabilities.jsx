@@ -328,16 +328,16 @@ export function Liabilities() {
                           <div className="w-full bg-muted rounded-full h-2 overflow-hidden shadow-inner">
                             <div
                               className={`h-2 rounded-full transition-all duration-500 ${
-                                progress! >= 100 ? "bg-emerald-500" :
-                                progress! >= 50 ? "bg-green-500" :
-                                progress! >= 25 ? "bg-amber-500" :
+                                progress >= 100 ? "bg-emerald-500" :
+                                progress >= 50 ? "bg-green-500" :
+                                progress >= 25 ? "bg-amber-500" :
                                 "bg-red-500"
                               }`}
-                              style={{ width: `${Math.max(2, progress!)}%` }}
+                              style={{ width: `${Math.max(2, progress)}%` }}
                             />
                           </div>
                           <div className="flex justify-between text-[10px] text-muted-foreground mt-0.5">
-                            <span>{progress!.toFixed(0)}%</span>
+                            <span>{progress.toFixed(0)}%</span>
                             <span>{fmt(Math.abs(acc.initialBalance))}</span>
                           </div>
                         </>
