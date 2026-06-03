@@ -1,4 +1,4 @@
-import { X, Check, Landmark, Wallet, TrendingUp, ShoppingCart, PiggyBank, Home, CreditCard, HandCoins, Tag, ArrowLeftRight, DollarSign, ChevronDown, Sparkles } from "lucide-react";
+import { X, Check, Landmark, Wallet, TrendingUp, ShoppingCart, PiggyBank, Home, CreditCard, HandCoins, Tag, ArrowLeftRight, DollarSign, ChevronDown, Sparkles, Briefcase, Percent, Package, Coffee, ShoppingBag, Car, Heart, Zap, HeartPulse, GraduationCap } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { accountApi } from "../../api/accountApi";
 import { formatVND, parseVND } from "../../utils/formatMoney";
@@ -41,6 +41,34 @@ const LIABILITY_SUBTYPES = [
 
 const LIABILITY_SUBTYPE_MAP = Object.fromEntries(LIABILITY_SUBTYPES.map(s => [s.key, s]));
 const LIABILITY_SUBTYPE_ICONS = { Landmark, CreditCard, HandCoins, ArrowLeftRight };
+
+// Sub-types for Revenue (typeId=4)
+const REVENUE_SUBTYPES = [
+  { key: 'salary',      label: 'Lương',         iconName: 'DollarSign',    color: 'green',   from: '#22c55e', to: '#15803d'  },
+  { key: 'freelance',   label: 'Freelance',     iconName: 'Briefcase',     color: 'purple',  from: '#a855f7', to: '#7e22ce'  },
+  { key: 'investment',  label: 'Đầu tư',        iconName: 'TrendingUp',    color: 'emerald', from: '#10b981', to: '#047857'  },
+  { key: 'rental',      label: 'Cho thuê',      iconName: 'Home',          color: 'orange',  from: '#f97316', to: '#c2410c'  },
+  { key: 'interest',    label: 'Lãi suất',      iconName: 'Percent',       color: 'amber',   from: '#f59e0b', to: '#d97706'  },
+  { key: 'other-rev',   label: 'Khác',          iconName: 'Package',       color: 'slate',   from: '#64748b', to: '#475569'  },
+];
+
+const REVENUE_SUBTYPE_MAP = Object.fromEntries(REVENUE_SUBTYPES.map(s => [s.key, s]));
+const REVENUE_SUBTYPE_ICONS = { DollarSign, Briefcase, TrendingUp, Home, Percent, Package };
+
+// Sub-types for Expense (typeId=5)
+const EXPENSE_SUBTYPES = [
+  { key: 'food',        label: 'Ăn uống',       iconName: 'Coffee',        color: 'orange',  from: '#f97316', to: '#c2410c'  },
+  { key: 'shopping',    label: 'Mua sắm',       iconName: 'ShoppingBag',   color: 'pink',    from: '#ec4899', to: '#be185d'  },
+  { key: 'transport',   label: 'Di chuyển',     iconName: 'Car',           color: 'blue',    from: '#3b82f6', to: '#1d4ed8'  },
+  { key: 'entertain',   label: 'Giải trí',      iconName: 'Heart',         color: 'purple',  from: '#a855f7', to: '#7e22ce'  },
+  { key: 'bills',       label: 'Hóa đơn',       iconName: 'Zap',           color: 'amber',   from: '#f59e0b', to: '#d97706'  },
+  { key: 'housing',     label: 'Nhà ở',         iconName: 'Home',          color: 'green',   from: '#22c55e', to: '#15803d'  },
+  { key: 'health',      label: 'Sức khỏe',      iconName: 'HeartPulse',    color: 'red',     from: '#ef4444', to: '#b91c1c'  },
+  { key: 'education',   label: 'Giáo dục',      iconName: 'GraduationCap', color: 'sky',     from: '#0ea5e9', to: '#0369a1'  },
+];
+
+const EXPENSE_SUBTYPE_MAP = Object.fromEntries(EXPENSE_SUBTYPES.map(s => [s.key, s]));
+const EXPENSE_SUBTYPE_ICONS = { Coffee, ShoppingBag, Car, Heart, Zap, Home, HeartPulse, GraduationCap };
 
 // Account types for the selector bar
 const ACCOUNT_TYPES = [
@@ -97,7 +125,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
 
   const blankForm = () => ({
     name: '',
-    assetSubtype: activeTypeId === 1 ? 'bank' : activeTypeId === 2 ? 'bank-loan' : '',
+    assetSubtype: activeTypeId === 1 ? 'bank' : activeTypeId === 2 ? 'bank-loan' : activeTypeId === 4 ? 'salary' : activeTypeId === 5 ? 'food' : '',
     color: DEFAULT_COLORS[activeTypeId] || 'blue',
     cardNumber: '',
     balance: '',
@@ -115,7 +143,11 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
     ? ASSET_SUBTYPE_MAP[form.assetSubtype]
     : isLiability
       ? LIABILITY_SUBTYPE_MAP[form.assetSubtype]
-      : null;
+      : isRevenue
+        ? REVENUE_SUBTYPE_MAP[form.assetSubtype]
+        : isExpense
+          ? EXPENSE_SUBTYPE_MAP[form.assetSubtype]
+          : null;
   const hasSource = form.sourceAccountId && !isEdit;
 
   // Reset form khi chuyển loại
@@ -124,7 +156,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
     setActiveTypeId(newTypeId);
     setForm({
       name: '',
-      assetSubtype: newTypeId === 1 ? 'bank' : newTypeId === 2 ? 'bank-loan' : '',
+      assetSubtype: newTypeId === 1 ? 'bank' : newTypeId === 2 ? 'bank-loan' : newTypeId === 4 ? 'salary' : newTypeId === 5 ? 'food' : '',
       color: DEFAULT_COLORS[newTypeId] || 'blue',
       cardNumber: '',
       balance: '',
@@ -193,7 +225,15 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
     if (account) {
       const assetIconToKey = { Landmark: 'bank', Wallet: 'cash', WalletIcon: 'cash', PiggyBank: 'savings', TrendingUp: 'investment', Home: 'property' };
       const liabilityIconToKey = { Landmark: 'bank-loan', CreditCard: 'credit-card', HandCoins: 'personal', ArrowLeftRight: 'other-debt' };
-      const iconToKey = account.typeId === 2 ? liabilityIconToKey : assetIconToKey;
+      const revenueIconToKey = { DollarSign: 'salary', Briefcase: 'freelance', TrendingUp: 'investment', Home: 'rental', Percent: 'interest', Package: 'other-rev' };
+      const expenseIconToKey = { Coffee: 'food', ShoppingBag: 'shopping', Car: 'transport', Heart: 'entertain', Zap: 'bills', Home: 'housing', HeartPulse: 'health', GraduationCap: 'education' };
+      const iconToKey = account.typeId === 2
+        ? liabilityIconToKey
+        : account.typeId === 4
+          ? revenueIconToKey
+          : account.typeId === 5
+            ? expenseIconToKey
+            : assetIconToKey;
       setForm({
         name:           account.name        || '',
         assetSubtype:   iconToKey[account.iconName] || '',
@@ -223,7 +263,11 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
       ? ASSET_SUBTYPE_MAP[key]
       : isLiability
         ? LIABILITY_SUBTYPE_MAP[key]
-        : null;
+        : isRevenue
+          ? REVENUE_SUBTYPE_MAP[key]
+          : isExpense
+            ? EXPENSE_SUBTYPE_MAP[key]
+            : null;
     if (!st) return;
     setForm(f => ({ ...f, assetSubtype: key, color: st.color }));
   };
@@ -244,6 +288,14 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
     }
     if (isLiability && !selectedSubtype && !isEdit) {
       setError('Vui lòng chọn loại nợ');
+      return;
+    }
+    if (isRevenue && !selectedSubtype && !isEdit) {
+      setError('Vui lòng chọn loại thu nhập');
+      return;
+    }
+    if (isExpense && !selectedSubtype && !isEdit) {
+      setError('Vui lòng chọn loại chi tiêu');
       return;
     }
 
@@ -635,6 +687,114 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
                     >
                       {(() => {
                         const PreviewIcon = LIABILITY_SUBTYPE_ICONS[selectedSubtype.iconName] || HandCoins;
+                        return <PreviewIcon size={14} />;
+                      })()}
+                      {selectedSubtype.label}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Revenue sub-type */}
+              {isRevenue && !isEdit && (
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-2">
+                    Loại thu nhập <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {REVENUE_SUBTYPES.map(st => {
+                      const isActive = form.assetSubtype === st.key;
+                      const SubIcon = REVENUE_SUBTYPE_ICONS[st.iconName] || DollarSign;
+                      return (
+                        <button
+                          key={st.key}
+                          type="button"
+                          onClick={() => handleSubtypeSelect(st.key)}
+                          className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 transition-all duration-200 ${
+                            isActive
+                              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 shadow-sm'
+                              : 'border-border hover:border-muted-foreground/30 hover:bg-muted'
+                          }`}
+                        >
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 transition-all duration-200"
+                            style={{
+                              background: isActive
+                                ? `linear-gradient(135deg, ${st.from}, ${st.to})`
+                                : 'var(--color-muted)',
+                              transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                            }}
+                          >
+                            <SubIcon size={14} />
+                          </div>
+                          <span className={`text-[10px] font-semibold text-center leading-tight ${isActive ? 'text-emerald-700 dark:text-emerald-300' : 'text-muted-foreground'}`}>
+                            {st.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedSubtype && (
+                    <div
+                      className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl text-white text-xs font-semibold animate-in fade-in slide-in-from-top-1 duration-200"
+                      style={{ background: `linear-gradient(90deg, ${selectedSubtype.from}, ${selectedSubtype.to})` }}
+                    >
+                      {(() => {
+                        const PreviewIcon = REVENUE_SUBTYPE_ICONS[selectedSubtype.iconName] || DollarSign;
+                        return <PreviewIcon size={14} />;
+                      })()}
+                      {selectedSubtype.label}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Expense sub-type */}
+              {isExpense && !isEdit && (
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-2">
+                    Loại chi tiêu <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {EXPENSE_SUBTYPES.map(st => {
+                      const isActive = form.assetSubtype === st.key;
+                      const SubIcon = EXPENSE_SUBTYPE_ICONS[st.iconName] || ShoppingCart;
+                      return (
+                        <button
+                          key={st.key}
+                          type="button"
+                          onClick={() => handleSubtypeSelect(st.key)}
+                          className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 transition-all duration-200 ${
+                            isActive
+                              ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/30 shadow-sm'
+                              : 'border-border hover:border-muted-foreground/30 hover:bg-muted'
+                          }`}
+                        >
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 transition-all duration-200"
+                            style={{
+                              background: isActive
+                                ? `linear-gradient(135deg, ${st.from}, ${st.to})`
+                                : 'var(--color-muted)',
+                              transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                            }}
+                          >
+                            <SubIcon size={14} />
+                          </div>
+                          <span className={`text-[10px] font-semibold text-center leading-tight ${isActive ? 'text-orange-700 dark:text-orange-300' : 'text-muted-foreground'}`}>
+                            {st.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedSubtype && (
+                    <div
+                      className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl text-white text-xs font-semibold animate-in fade-in slide-in-from-top-1 duration-200"
+                      style={{ background: `linear-gradient(90deg, ${selectedSubtype.from}, ${selectedSubtype.to})` }}
+                    >
+                      {(() => {
+                        const PreviewIcon = EXPENSE_SUBTYPE_ICONS[selectedSubtype.iconName] || ShoppingCart;
                         return <PreviewIcon size={14} />;
                       })()}
                       {selectedSubtype.label}
