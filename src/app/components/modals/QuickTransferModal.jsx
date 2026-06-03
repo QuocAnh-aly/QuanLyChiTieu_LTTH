@@ -1,4 +1,4 @@
-import { X, ArrowLeftRight, HandCoins } from "lucide-react";
+import { X, ArrowLeftRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { walletApi } from "../../api/walletApi";
 import { useSettings } from "../../context/SettingsContext";
@@ -11,17 +11,12 @@ export function QuickTransferModal({ isOpen, onClose, onTransfer }) {
   const [toId, setToId] = useState("");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
-  const [isDebtPayment, setIsDebtPayment] = useState(false);
-  const [liabilityAccounts, setLiabilityAccounts] = useState([]);
 
   useEffect(() => {
     if (!isOpen) return;
     walletApi
       .getByType(1)
       .then((data) => setAccounts(data.items || data || []))
-      .catch(() => {});
-    walletApi.getByType(2)
-      .then(data => setLiabilityAccounts(data.items || data || []))
       .catch(() => {});
   }, [isOpen]);
 
@@ -104,68 +99,26 @@ export function QuickTransferModal({ isOpen, onClose, onTransfer }) {
               </select>
             </div>
 
-            {/* Checkbox: Thanh toán nợ */}
-            <label className="flex items-center gap-2 cursor-pointer select-none p-2 rounded-lg hover:bg-muted/50 transition-colors">
-              <input
-                type="checkbox"
-                checked={isDebtPayment}
-                onChange={(e) => {
-                  setIsDebtPayment(e.target.checked);
-                  setToId("");
-                }}
-                className="w-4 h-4 rounded border-border accent-red-500"
-              />
-              <div className="flex items-center gap-1.5">
-                <HandCoins size={15} className="text-red-500" />
-                <span className="text-sm font-medium text-foreground">Thanh toán nợ</span>
-                <span className="text-xs text-muted-foreground">(chọn tài khoản nợ ở ví đích)</span>
-              </div>
-            </label>
-
             {/* To account */}
             <div>
               <label className="block text-sm font-semibold text-foreground mb-1.5">
-                {isDebtPayment ? (
-                  <span className="flex items-center gap-1.5">
-                    <HandCoins size={14} className="text-red-500" />
-                    Trả nợ cho <span className="text-red-500">*</span>
-                  </span>
-                ) : (
-                  <>Tài khoản đích <span className="text-red-500">*</span></>
-                )}
+                Tài khoản đích <span className="text-red-500">*</span>
               </label>
               <select
                 value={toId}
                 onChange={(e) => setToId(e.target.value)}
-                className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 bg-card ${
-                  isDebtPayment
-                    ? "border-red-300 focus:ring-red-500 bg-red-50/30"
-                    : "border-border focus:ring-purple-500"
-                }`}
+                className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 bg-card"
                 disabled={!fromId}
                 required
               >
                 <option value="">
-                  {!fromId
-                    ? "Chọn tài khoản nguồn trước"
-                    : isDebtPayment
-                      ? "Chọn khoản nợ cần trả"
-                      : "Chọn tài khoản đích"}
+                  {!fromId ? "Chọn tài khoản nguồn trước" : "Chọn tài khoản đích"}
                 </option>
-                {isDebtPayment
-                  ? liabilityAccounts
-                      .filter((a) => Math.abs(a.balance ?? 0) > 0)
-                      .map((a) => (
-                        <option key={a.accountId} value={a.accountId}>
-                          {a.name} — Nợ {formatBalance(Math.abs(a.balance ?? 0))}
-                        </option>
-                      ))
-                  : availableTo.map((a) => (
-                      <option key={a.accountId} value={a.accountId}>
-                        {a.name} — {formatBalance(a.balance)}
-                      </option>
-                    ))
-                }
+                {availableTo.map((a) => (
+                  <option key={a.accountId} value={a.accountId}>
+                    {a.name} — {formatBalance(a.balance)}
+                  </option>
+                ))}
               </select>
               {fromId && availableTo.length === 0 && (
                 <p className="text-xs text-amber-600 mt-1">

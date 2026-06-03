@@ -2,22 +2,42 @@
 
 ## 📋 Tổng quan
 
-**Budget Management** là ứng dụng quản lý tài chính cá nhân với kiến trúc microservices backend (ASP.NET Core) + React SPA frontend.
+**Budget Management** là ứng dụng quản lý tài chính cá nhân (Personal Finance Manager) với kiến trúc microservices backend (ASP.NET Core 8) + React SPA frontend (Vite + Tailwind CSS).
 
 ```
-┌──────────────┐     ┌──────────────┐     ┌────────────────┐
-│   Frontend   │────▶│ API Gateway  │────▶│  APIService    │
-│  (React/Vite)│     │  (Ocelot)    │     │  (Business)    │
-└──────────────┘     └──────────────┘     ├────────────────┤
-                                          │  AuthService   │
-                                          │  LogService    │
-                                          └────────────────┘
+┌──────────────┐     ┌──────────────┐     ┌──────────────────┐
+│   Frontend   │────▶│ API Gateway  │────▶│   APIService     │
+│  (React/Vite)│     │ (Ocelot:5229)│     │  (Business API)  │
+└──────────────┘     └──────────────┘     ├──────────────────┤
+                                          │   AuthService    │
+                                          │  (Auth: 5100)    │
+                                          ├──────────────────┤
+                                          │   LogService     │
+                                          │  (Logging)       │
+                                          └──────────────────┘
                                                 │
                                           ┌────▼────┐
                                           │  SQL    │
                                           │ Server  │
+                                          │ (1434)  │
                                           └─────────┘
 ```
+
+### Nguyên tắc kế toán (Double-entry)
+
+Hệ thống sử dụng **kế toán kép 5 loại tài khoản**:
+
+| TypeId | Loại | Ví dụ | Ghi chú |
+|---|---|---|---|
+| 1 | **Assets** (Tài sản) | Ví chính, MB Bank, Tiền mặt | Số dư ≥ 0 |
+| 2 | **Liabilities** (Nợ) | Thẻ tín dụng VISA, Khoản vay | Số dư ≤ 0 |
+| 3 | **Equity** (Vốn chủ) | Tiết kiệm, Đầu tư | Chung với Savings Goals |
+| 4 | **Revenue** (Thu nhập) | Lương, Freelance, Đầu tư | Dùng cho Income transactions |
+| 5 | **Expense** (Chi phí) | Ăn uống, Mua sắm, Di chuyển | Dùng cho Expense transactions + Budgets |
+
+**Nguyên tắc cập nhật balance:**
+- Assets/Expense: Debit tăng (+), Credit giảm (-)
+- Liabilities/Equity/Revenue: Credit tăng (+), Debit giảm (-)
 
 ---
 
@@ -25,36 +45,246 @@
 
 ### Backend (`BudgetManagement/`)
 
-| Project | Mô tả |
-|---|---|
-| `BudgetManagement.APIService` | API chính — controllers cho budget, transaction, account, v.v. |
-| `BudgetManagement.AuthService` | Xác thực — register, login, refresh token |
-| `BudgetManagement.APIGateway` | Gateway Ocelot — routing, aggregation |
-| `BudgetManagement.Services` | Business logic layer |
-| `BudgetManagement.Repository` | Data access layer (EF Core + SQL Server) |
-| `BudgetManagement.Entities` | Entity models (POCO classes) |
-| `BudgetManagement.Dto` | Request/Response DTOs |
-| `BudgetManagement.Common` | Utilities (PasswordStrengthValidator) |
-| `BudgetManagement.LogService` | Logging service |
-| `BudgetManagement.Tests` | Unit tests (xUnit + Moq + FluentAssertions) |
+```
+BudgetManagement/
+├── BudgetManagement.APIService/     # API chính — 16 Controllers
+│   ├── Controllers/
+│   │   ├── AccountController.cs      # Tài khoản (CRUD + pagination)
+│   │   ├── AttachmentsController.cs  # File đính kèm
+│   │   ├── BaseController.cs         # Base class (GetUserId)
+│   │   ├── BillController.cs         # Hóa đơn định kỳ
+│   │   ├── BudgetController.cs       # Ngân sách + Savings Goals
+│   │   ├── CurrenciesController.cs   # Tiền tệ
+│   │   ├── DashboardController.cs    # Dashboard tổng quan
+│   │   ├── DataController.cs         # Data utilities
+│   │   ├── ExchangeRatesController.cs# Tỷ giá hối đoái
+│   │   ├── InsightController.cs      # Thống kê chi tiêu
+│   │   ├── RecurringController.cs    # Giao dịch định kỳ
+│   │   ├── RuleGroupsController.cs   # Nhóm rules
+│   │   ├── RulesController.cs        # Rules Engine
+│   │   ├── SearchController.cs       # Tìm kiếm
+│   │   ├── TransactionController.cs  # Giao dịch (CRUD + range)
+│   │   └── WebhooksController.cs     # Webhooks
+│   └── RecurringHostedService.cs     # Background job 24h
+│
+├── BudgetManagement.AuthService/     # Xác thực — JWT
+│   └── Controllers/
+│       ├── AuthController.cs         # Register, Login, Refresh
+│       └── BaseController.cs
+│
+├── BudgetManagement.APIGateway/      # Ocelot Gateway
+│   ├── ocelot.json                   # Routing config
+│   └── Program.cs
+│
+├── BudgetManagement.Services/        # Business Logic Layer
+│   ├── Implementations/              # 15 services
+│   │   ├── AccountService.cs
+│   │   ├── AttachmentService.cs
+│   │   ├── AuthService.cs
+│   │   ├── BillService.cs
+│   │   ├── BudgetService.cs
+│   │   ├── CurrencyService.cs
+│   │   ├── DashboardService.cs
+│   │   ├── ExchangeRateService.cs
+│   │   ├── ExportService.cs
+│   │   ├── InsightService.cs
+│   │   ├── RecurringService.cs
+│   │   ├── RuleService.cs
+│   │   ├── SearchService.cs
+│   │   ├── TransactionService.cs
+│   │   └── WebhookService.cs
+│   └── Interfaces/                   # 15 interfaces
+│
+├── BudgetManagement.Repository/      # Data Access Layer (EF Core)
+│   ├── Implementations/
+│   │   ├── BaseRepository.cs         # Generic CRUD
+│   │   ├── AccountRepository.cs
+│   │   ├── BudgetRepository.cs
+│   │   ├── JournalRepository.cs
+│   │   └── ... (10 repositories)
+│   ├── Interfaces/
+│   └── BudgetManagementDbContext.cs
+│
+├── BudgetManagement.Entities/        # Entity Models (14 classes)
+│   ├── Account.cs, AccountType.cs
+│   ├── Budget.cs, Bill.cs
+│   ├── JournalEntry.cs, JournalDetail.cs
+│   ├── Currency.cs, ExchangeRate.cs
+│   ├── Rule.cs, RuleTrigger.cs, RuleAction.cs, RuleGroup.cs
+│   ├── Webhook.cs, WebhookMessage.cs
+│   ├── RecurringJournal.cs, RecurringInstance.cs
+│   ├── PiggyBankEvent.cs
+│   ├── Attachment.cs
+│   └── User.cs
+│
+├── BudgetManagement.Dto/             # Request/Response DTOs
+│   ├── Account/, Auth/, Bill/, Budget/
+│   ├── Currency/, Dashboard/, Export/
+│   ├── Recurring/, Rule/, Search/
+│   ├── Transaction/, Webhook/
+│   └── PaginatedResult.cs
+│
+├── BudgetManagement.Common/          # Utilities
+│   └── PasswordStrengthValidator.cs
+│
+├── BudgetManagement.Tests/           # Unit Tests (321 tests)
+│   ├── AuthServiceTests.cs
+│   ├── BudgetServiceTests.cs
+│   ├── TransactionServiceTests.cs
+│   └── ... (18 test files)
+│
+├── BudgetManagement.LogService/      # Logging microservice
+└── DbTester/                         # DB connection tester
+```
 
 ### Frontend (`src/`)
 
-| Thư mục | Mô tả |
-|---|---|
-| `src/app/pages/` | Trang (Dashboard, Budgets, Transactions, Accounts, Savings...) |
-| `src/app/components/` | Component dùng chung (modals, layout, UI) |
-| `src/app/context/` | React contexts (Auth, Categories, Settings, Notifications) |
-| `src/app/api/` | API clients (axios) |
-| `src/app/utils/` | Helpers (formatMoney) |
-| `src/styles/` | CSS (Tailwind, globals, theme) |
+```
+src/
+├── main.jsx                          # Entry point
+├── app/
+│   ├── App.jsx                       # Root component (providers)
+│   ├── routes.jsx                    # React Router config (40+ routes)
+│   │
+│   ├── context/                      # React Contexts
+│   │   ├── AuthContext.jsx           # Auth + JWT management
+│   │   ├── SettingsContext.jsx       # Currency, rates, formatting
+│   │   ├── CategoriesContext.jsx     # Expense/Income categories + tags
+│   │   └── NotificationContext.jsx   # Notification center
+│   │
+│   ├── api/                          # API Clients (axios)
+│   │   ├── axiosClient.js            # Base axios + interceptor (JWT refresh)
+│   │   ├── authApi.js, budgetApi.js, transactionApi.js
+│   │   ├── accountApi.js, billApi.js, walletApi.js
+│   │   ├── currencyApi.js, exchangeRateApi.js
+│   │   ├── dashboardApi.js, insightApi.js
+│   │   ├── recurringApi.js, ruleApi.js, webhookApi.js
+│   │   ├── exportApi.js, piggyBankApi.js
+│   │   └── ...
+│   │
+│   ├── utils/
+│   │   ├── formatMoney.jsx           # formatVND, parseVND
+│   │   └── toastOnce.jsx            # Session-based toast dedup
+│   │
+│   ├── pages/
+│   │   ├── auth/Login.jsx            # Login + Register form
+│   │   ├── dashboard/Dashboard.jsx   # Tổng quan
+│   │   ├── financial-control/
+│   │   │   ├── Budgets.jsx           # Danh sách ngân sách
+│   │   │   ├── BudgetDetail.jsx      # Chi tiết ngân sách
+│   │   │   ├── PiggyBanks.jsx        # Ống heo (savings)
+│   │   │   ├── PiggyBankDetail.jsx   # Chi tiết ống heo
+│   │   │   ├── Subscriptions.jsx     # Hóa đơn định kỳ
+│   │   │   └── SubscriptionDetail.jsx
+│   │   ├── accounting/
+│   │   │   ├── Transactions.jsx      # Danh sách giao dịch
+│   │   │   ├── Withdrawal.jsx        # Chi tiêu
+│   │   │   ├── Deposit.jsx          # Thu nhập
+│   │   │   ├── Transfers.jsx         # Chuyển khoản
+│   │   │   └── automation/
+│   │   │       ├── Rules.jsx         # Rules Engine
+│   │   │       ├── Recurrences.jsx   # Giao dịch định kỳ
+│   │   │       └── Webhooks.jsx      # Webhooks
+│   │   ├── others/accounts/
+│   │   │   ├── AssetAccounts.jsx     # Tài sản
+│   │   │   ├── Liabilities.jsx       # Nợ
+│   │   │   ├── ExpenseView.jsx       # Chi phí
+│   │   │   └── IncomeView.jsx        # Thu nhập
+│   │   ├── others/classification/
+│   │   │   ├── Categories.jsx        # Danh mục chi tiêu/thu nhập
+│   │   │   ├── Tags.jsx              # Nhãn
+│   │   │   └── ObjectGroups.jsx      # Nhóm đối tượng
+│   │   ├── others/
+│   │   │   ├── Reports.jsx           # Báo cáo
+│   │   │   ├── ExportData.jsx        # Xuất dữ liệu
+│   │   │   └── ErrorPage.jsx         # Error boundary
+│   │   ├── options/
+│   │   │   ├── Profile.jsx           # Hồ sơ + đổi mật khẩu
+│   │   │   ├── OAuthTokens.jsx       # OAuth tokens
+│   │   │   ├── Preferences.jsx       # Tùy chọn hiển thị
+│   │   │   ├── Currencies.jsx        # Quản lý tiền tệ
+│   │   │   ├── ExchangeRates.jsx     # Tỷ giá
+│   │   │   ├── Administrations.jsx   # Quản trị
+│   │   │   └── SystemSettings.jsx    # Cài đặt hệ thống
+│   │   └── notifications/
+│   │       └── NotificationCenter.jsx # Trung tâm thông báo
+│   │
+│   └── components/
+│       ├── layout/                   # Layout + Navigation
+│       │   ├── Layout.jsx            # App shell (sidebar + header)
+│       │   ├── PageLayout.jsx        # Page wrapper
+│       │   └── ProtectedRoute.jsx    # Auth guard
+│       ├── modals/                   # 12 modal components
+│       │   ├── AddTransactionModal.jsx    # Thêm giao dịch (3 types)
+│       │   ├── EditTransactionModal.jsx
+│       │   ├── AddBudgetModal.jsx
+│       │   ├── EditBudgetModal.jsx
+│       │   ├── QuickTransferModal.jsx     # Chuyển khoản nhanh
+│       │   ├── AccountFormModal.jsx       # Tạo/Sửa tài khoản
+│       │   ├── AddWalletModal.jsx         # Thêm ví (legacy)
+│       │   ├── EditWalletModal.jsx
+│       │   ├── PiggyBankFormModal.jsx
+│       │   ├── SubscriptionFormModal.jsx
+│       │   ├── AddMoneyModal.jsx
+│       │   └── RemoveMoneyModal.jsx
+│       └── ui/                       # UI components (shadcn/ui)
+│           ├── navigation/
+│           │   ├── PaginationBar.jsx
+│           │   └── pagination.jsx
+│           ├── data/
+│           │   └── chart.jsx
+│           └── ... (card, dialog, dropdown, tooltip, etc.)
+│
+└── styles/
+    ├── index.css                     # Tailwind + theme
+    ├── globals.css                   # CSS variables
+    ├── theme.css                     # Theme overrides
+    ├── tailwind.css                  # Tailwind directives
+    └── fonts.css                     # Font imports
+```
 
 ---
 
 ## 🗄️ Database Schema
 
-### Account_Types (reference data)
+### ER Diagram
 
+```
+Users ──▶ Accounts ──▶ Account_Types
+  │            │
+  │            ├── Journal_Details ──▶ Journal_Entries
+  │            │
+  │            └── Budgets ──▶ Piggy_Bank_Events
+  │                              (for savings type)
+  │
+  ├── Currencies ──▶ Exchange_Rates
+  ├── Bills
+  ├── Recurring_Journals ──▶ Recurring_Instances
+  ├── Rules ──▶ Rule_Triggers + Rule_Actions
+  │       └── Rule_Groups
+  ├── Webhooks ──▶ Webhook_Messages
+  └── Attachments
+```
+
+### Chi tiết bảng
+
+#### `Users`
+```sql
+user_id INT PK IDENTITY,
+user_account NVARCHAR(50) UNIQUE NOT NULL,
+password_hash NVARCHAR(255) NOT NULL,       -- BCrypt hash
+user_name NVARCHAR(100) DEFAULT 'BonSpark',
+email NVARCHAR(100),
+avatar_initials NVARCHAR(5) DEFAULT 'JD',
+theme NVARCHAR(10) DEFAULT 'light',         -- 'light'|'dark'|'auto'
+currency NVARCHAR(10) DEFAULT 'USD',
+notify_email BIT DEFAULT 1,
+notify_push BIT DEFAULT 1,
+notify_sms BIT DEFAULT 0,
+created_at DATETIME2 DEFAULT GETDATE()
+```
+
+#### `Account_Types` (reference data)
 | type_id | type_name |
 |---|---|
 | 1 | Assets |
@@ -63,94 +293,150 @@
 | 4 | Revenue |
 | 5 | Expense |
 
-### Users
-
+#### `Accounts`
 ```sql
-Users (user_id, user_account, password_hash, user_name, email, theme, currency, ...)
+account_id INT PK IDENTITY,
+user_id INT FK→Users,
+type_id INT FK→Account_Types,              -- 1=Asset, 2=Liability, 3=Equity, 4=Revenue, 5=Expense
+name NVARCHAR(100) NOT NULL,
+icon_name NVARCHAR(30) DEFAULT 'Landmark',
+color NVARCHAR(20) DEFAULT 'blue',
+gradient_from NVARCHAR(10) DEFAULT '#3b82f6',
+gradient_to NVARCHAR(10) DEFAULT '#1d4ed8',
+balance DECIMAL(18,2) DEFAULT 0,            -- Số dư hiện tại
+initial_balance DECIMAL(18,2) DEFAULT 0,
+card_number NVARCHAR(20) DEFAULT '•••• ••••',
+currency_code NVARCHAR(10) NOT NULL DEFAULT 'USD',
+is_active BIT DEFAULT 1,
+created_at DATETIME2 DEFAULT GETDATE()
 ```
 
-### Accounts
-
+#### `Journal_Entries` + `Journal_Details` (Double-entry)
 ```sql
-Accounts (account_id, user_id, type_id FK→Account_Types, name, icon_name, color,
-          balance, initial_balance, currency_code, is_active, created_at)
+-- Journal Entry (1 record per transaction)
+journal_id INT PK IDENTITY,
+user_id INT FK,
+transaction_date DATETIME2 NOT NULL,
+description NVARCHAR(500) DEFAULT 'Unknown',
+notes NVARCHAR(MAX) NULL,
+tags NVARCHAR(1000) NULL,                   -- Comma-separated tag names
+bill_id INT FK→Bills NULL,                 -- Liên kết subscription
+foreign_amount DECIMAL(18,2) NULL,          -- Amount in original currency
+foreign_currency_code NVARCHAR(10) NULL,    -- e.g. 'USD'
+created_at DATETIME2 DEFAULT GETDATE()
+
+-- Journal Detail (2 records per transaction: 1 debit + 1 credit)
+detail_id INT PK IDENTITY,
+journal_id INT FK,
+account_id INT FK→Accounts,
+debit DECIMAL(18,2) DEFAULT 0,
+credit DECIMAL(18,2) DEFAULT 0
 ```
 
-**Mỗi user khi đăng ký được tạo 3 account mặc định:**
-- TypeId=4 (Revenue): "Thu nhập chính" — nguồn thu nhập
-- TypeId=5 (Expense): "Ăn uống" — danh mục chi tiêu đầu tiên
-- TypeId=3 (Equity): "Initial" — account vốn (bị ẩn khỏi UI)
-
-### Budgets
-
+#### `Budgets`
 ```sql
-Budgets (budget_id, user_id, account_id FK→Accounts, title, budget_type,
-         target_amount, current_amount, period_type, start_date, end_date,
-         icon_name, color, is_active, ...)
+budget_id INT PK IDENTITY,
+user_id INT FK,
+account_id INT FK→Accounts,                 -- expense: Expense Account | savings: Asset Account
+title NVARCHAR(100) NOT NULL,
+budget_type NVARCHAR(20) DEFAULT 'expense',  -- 'expense' | 'savings'
+target_amount DECIMAL(18,2) NOT NULL,
+current_amount DECIMAL(18,2) DEFAULT 0,     -- expense: đã chi | savings: đã tiết kiệm
+monthly_contribution DECIMAL(18,2) DEFAULT 0,
+period_type NVARCHAR(20) DEFAULT 'monthly',  -- daily|weekly|monthly|yearly
+start_date DATE NOT NULL,
+end_date DATE NULL,
+deadline NVARCHAR(20) NULL,                 -- savings target date
+icon_name NVARCHAR(30) DEFAULT 'Coffee',
+color NVARCHAR(20) DEFAULT 'orange',
+is_active BIT DEFAULT 1,
+created_at DATETIME2 DEFAULT GETDATE()
 ```
 
-- `budget_type = 'expense'`: Ngân sách chi tiêu — `account_id` trỏ đến Expense Account (typeId=5)
-- `budget_type = 'savings'`: Mục tiêu tiết kiệm (ống heo) — `account_id` trỏ đến Asset Account (typeId=1)
-
-### Journal_Entries + Journal_Details (Double-entry accounting)
-
+#### `Bills` (Subscriptions / Hóa đơn định kỳ)
 ```sql
-Journal_Entries  (journal_id, user_id, transaction_date, description, notes, tags, ...)
-Journal_Details  (detail_id, journal_id FK, account_id FK, debit, credit)
+bill_id INT PK IDENTITY,
+user_id INT FK,
+name NVARCHAR(255) NOT NULL,
+amount_min DECIMAL(18,2) NOT NULL DEFAULT 0,
+amount_max DECIMAL(18,2) NOT NULL DEFAULT 0,
+date DATE NOT NULL,                          -- Ngày bắt đầu
+end_date DATE NULL,                          -- Ngày kết thúc
+extension_date DATE NULL,
+repeat_freq NVARCHAR(20) NOT NULL DEFAULT 'monthly',  -- daily|weekly|monthly|quarterly|half-year|yearly
+skip INT NOT NULL DEFAULT 0,                  -- Skip N chu kỳ
+active BIT NOT NULL DEFAULT 1,
+notes NVARCHAR(MAX) NULL,
+object_group NVARCHAR(255) NULL,             -- Nhóm hóa đơn (vd: "Bảo hiểm", "Nhà cửa")
+created_at DATETIME2 DEFAULT GETDATE()
 ```
 
-**Nguyên tắc:**
-1 giao dịch = 1 JournalEntry + 2 JournalDetails (1 debit, 1 credit)
-- Chi tiêu: Debit → Expense Account, Credit → Asset Account
-- Thu nhập: Debit → Asset Account, Credit → Revenue Account
-- Chuyển khoản: Debit → Asset Account đích, Credit → Asset Account nguồn
-
-### Bills (Hóa đơn định kỳ)
-
+#### `Recurring_Journals` + `Recurring_Instances`
 ```sql
-Bills (bill_id, user_id, account_id, amount, due_date, recurrence, ...)
+-- Giao dịch định kỳ (do background service xử lý)
+recurring_id INT PK IDENTITY,
+user_id INT FK,
+debit_account_id INT FK→Accounts,
+credit_account_id INT FK→Accounts,
+amount DECIMAL(18,2) NOT NULL,
+title NVARCHAR(100),
+description NVARCHAR(500),
+frequency NVARCHAR(20) NOT NULL,             -- daily|weekly|monthly|yearly
+interval_value INT DEFAULT 1,                 -- Mỗi N kỳ
+next_run_date DATETIME2 NOT NULL,
+is_active BIT DEFAULT 1,
+created_at DATETIME2 DEFAULT GETDATE()
+
+-- Lịch sử thực thi
+instance_id INT PK IDENTITY,
+recurring_id INT FK,
+due_date DATETIME2 NOT NULL,
+status NVARCHAR(20) DEFAULT 'pending',        -- pending|completed|skipped
+journal_id INT FK→Journal_Entries NULL
 ```
 
-### Recurring_Journals (Giao dịch định kỳ)
-
+#### `Rules Engine`
 ```sql
-Recurring_Journals (recurring_id, user_id, ...)
-Recurring_Instances (instance_id, recurring_id FK, ...)
+Rule_Groups  (group_id, user_id, title, description, [order], is_active)
+Rules        (rule_id, user_id, group_id FK, title, [order], is_active, strict, stop_processing, runs, last_run_at)
+Rule_Triggers(trigger_id, rule_id FK, trigger_type, trigger_value, [order])
+Rule_Actions (action_id, rule_id FK, action_type, action_value, [order])
 ```
 
-### Exchange_Rates + Currencies
-
+#### `Webhooks`
 ```sql
-Currencies     (currency_id, user_id, code, name, symbol, is_primary)
-Exchange_Rates (rate_id, user_id, from_currency, to_currency, rate)
+Webhooks          (webhook_id, user_id, title, url, trigger_type, response, secret, is_active)
+Webhook_Messages  (message_id, webhook_id FK, journal_id, payload, status_code, success, response_body, error_message)
 ```
 
-### Webhooks + Webhook_Messages
-
+#### `Currencies` + `Exchange_Rates`
 ```sql
-Webhooks          (webhook_id, user_id, url, secret, events, ...)
-Webhook_Messages  (message_id, webhook_id FK, status, payload, ...)
+Currencies     (currency_id, user_id, code, name, symbol, decimal_places, is_enabled, is_primary)
+Exchange_Rates (rate_id, user_id, from_currency, to_currency, rate, rate_date)
 ```
 
-### Rules + Rule_Groups + Rule_Triggers + Rule_Actions
-
+#### `Piggy_Bank_Events`
 ```sql
-Rules            (rule_id, user_id, group_id FK, name, ...)
-Rule_Groups      (group_id, user_id, name, ...)
-Rule_Triggers    (trigger_id, rule_id FK, type, condition)
-Rule_Actions     (action_id, rule_id FK, type, value)
+event_id INT PK IDENTITY,
+budget_id INT FK→Budgets,
+amount DECIMAL(18,2),                       -- positive=add, negative=remove
+event_date DATETIME2 DEFAULT GETDATE(),
+notes NVARCHAR(500) NULL
 ```
 
-### Piggy_Bank_Events (Lịch sử ống heo)
-
+#### `Attachments`
 ```sql
-Piggy_Bank_Events (event_id, budget_id FK→Budgets, amount, event_date, notes)
-```
-
-### Attachments
-
-```sql
-Attachments (attachment_id, user_id, journal_id, file_name, file_path, ...)
+attachment_id INT PK IDENTITY,
+user_id INT FK,
+attachable_type NVARCHAR(20),               -- 'transaction'|'bill'|'budget'|'account'|'piggy'|'tag'
+attachable_id INT NOT NULL,                  -- FK to the corresponding table (polymorphic)
+title NVARCHAR(255) NULL,
+notes NVARCHAR(1000) NULL,
+filename NVARCHAR(255) NOT NULL,
+mime NVARCHAR(100) NULL,
+size BIGINT NOT NULL DEFAULT 0,
+file_path NVARCHAR(500) NOT NULL,
+uploaded_at DATETIME2 DEFAULT GETDATE()
 ```
 
 ---
@@ -163,37 +449,36 @@ Attachments (attachment_id, user_id, journal_id, file_name, file_path, ...)
 [User clicks "Thêm ngân sách"]
         │
         ▼
-[AddBudgetModal mở → form 1 cột]
+[AddBudgetModal → form 1 cột]
         │
         ├── Chọn danh mục (Expense Account có sẵn — bắt buộc)
-        ├── Nhập tên, số tiền, chu kỳ, ngày
+        ├── Nhập tên, số tiền, chu kỳ (monthly/weekly/yearly/custom), ngày
         └── Submit
         │
         ▼
-[Frontend: budgetApi.createExpenseBudget(data)]
-        │  data = { accountId, title, targetAmount, periodType, startDate, ... }
+[Frontend: budgetApi.createExpenseBudget({ accountId, title, targetAmount, periodType, startDate })]
+        │
         ▼
 [API Gateway → APIService → BudgetController.CreateExpenseBudget]
         │
         ▼
 [BudgetService.CreateExpenseBudgetAsync]
-        │
         ├── Validate AccountId > 0
         ├── accountRepo.GetWithDetailsAsync(AccountId)
         │   ├── null → KeyNotFoundException
         │   ├── UserId mismatch → UnauthorizedAccessException
         │   └── TypeId != 5 → ArgumentException
-        ├── Tạo Budget với AccountId từ request
+        ├── Tạo Budget với account_id = Expense Account
         └── BudgetRepo.CreateAsync(budget)
         │
         ▼
-[Response: BudgetDto với budgetId, title, targetAmount, ...]
+[Response: BudgetDto]
         │
         ▼
-[Frontend: refresh danh sách + toast.success("Đã thêm ngân sách!")]
+[Frontend: refresh list + toast.success("Đã thêm ngân sách!") + addNotification]
 ```
 
-**Lưu ý:** Theo nghiên cứu từ YNAB, EveryDollar, Money Lover — không app nào tự động tạo category mới khi tạo budget. Budget luôn gắn với category có sẵn. DB đã được thiết kế đúng (account_id FK → Accounts), code trước đây sai (auto-create Account). Đã fix.
+**Lưu ý:** Budget luôn gắn với Expense Account có sẵn (không auto-create).
 
 ### Flow 2: Tạo Transaction (Double-entry)
 
@@ -203,33 +488,27 @@ Attachments (attachment_id, user_id, journal_id, file_name, file_path, ...)
         ├── Chọn loại: Chi tiêu / Thu nhập / Chuyển khoản
         │
         ├── CHI TIÊU:
-        │   ├── Chọn ví thanh toán (Asset Account) → creditAccountId
-        │   ├── Chọn danh mục chi tiêu (Expense Account) → debitAccountId
-        │   │   └── Hoặc "+ Danh mục mới" → expenseCategoryName (accountId=0)
-        │   └── Submit
+        │   ├── Chọn ví thanh toán (Asset) → creditAccountId
+        │   ├── Chọn danh mục chi tiêu (Expense) → debitAccountId
+        │   └── Submit → TransactionService.CreateAsync
+        │       ├── Debit: Expense Account (tăng chi phí)
+        │       ├── Credit: Asset Account (giảm tiền)
+        │       ├── Cập nhật balance
+        │       └── UpdateSpentAmountAsync → cập nhật budget currentAmount
         │
         ├── THU NHẬP:
-        │   ├── Chọn ví nhận (Asset Account) → debitAccountId
-        │   ├── Chọn nguồn thu (Revenue Account) → creditAccountId
-        │   │   └── Hoặc "+ Nguồn thu mới" → incomeCategoryName (accountId=0)
+        │   ├── Chọn ví nhận (Asset) → debitAccountId
+        │   ├── Chọn nguồn thu (Revenue) → creditAccountId
         │   └── Submit
+        │       ├── Debit: Asset Account (tăng tiền)
+        │       └── Credit: Revenue Account (tăng thu nhập)
         │
-        └── CHUYỂN KHOẢN:
-            ├── Chọn ví nguồn + ví đích (Asset Accounts)
+        └── CHUYỂN KHOẢN / TRẢ NỢ:
+            ├── Chọn ví nguồn (Asset) + ví đích (Asset/Liability)
+            ├── Check "Thanh toán nợ" → đích = Liability Account
             └── Submit
-        │
-        ▼
-[Frontend → API Gateway → TransactionService.CreateAsync]
-        │
-        ├── Nếu accountId = 0 + categoryName:
-        │   ├── FindByUserAndNameAsync(userId, typeId, name) → tìm account có sẵn
-        │   ├── null → ArgumentException (KHÔNG auto-create như cũ!)
-        │   └── found → dùng account đó
-        │
-        ├── Validate debit & credit accounts (tồn tại, thuộc user)
-        ├── Tạo JournalEntry + 2 JournalDetails
-        ├── Cập nhật balance (UpdateAccountBalanceAsync)
-        └── Nếu debit là Expense → UpdateSpentAmountAsync → cập nhật budget
+                ├── Debit: Asset đích / Liability (giảm nợ)
+                └── Credit: Asset nguồn (giảm tiền)
 ```
 
 ### Flow 3: Authentication
@@ -238,35 +517,37 @@ Attachments (attachment_id, user_id, journal_id, file_name, file_path, ...)
 [Register]
         │
         ├── Validate username unique
-        ├── Validate password strength (PasswordStrengthValidator)
+        ├── Validate password (PasswordStrengthValidator: ≥8 ký tự, hoa/thường/số/ký tự đặc biệt)
         ├── Hash password (BCrypt)
         ├── Tạo User
         ├── Tạo 3 accounts mặc định:
-        │   ├── Revenue: "Thu nhập chính" (typeId=4)
-        │   ├── Expense: "Ăn uống" (typeId=5)
-        │   └── Equity: "Initial" (typeId=3 — hidden from UI)
-        └── Generate JWT (access token 5h, refresh token 2 ngày)
+        │   ├── Revenue (typeId=4): "Thu nhập chính"
+        │   ├── Expense (typeId=5): "Ăn uống"
+        │   └── Equity (typeId=3): "Initial" (hidden from UI)
+        ├── Seed 4 currencies: VND (primary), USD, EUR, JPY
+        └── Generate JWT (access_token 5h, refresh_token 2 ngày)
 
 [Login]
         ├── Find user by account
         ├── Verify password (BCrypt)
         └── Generate JWT pair
+
+[Token Refresh]
+        ├── Validate refresh token
+        ├── Generate new access_token + refresh_token
+        └── Return new pair
 ```
 
 ### Flow 4: Cập nhật Budget (Edit)
 
 ```
-[User clicks ✏️ on budget card]
+[User clicks ✏️ → EditBudgetModal mở với dữ liệu hiện tại]
         │
-        ▼
-[EditBudgetModal mở với dữ liệu hiện tại]
-        │
-        ├── Sửa: tên, số tiền, chu kỳ, ngày
-        ├── Sửa: icon (19 icons), màu sắc (10 colors)
-        └── Submit → gửi các field thay đổi
-        │
-        ▼
-[budgetApi.updateExpenseBudget(id, {title?, targetAmount?, iconName?, color?, ...})]
+        ├── Sửa: tên, số tiền, chu kỳ, ngày bắt đầu/kết thúc
+        ├── Icon picker: 19 icons (Coffee, ShoppingBag, Car, Heart, ...)
+        ├── Color picker: 10 colors (orange, pink, blue, purple, ...)
+        ├── Live preview icon + màu
+        └── Submit → PATCH các field thay đổi
         │
         ▼
 [BudgetService.UpdateExpenseBudgetAsync]
@@ -277,22 +558,24 @@ Attachments (attachment_id, user_id, journal_id, file_name, file_path, ...)
 ### Flow 5: Savings Goals (Ống heo)
 
 ```
-[User tạo mục tiêu tiết kiệm → CreateSavingsGoal]
+[CreateSavingsGoal (budget_type='savings')]
         │
         ├── Chọn Asset Account đích
-        ├── Nhập tên, số tiền mục tiêu, hạn, contribution hàng tháng
-        └── Submit → Budget với budget_type='savings'
+        ├── Nhập tên, targetAmount, deadline, monthlyContribution
+        └── Submit
         │
         ▼
-[Nạp tiền vào ống heo → AddMoneyAsync]
-        ├── Tăng CurrentAmount
-        ├── Tạo PiggyBankEvent (+amount)
-        └── Clamp to TargetAmount
+[Nạp tiền → AddMoneyAsync]
+        ├── Tăng currentAmount (clamp to target)
+        └── Tạo PiggyBankEvent (+amount)
 
 [Rút tiền → RemoveMoneyAsync]
-        ├── Giảm CurrentAmount
-        ├── Tạo PiggyBankEvent (-amount)
-        └── Clamp to 0
+        ├── Giảm currentAmount (clamp to 0)
+        └── Tạo PiggyBankEvent (-amount)
+
+[Đặt lại lịch sử → ResetHistoryAsync]
+        ├── Xóa tất cả PiggyBankEvents
+        └── Reset currentAmount về 0
 ```
 
 ### Flow 6: Export dữ liệu
@@ -302,166 +585,123 @@ Attachments (attachment_id, user_id, journal_id, file_name, file_path, ...)
         │
         ▼
 [ExportService]
-        ├── CollectTransactionsAsync → giao dịch
-        ├── CollectAccountsAsync → tài khoản
-        └── CollectBudgetsAsync → ngân sách (bao gồm events_count, net_deposited từ PiggyBankEvents)
+        ├── CollectTransactionsAsync(interval) → transactions trong khoảng
+        ├── CollectAccountsAsync → accounts with balances
+        └── CollectBudgetsAsync → budgets + events_count + net_deposited
         │
         ▼
 [Formatter → ToCsv / ToJson / ToXlsxSpreadsheetML]
 ```
 
-### Flow 7: Recurring Journals — Giao dịch định kỳ
+### Flow 7: Recurring Journals
 
 ```
-[User tạo recurring → CreateRecurringDto]
+[User tạo recurring → RecurringJournals table]
         │
-        ├── Chọn tài khoản debit (nguồn) + credit (đích)
-        ├── Nhập số tiền, mô tả
-        ├── Frequency: daily / weekly / monthly / yearly
-        ├── IntervalValue: mỗi N kỳ (vd: 2 = mỗi 2 tháng)
-        └── NextRunDate: ngày chạy đầu tiên
-        │
-        ▼
-[Lưu vào DB → RecurringJournals table]
-        │
-        │      ┌──────────────────────────────────────┐
-        │      │  RecurringHostedService (Background) │
-        │      │  - Chạy mỗi 24h, delay đến nửa đêm  │
-        │      │  - Dùng IServiceScopeFactory (Scoped)│
-        │      └──────────────────────────────────────┘
-        │                        │
-        ▼                        ▼
-[Khi đến nửa đêm ← RecurringHostedService.ExecuteAsync]
-        │
-        ├── Gọi ProcessDueRecurringsAsync()
+        ├── debit_account_id + credit_account_id
+        ├── amount, description
+        ├── frequency (daily/weekly/monthly/yearly)
+        ├── interval_value (mỗi N kỳ)
+        └── next_run_date
         │
         ▼
-[RecurringService.ProcessDueRecurringsAsync]
+[RecurringHostedService — Background job]
         │
-        ├── Query: RecurringRepo.GetDueAsync(now)
-        │   └── WHERE NextRunDate <= now AND IsActive = true
+        ├── Chạy mỗi 24h, delay đến nửa đêm
+        ├── Dùng IServiceScopeFactory (Scoped services)
         │
-        ├── Với mỗi recurring đến hạn:
+        ▼
+[ProcessDueRecurringsAsync]
         │
-        │   ├── 1. Tạo transaction thực tế:
-        │   │       TransactionService.CreateAsync(
-        │   │         debitAccountId, creditAccountId, amount, description
-        │   │       )
-        │   │
-        │   │   ├── THÀNH CÔNG:
-        │   │   │   ├── Ghi RecurringInstance (status="completed", journalId)
-        │   │   │   ├── Tính NextRunDate = ComputeNextRunDate(
-        │   │   │   │     currentDate, frequency, intervalValue)
-        │   │   │   │   ├── daily   → +interval ngày
-        │   │   │   │   ├── weekly  → +interval*7 ngày
-        │   │   │   │   ├── monthly → +interval tháng
-        │   │   │   │   └── yearly  → +interval năm
-        │   │   │   └── Update recurring (NextRunDate mới)
-        │   │   │
-        │   │   └── THẤT BẠI:
-        │   │       └── Ghi RecurringInstance (status="skipped")
-        │   │           → Không dừng vòng lặp, log lỗi
-        │   │
-        │   └── 2. Lặp lại cho recurring tiếp theo
+        ├── Query: WHERE NextRunDate <= now AND IsActive = true
         │
-        └── Kết thúc → chờ 24h cho lần chạy tiếp theo
-
-[Lịch sử thực thi → RecurringInstances table]
-        │
-        ├── instance_id, recurring_id FK, due_date,
-        │   status ("completed"|"skipped"), journal_id FK
-        └── Mỗi recurring có thể xem lịch sử N lần chạy gần nhất
+        └── Với mỗi recurring đến hạn:
+            ├── Tạo transaction thực tế qua TransactionService
+            ├── THÀNH CÔNG: ghi Instance (status="completed") + cập nhật NextRunDate
+            └── THẤT BẠI: ghi Instance (status="skipped")
 ```
 
-### Flow 8: Webhooks — HTTP Callbacks
+### Flow 8: Webhooks
 
 ```
 [Webhook được tạo → lưu URL + trigger_type + secret]
         │
-        ├── Trigger types: STORE_TRANSACTION / UPDATE_TRANSACTION / DESTROY_TRANSACTION
-        ├── Response formats: TRANSACTIONS / ACCOUNTS / NONE
-        └── Webhook nhận secret + tự động sinh HMAC-SHA256 signature
+        ├── trigger_type: STORE_TRANSACTION / UPDATE_TRANSACTION / DESTROY_TRANSACTION
+        ├── response: TRANSACTIONS / ACCOUNTS / NONE
+        └── HMAC-SHA256 signature với whsec_ secret
 
-[Khi có transaction event → WebhookService.DispatchAsync]
-        │
-        ├── Tìm tất cả webhooks active của user có matching trigger_type
+[Khi transaction event → DispatchAsync]
         │
         ▼
-[WebhookService.DeliverAsync — gửi HTTP POST]
+[DeliverAsync — HTTP POST]
         │
-        ├── Header: X-BM-Signature (HMAC-SHA256 của payload)
-        ├── Header: X-BM-Trigger (trigger type)
-        ├── Header: X-BM-Webhook-Id
-        ├── Body: JSON payload (transaction data)
+        ├── Headers: X-BM-Signature, X-BM-Trigger, X-BM-Webhook-Id
+        ├── Body: JSON payload
         ├── Timeout: 10 giây
         │
-        ├── THÀNH CÔNG:
-        │   ├── Log WebhookMessage (success=true, status_code=2xx)
-        │   └── Lưu response_body (truncated 2000 ký tự)
-        │
-        └── THẤT BẠI:
-            ├── Log WebhookMessage (success=false, status_code=0 hoặc 4xx/5xx)
-            └── Lưu error_message — không retry (fire-and-forget)
-
-[Manual test — POST api/webhooks/{id}/submit]
-        │
-        └── Gửi payload tùy chỉnh → log message → trả về WebhookMessageDto
+        ├── THÀNH CÔNG: log WebhookMessage (success=true)
+        └── THẤT BẠI: log WebhookMessage (success=false) — không retry
 ```
 
-### Flow 9: Rules Engine — Auto-classification
+### Flow 9: Rules Engine
 
 ```
-[Rule được tạo → gồm Triggers (điều kiện) + Actions (hành động)]
+[Rule được tạo → Triggers (điều kiện) + Actions (hành động)]
         │
-        ├── Group: nhóm rule theo chủ đề (vd: "Phân loại chi tiêu")
+        ├── Group: nhóm rule theo chủ đề
         ├── Strict mode (AND): TẤT CẢ triggers phải match
-        └── Non-strict mode (OR): CHỈ CẦN 1 trigger match
+        └── Non-strict (OR): CHỈ CẦN 1 trigger match
 
-[Trigger types — 12 loại điều kiện]
+[12 Trigger types]
         │
-        ├── description_contains     : Mô tả chứa từ khóa
-        ├── description_is           : Mô tả khớp chính xác
-        ├── amount_more / amount_less / amount_exactly : So sánh số tiền
-        ├── source_account_is        : Tài khoản nguồn (credit)
-        ├── destination_account_is   : Tài khoản đích (debit)
-        ├── transaction_type         : withdrawal / deposit / transfer
-        ├── tag_is                   : Transaction có tag cụ thể
-        ├── has_no_category          : Chưa được phân loại
-        ├── category_is              : Danh mục chi tiêu cụ thể
-        ├── date_after / date_before : Ngày giao dịch
-        └── (strict=AND / strict=OR — evaluated theo mode)
+        ├── description_contains / description_is
+        ├── amount_more / amount_less / amount_exactly
+        ├── source_account_is / destination_account_is
+        ├── transaction_type (withdrawal/deposit/transfer)
+        ├── tag_is / has_no_category / category_is
+        └── date_after / date_before
 
-[Action types — 8 loại hành động]
+[8 Action types]
         │
-        ├── set_description          : Ghi đè mô tả
-        ├── append_description       : Thêm vào mô tả
-        ├── set_notes                : Ghi đè ghi chú
-        ├── append_notes             : Thêm vào ghi chú
-        ├── add_tag                  : Thêm tag (nếu chưa có)
-        ├── remove_tag               : Xóa tag (nếu có)
-        ├── clear_tags               : Xóa tất cả tags
-        └── link_to_bill             : Gắn vào hóa đơn (bill_id)
+        ├── set_description / append_description
+        ├── set_notes / append_notes
+        ├── add_tag / remove_tag / clear_tags
+        └── link_to_bill
 
-[Test (dry-run) — POST api/rules/{id}/test]
-        │
-        ├── Duyệt 1000 transaction gần nhất
-        ├── Match theo triggers (AND/OR tùy strict mode)
-        └── Trả về matched_count + 50 matched transactions mẫu
+[Test (dry-run) → POST /api/rules/{id}/test]
+        ├── Duyệt 1000 transactions gần nhất
+        └── Trả về matched_count + 50 mẫu
 
-[Trigger (apply) — POST api/rules/{id}/trigger]
+[Trigger (apply) → POST /api/rules/{id}/trigger]
+        ├── Duyệt → match → apply actions
+        ├── Persist via UpdateEntryAsync
+        └── RecordRunAsync(ruleId, matchedCount)
+```
+
+### Flow 10: Debt Payment (Trả nợ)
+
+```
+[User có dư nợ (Liability Account with negative balance)]
         │
-        ├── Duyệt 1000 transaction gần nhất
-        ├── Match → apply actions (sửa description, notes, tags, bill)
-        ├── Gọi journalRepo.UpdateEntryAsync() để persist
-        ├── RecordRunAsync(ruleId, matchedCount)
-        └── Trả về matched_count + applied_count
+        ├── Vào AddTransactionModal → chọn "Chuyển khoản"
+        ├── Check "Thanh toán nợ"
+        │
+        ▼
+[Dropdown đích hiển thị các Liability Accounts có dư nợ > 0]
+        │
+        ├── Chọn khoản nợ cần trả
+        ├── Nhập số tiền
+        └── Submit
+        │
+        ▼
+[TransactionService.CreateAsync]
+        ├── Debit: Liability Account (giảm nợ: balance tăng từ âm về 0)
+        └── Credit: Asset Account (giảm tiền)
 ```
 
 ---
 
 ## 📄 Pagination
-
-Pagination được triển khai đồng bộ từ backend → frontend, hỗ trợ tất cả các danh sách có nhiều dữ liệu (accounts, budgets, transactions, recurring...).
 
 ### Backend — `PaginatedResult<T>`
 
@@ -470,140 +710,20 @@ Pagination được triển khai đồng bộ từ backend → frontend, hỗ tr
 ```csharp
 public class PaginatedResult<T>
 {
-    public List<T> Items { get; set; } = [];          // Dữ liệu trang hiện tại
-    public int TotalCount { get; set; }                // Tổng số bản ghi
-    public int Page { get; set; }                      // Trang hiện tại (bắt đầu từ 1)
-    public int PageSize { get; set; }                  // Số bản ghi mỗi trang
-    public int TotalPages                               // Tổng số trang (computed)
-        => (int)Math.Ceiling((double)TotalCount / Math.Max(1, PageSize));
-    public bool HasPreviousPage => Page > 1;            // Có trang trước?
-    public bool HasNextPage => Page < TotalPages;       // Có trang sau?
+    public List<T> Items { get; set; } = [];
+    public int TotalCount { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages =>
+        (int)Math.Ceiling((double)TotalCount / Math.Max(1, PageSize));
+    public bool HasPreviousPage => Page > 1;
+    public bool HasNextPage => Page < TotalPages;
 }
 ```
 
-**Cách repository implement phân trang (ví dụ AccountRepository):**
+**Các repository implement:** `CountAsync()` → `Skip().Take()` pattern.
 
-```csharp
-public async Task<PaginatedResult<Account>> GetByUserIdPagedAsync(int userId, int page, int pageSize)
-{
-    var query = _dbSet
-        .Where(a => a.UserId == userId && a.IsActive == true)
-        .Include(a => a.AccountType)
-        .OrderBy(a => a.TypeId).ThenBy(a => a.Name);
-
-    // 1. Đếm tổng số bản ghi (chạy 1 query)
-    var totalCount = await query.CountAsync();
-
-    // 2. Skip + Take để lấy đúng trang (chạy 1 query)
-    var items = await query
-        .Skip((page - 1) * pageSize)
-        .Take(pageSize)
-        .ToListAsync();
-
-    return new PaginatedResult<Account>
-    {
-        Items = items,
-        TotalCount = totalCount,
-        Page = page,
-        PageSize = pageSize
-    };
-}
-```
-
-**Controller nhận query params và gọi service:**
-
-```csharp
-[HttpGet]
-public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
-{
-    if (pageSize <= 0 || pageSize > 100) pageSize = 50;
-    if (page <= 0) page = 1;
-
-    var result = await _service.GetByUserPagedAsync(GetUserId(), page, pageSize);
-    return Ok(result);
-}
-```
-
-### Frontend — `PaginationBar`
-
-**File:** `src/app/components/ui/navigation/PaginationBar.jsx`
-
-| Props | Kiểu | Mô tả |
-|---|---|---|
-| `currentPage` | `number` | Trang hiện tại |
-| `totalPages` | `number` | Tổng số trang |
-| `totalCount` | `number` | Tổng số bản ghi |
-| `onPageChange` | `(page: number) => void` | Callback khi đổi trang |
-| `pageSize` | `number` (default 10) | Số bản ghi mỗi trang |
-| `onPageSizeChange` | `(size: number) => void` | Callback khi đổi số bản ghi/trang |
-| `pageSizeOptions` | `number[]` (default [5,10,20]) | Các tùy chọn số bản ghi/trang |
-
-**Thuật toán hiển thị trang (`getVisiblePages`):**
-
-```
-[1] ... [n-1] [n] [n+1] ... [last]
-```
-
-- Luôn hiển thị trang đầu và trang cuối
-- Hiển thị tối đa 3 trang xung quanh trang hiện tại
-- Dùng `...` (PaginationEllipsis) khi có khoảng cách
-- Khi totalPages ≤ 5: hiển thị tất cả
-
-**Cách sử dụng trong page (ví dụ Budgets.jsx):**
-
-```jsx
-const [page, setPage] = useState(1);
-const [pageSize, setPageSize] = useState(10);
-const [totalCount, setTotalCount] = useState(0);
-const [totalPages, setTotalPages] = useState(1);
-
-// Fetch khi page/pageSize thay đổi
-useEffect(() => { fetchBudgets(); }, [page, pageSize, search, filterStatus, sortBy]);
-
-// Reset về trang 1 khi filter thay đổi
-useEffect(() => { setPage(1); }, [search, filterStatus, sortBy]);
-
-// Render
-{totalPages > 1 && (
-    <PaginationBar
-        currentPage={page}
-        totalPages={totalPages}
-        totalCount={totalCount}
-        pageSize={pageSize}
-        onPageChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-        onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(1); }}
-    />
-)}
-```
-
-### Flow dữ liệu phân trang
-
-```
-[Frontend]                            [Backend]
-    │                                      │
-    ├─ GET /api/budgets?page=2&pageSize=10 │
-    │   ─────────────────────────────────▶  │
-    │                                      ├─ Query DB với Skip(10).Take(10)
-    │                                      ├─ CountAsync() tổng số
-    │                                      │
-    │   ◀── PaginatedResult<BudgetDto> ─── │
-    │   {                                  │
-    │     items: [...],                    │
-    │     totalCount: 67,                  │
-    │     page: 2,                         │
-    │     pageSize: 10,                    │
-    │     totalPages: 7,                   │
-    │     hasPreviousPage: true,           │
-    │     hasNextPage: true                │
-    │   }                                  │
-    │                                      │
-    ├─ render PaginationBar                │
-    │  "Hiển thị 11–20 trong 67"           │
-    │  [<] [1] [...] [4] [5] [6] [...] [7]│
-    │                                      │
-```
-
-### Các endpoint hỗ trợ phân trang
+**Endpoints hỗ trợ phân trang:**
 
 | Endpoint | Params | Giới hạn |
 |---|---|---|
@@ -613,71 +733,159 @@ useEffect(() => { setPage(1); }, [search, filterStatus, sortBy]);
 | `GET /api/recurring` | `page, pageSize` | pageSize ≤ 100 |
 | `GET /api/bills` | `page, pageSize` | pageSize ≤ 100 |
 
----
+### Frontend — `PaginationBar`
 
-## 🧪 Unit Tests (321 tests — all pass)
-
-| Test class | Số tests | Coverage |
-|---|---|---|
-| AuthServiceTests | ~15 | Register, Login, Refresh, Profile, ChangePassword |
-| BudgetServiceTests | ~25 | CRUD budgets + savings, validation (AccountId, type, ownership) |
-| TransactionServiceTests | 26 | CRUD transactions, expense/income category lookup, cash flow |
-| AccountServiceTests | ~20 | CRUD accounts, pagination, balance update |
-| DashboardServiceTests | ~30 | Dashboard data aggregation, charts |
-| InsightServiceTests | ~25 | Spending insights, trends |
-| SearchServiceTests | ~20 | Search accounts, transactions |
-| BillServiceTests | ~20 | CRUD bills, recurring logic |
-| CurrencyServiceTests | ~15 | Currency CRUD, exchange rates |
-| ExchangeRateServiceTests | ~15 | Exchange rate management |
-| RecurringServiceTests | ~20 | Recurring journal processing |
-| WebhookServiceTests | ~15 | Webhook triggering, retry |
-| AttachmentServiceTests | ~15 | File upload, download |
-| RuleServiceTests | ~20 | Rule matching, actions |
-| ExportServiceTests | 19 | CSV/JSON/Excel export formats |
-| PasswordStrengthValidatorTests | ~10 | Password validation rules |
-| PaginatedResultTests | ~5 | Pagination helper |
-| AccountControllerTests | ~10 | Controller binding, validation |
+```jsx
+<PaginationBar
+    currentPage={page}          // Trang hiện tại
+    totalPages={totalPages}     // Tổng số trang
+    totalCount={totalCount}     // Tổng số bản ghi
+    pageSize={pageSize}         // Số bản ghi/trang
+    onPageChange={(p) => ...}   // Callback đổi trang
+    onPageSizeChange={(s) => ...} // Callback đổi pageSize
+    pageSizeOptions={[5,10,20]} // Tùy chọn pageSize
+/>
+```
 
 ---
 
-## 🔧 Danh sách Bug đã fix (10 bugs)
+## 💡 Utility: Session-based Toast Dedup
 
-| # | File | Vấn đề | Mức | Trạng thái |
-|---|---|---|---|---|
-| **1** | `CategoriesContext.jsx:84` | `if (user) return;` → `if (!user) return;` | 🔴 | ✅ **Fixed** |
-| **2** | `TransactionService.cs:62-88` | Auto-create Account khi tạo giao dịch — thay bằng FindByUserAndNameAsync + throw error | 🔴 | ✅ **Fixed** |
-| **3** | `EditBudgetModal.jsx` | Thiếu icon/color picker — thêm 19 icons + 10 colors + live preview | 🟡 | ✅ **Fixed** |
-| **4** | `CategoriesContext.jsx:87-92` | Gộp nhầm Liabilities (typeId=2) vào Expense categories — bỏ liabilityRes | 🟡 | ✅ **Fixed** |
-| **5** | `BudgetService.cs` | `TypeExpenseAccount = 5` đặt giữa các method — chuyển lên đầu class | 🟢 | ✅ **Fixed** |
-| **6** | `IBudgetService.cs` vs `Budgetservice.cs` | Parameter name: `int budgetId` vs `int accountId` | 🟢 | ✅ **Không cần fix** (Impl dùng `accountId` đúng) |
-| **7** | `Budgetdtos.cs` | Thiếu `[Required]` / `[Range]` validation attributes | 🟢 | ✅ **Fixed** |
-| **8** | `ExportService.cs` | `CollectBudgetsAsync` không include PiggyBankEvents — thêm Include + 2 cột events_count, net_deposited | 🟢 | ✅ **Fixed** |
-| **9** | `AuthService.cs:58` | Magic string `"Initial"` — extract thành `AccountConstants.InitialEquity` | 🟢 | ✅ **Fixed** |
-| **10** | `AddBudgetModal.jsx:55` | Filter còn typeId=2 (Liabilities) — bỏ `|| c.typeId === 2` | 🟢 | ✅ **Fixed** |
+**File:** `src/app/utils/toastOnce.jsx`
+
+Ngăn toast trùng lặp trong cùng session. Dùng `Set` module-level (tồn tại khi chưa refresh trang).
+
+```javascript
+import { shouldShowToast } from '../../utils/toastOnce';
+
+const toastKey = `budget-over:${b.id}`;
+if (shouldShowToast(toastKey)) {
+    toast.error(`"${b.name}" đã vượt hạn mức!`);
+}
+addNotification({ type: 'error', title: '⚠️ Vượt hạn mức...', message: `...` });
+```
 
 ---
 
 ## 🔐 API Endpoints
 
-### Gateway (`localhost:5229`)
+### AuthService (Port 5100)
 
-| Method | Path | Service |
+| Method | Path | Mô tả |
 |---|---|---|
-| POST | `/api/auth/register` | AuthService |
-| POST | `/api/auth/login` | AuthService |
-| POST | `/api/auth/refresh` | AuthService |
-| GET/PUT | `/api/auth/profile` | AuthService |
-| GET/POST/PUT/DELETE | `/api/budgets/**` | APIService |
-| GET/POST/PUT/DELETE | `/api/transactions/**` | APIService |
-| GET/POST/PUT/DELETE | `/api/accounts/**` | APIService |
-| GET/POST/PUT/DELETE | `/api/currencies/**` | APIService |
-| GET/POST/PUT/DELETE | `/api/bills/**` | APIService |
-| GET/POST/PUT/DELETE | `/api/rules/**` | APIService |
-| GET/POST/PUT/DELETE | `/api/webhooks/**` | APIService |
-| GET | `/api/dashboard/**` | APIService |
-| GET | `/api/insights/**` | APIService |
-| GET | `/api/search/**` | APIService |
-| GET | `/api/export/**` | APIService |
+| POST | `/api/auth/signup` | Đăng ký |
+| POST | `/api/auth/signin` | Đăng nhập |
+| POST | `/api/auth/refresh` | Refresh token |
+| GET | `/api/auth/profile` | Lấy profile |
+| PUT | `/api/auth/profile` | Cập nhật profile |
+| PUT | `/api/auth/change-password` | Đổi mật khẩu |
+
+### APIService — Gateway (`localhost:5229/api/`)
+
+#### Accounts
+| Method | Path | Mô tả |
+|---|---|---|
+| GET | `/accounts?page=&pageSize=` | Danh sách tài khoản (phân trang) |
+| GET | `/accounts/{id}` | Chi tiết tài khoản |
+| GET | `/accounts/type/{typeId}` | Lọc theo loại (1=Asset, 2=Liability, ...) |
+| POST | `/accounts` | Tạo tài khoản |
+| PUT | `/accounts/{id}` | Cập nhật tài khoản |
+| DELETE | `/accounts/{id}` | Xóa tài khoản |
+
+#### Budgets
+| Method | Path | Mô tả |
+|---|---|---|
+| GET | `/budgets/expense?page=&pageSize=&search=&filterStatus=&sortBy=` | DS ngân sách |
+| GET | `/budgets/expense/{id}` | Chi tiết ngân sách |
+| POST | `/budgets/expense` | Tạo ngân sách |
+| PUT | `/budgets/expense/{id}` | Cập nhật ngân sách |
+| DELETE | `/budgets/{id}` | Xóa ngân sách |
+| GET | `/budgets/savings` | DS ống heo |
+| GET | `/budgets/savings/{id}` | Chi tiết ống heo |
+| POST | `/budgets/savings` | Tạo ống heo |
+| PUT | `/budgets/savings/{id}` | Cập nhật ống heo |
+| POST | `/budgets/savings/{id}/add` | Nạp tiền |
+| POST | `/budgets/savings/{id}/remove` | Rút tiền |
+| POST | `/budgets/savings/{id}/reset` | Reset lịch sử |
+| GET | `/budgets/savings/{id}/events` | Lịch sử giao dịch |
+
+#### Transactions
+| Method | Path | Mô tả |
+|---|---|---|
+| GET | `/transactions?page=&pageSize=` | DS giao dịch |
+| GET | `/transactions/{id}` | Chi tiết |
+| POST | `/transactions` | Tạo giao dịch |
+| PUT | `/transactions/{id}` | Cập nhật |
+| DELETE | `/transactions/{id}` | Xóa |
+| GET | `/transactions/range?from=&to=` | Theo khoảng ngày |
+| GET | `/transactions/range/account?accountId=&from=&to=` | Theo khoảng ngày + tài khoản |
+| GET | `/transactions/cashflow?from=&to=` | Dòng tiền |
+
+#### Dashboard
+| Method | Path | Mô tả |
+|---|---|---|
+| GET | `/dashboard/summary` | Tổng quan |
+| GET | `/dashboard/recent?count=` | Giao dịch gần đây |
+
+#### Bills, Currencies, Exchange Rates, Rules, Webhooks, Recurring, Search, Export, Insights
+| Method | Path | Mô tả |
+|---|---|---|
+| CRUD | `/bills/**` | Hóa đơn định kỳ |
+| CRUD | `/currencies/**` | Tiền tệ |
+| CRUD | `/exchange-rates/**` | Tỷ giá |
+| CRUD | `/rules/**` + `/rule-groups/**` | Rules Engine |
+| CRUD | `/webhooks/**` | Webhooks |
+| CRUD | `/recurring/**` | Giao dịch định kỳ |
+| GET | `/search/**` | Tìm kiếm |
+| GET | `/export/**` | Export dữ liệu |
+| GET | `/insights/**` | Thống kê chi tiêu |
+
+---
+
+## 🧪 Unit Tests (321 tests — all pass)
+
+| Test class | Tests | Coverage |
+|---|---|---|
+| AuthServiceTests | 17 | Register, Login, Refresh, Profile, ChangePassword |
+| BudgetServiceTests | 18 | CRUD budgets + savings, validation, ownership |
+| TransactionServiceTests | 26 | CRUD, category lookup, cash flow, budget update |
+| AccountServiceTests | ~20 | CRUD, pagination, balance, by-type filter |
+| DashboardServiceTests | 8 | Summary aggregation, recent transactions |
+| InsightServiceTests | 16 | Spending insights, trends |
+| SearchServiceTests | 18 | Multi-field search |
+| BillServiceTests | 14 | CRUD, recurring logic |
+| CurrencyServiceTests | 20 | CRUD, primary currency |
+| ExchangeRateServiceTests | 19 | Rate management, sync |
+| RecurringServiceTests | 16 | Processing, instance tracking |
+| WebhookServiceTests | ~15 | Dispatch, delivery, messages |
+| AttachmentServiceTests | 3 | CRUD |
+| RuleServiceTests | 20 | Matching, actions, groups, test/trigger |
+| ExportServiceTests | 19 | CSV/JSON/Excel formats |
+| PasswordStrengthValidatorTests | 14 | All password rules |
+| PaginatedResultTests | 10 | Computed fields |
+| AccountControllerTests | 11 | Controller validation, binding |
+
+---
+
+## 🔧 Danh sách Bug đã fix
+
+| # | File | Vấn đề | Fix |
+|---|---|---|---|
+| 1 | CategoriesContext.jsx | `if (user) return;` sai logic | Đổi thành `if (!user) return;` |
+| 2 | TransactionService.cs | Auto-create Account khi tạo giao dịch | FindByUserAndNameAsync + throw error |
+| 3 | EditBudgetModal.jsx | Thiếu icon/color picker | Thêm 19 icons + 10 colors + live preview |
+| 4 | CategoriesContext.jsx | Gộp nhầm Liabilities vào Expense | Bỏ `liabilityRes` filter |
+| 5 | BudgetService.cs | Constant sai vị trí | Chuyển `TypeExpenseAccount` lên đầu class |
+| 6 | Budgetdtos.cs | Thiếu validation attributes | Thêm `[Required]`, `[Range]` |
+| 7 | ExportService.cs | Thiếu PiggyBankEvents trong export | Thêm Include + events_count, net_deposited |
+| 8 | AuthService.cs | Magic string "Initial" | Extract thành constant |
+| 9 | AddBudgetModal.jsx | Filter còn typeId=2 (Liabilities) | Bỏ `|| c.typeId === 2` |
+| 10 | Dashboard.jsx | Thiếu `useState` cho piggyBanks | Thêm `const [piggyBanks, setPiggyBanks] = useState([])` |
+| 11 | BudgetDetail.jsx | Date range giới hạn tới hôm nay, bỏ sót transactions | Mở rộng `to` date + dùng `getByRangeAndAccount` API |
+| 12 | AddTransactionModal.jsx | Debt payment không hiển thị liability accounts | Sửa dropdown đích hiển thị liabilities khi check "Thanh toán nợ" |
+| 13 | QuickTransferModal.jsx | Debt payment không hiển thị liability accounts | Sửa dropdown đích hiển thị liabilities khi check "Thanh toán nợ" |
+| 14 | Budgets.jsx, BudgetDetail.jsx | Toast lặp lại mỗi lần load trang | Thêm session-based dedup (`shouldShowToast`) |
+| 15 | Subscriptions.jsx, SubscriptionDetail.jsx | Toast lặp lại | Thêm session-based dedup |
 
 ---
 
@@ -687,14 +895,27 @@ useEffect(() => { setPage(1); }, [search, filterStatus, sortBy]);
 |---|---|
 | Accounts | 19 (Assets: 5, Liabilities: 2, Equity: 1, Revenue: 4, Expense: 7) |
 | Budgets | 11 (Expense: 8, Savings: 3) |
-| Journal Entries | 16 |
+| Journal Entries | 16 (8 expense, 2 income, 3 transfer, 3 other) |
 | Bills | 8 |
 | Recurring Journals | 4 |
 | Currencies | 4 (VND, USD, EUR, JPY) |
 | Exchange Rates | 6 |
 | Rules | 2 (+1 Rule Group) |
 | Webhooks | 2 |
-| Piggy Bank Events | 11 |
+| Piggy Bank Events | 11 (từ các lần nạp/rút ống heo) |
+
+### Expense Budgets + Giao dịch thực tế
+
+| Budget | Target | Spent | Transactions |
+|---|---|---|---|
+| Ăn uống hàng tháng | 3,000,000 | 150,000 | 1 (Ăn trưa cùng đồng nghiệp) |
+| Mua sắm hàng tháng | 2,000,000 | 1,200,000 | 2 (Mua sách, Mua sắm Shopee) |
+| Di chuyển hàng tháng | 1,500,000 | 500,000 | 1 (Đổ xăng xe) |
+| Hóa đơn hàng tháng | 2,000,000 | 1,250,000 | 2 (Tiền điện + hóa đơn tháng 6) |
+| Nhà ở hàng tháng | 5,000,000 | 5,000,000 | 1 (Tiền thuê nhà) |
+| Giải trí hàng tháng | 1,000,000 | 200,000 | 1 (Xem phim CGV) |
+| Sức khỏe | 1,000,000 | 120,000 | 1 (Mua thuốc cảm cúm) |
+| Giáo dục | 2,000,000 | 1,500,000 | 1 (Khóa học React) |
 
 ---
 
@@ -702,9 +923,24 @@ useEffect(() => { setPage(1); }, [search, filterStatus, sortBy]);
 
 | Layer | Công nghệ |
 |---|---|
-| Frontend | React 18, Vite, Tailwind CSS, Recharts, Lucide Icons, Sonner (toast) |
-| Backend | .NET 8, ASP.NET Core, EF Core, Ocelot (Gateway) |
-| Database | SQL Server (2022) |
-| Auth | JWT (BCrypt for password) |
-| Testing | xUnit, Moq, FluentAssertions |
-| Proxy | 127.0.0.1:1434 (SQL Server) |
+| **Frontend** | React 18, Vite 6, Tailwind CSS 4, Recharts, Lucide Icons, Sonner (toast), date-fns, Axios, shadcn/ui (Radix UI) |
+| **Backend** | .NET 8, ASP.NET Core, Entity Framework Core, Ocelot (API Gateway), BCrypt |
+| **Database** | SQL Server 2022 (LocalDB/Container) |
+| **Auth** | JWT (access 5h + refresh 2 ngày), BCrypt |
+| **Testing** | xUnit, Moq, FluentAssertions |
+| **Proxy** | `127.0.0.1:1434` (SQL Server) |
+
+### Frontend Dependencies chính
+
+| Package | Phiên bản | Mục đích |
+|---|---|---|
+| react-router-dom | ^7.14.2 | Routing |
+| recharts | 2.15.2 | Biểu đồ |
+| lucide-react | 0.487.0 | Icons |
+| sonner | 2.0.3 | Toast notifications |
+| date-fns | 3.6.0 | Date formatting |
+| axios | ^1.16.0 | HTTP client |
+| next-themes | 0.4.6 | Dark/Light mode |
+| tailwind-merge | 3.2.0 | Class merge |
+
+---

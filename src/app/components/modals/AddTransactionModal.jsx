@@ -75,7 +75,6 @@ export function AddTransactionModal({
   const [assetAccounts, setAssetAccounts] = useState([]);
   const [walletId, setWalletId] = useState("");
   const [toWalletId, setToWalletId] = useState("");
-  const [isDebtPayment, setIsDebtPayment] = useState(false);
   const [liabilityAccounts, setLiabilityAccounts] = useState([]);
   const [expenseCategory, setExpenseCategory] = useState(DEFAULT_CATEGORY);
   const [incomeCategory, setIncomeCategory] = useState(DEFAULT_CATEGORY);
@@ -91,7 +90,6 @@ export function AddTransactionModal({
   useEffect(() => {
     if (!isOpen) return;
     setTxType(initialType);
-    setIsDebtPayment(false);
     setLiabilityAccounts([]);
     walletApi
       .getByType(1)
@@ -109,7 +107,6 @@ export function AddTransactionModal({
     setTxType(initialType);
     setWalletId("");
     setToWalletId("");
-    setIsDebtPayment(false);
     setExpenseCategory(DEFAULT_CATEGORY);
     setIncomeCategory(DEFAULT_CATEGORY);
     setAmount("");
@@ -123,7 +120,6 @@ export function AddTransactionModal({
     setTxType(key);
     setWalletId("");
     setToWalletId("");
-    setIsDebtPayment(false);
     setExpenseCategory(DEFAULT_CATEGORY);
     setIncomeCategory(DEFAULT_CATEGORY);
     setShowCustomCategory(false);
@@ -148,13 +144,19 @@ export function AddTransactionModal({
       tags: selectedTags.length > 0 ? selectedTags.join(',') : null,
       transactionDate: new Date(date).toISOString(),
     };
-    if (txType === "expense")
+    if (txType === "expense") {
+      const isLiability = liabilityAccounts.some(
+        (a) => a.accountId === expenseCategory.accountId,
+      );
       return {
         ...base,
         debitAccountId: expenseCategory.accountId,
         creditAccountId: parseInt(walletId),
-        expenseCategoryName: expenseCategory.name.trim() || "Chưa phân loại",
+        expenseCategoryName: isLiability
+          ? null
+          : expenseCategory.name.trim() || "Chưa phân loại",
       };
+    }
     if (txType === "income")
       return {
         ...base,
@@ -190,7 +192,6 @@ export function AddTransactionModal({
   };
 
   const walletLabel = (a) => `${a.name} — ${fmt(Math.abs(a.balance ?? 0))}`;
-  const debtWalletLabel = (a) => `${a.name} — Nợ ${fmt(Math.abs(a.balance ?? 0))}`;
 
   return (
     <div
@@ -331,6 +332,48 @@ export function AddTransactionModal({
                         {cat.name}
                       </button>
                     ))}
+
+                    {/* Liability accounts — trả nợ */}
+                    {liabilityAccounts.length > 0 && (
+                      <>
+                        <div className="col-span-2 mt-1 mb-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <div className="h-px flex-1 bg-red-200" />
+                            <HandCoins size={12} className="text-red-400" />
+                            <span className="text-xs font-semibold text-red-500">Trả nợ</span>
+                            <div className="h-px flex-1 bg-red-200" />
+                          </div>
+                        </div>
+                        {liabilityAccounts.map((a) => (
+                          <button
+                            key={a.accountId}
+                            type="button"
+                            onClick={() => {
+                              setExpenseCategory({
+                                accountId: a.accountId,
+                                name: a.name,
+                              });
+                              setShowCustomCategory(false);
+                            }}
+                            className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all flex items-center gap-1.5 ${
+                              expenseCategory.accountId === a.accountId &&
+                              expenseCategory.accountId !== 0
+                                ? "border-red-400 bg-red-50 text-red-700"
+                                : "border-red-200 hover:border-red-300 text-red-600"
+                            }`}
+                          >
+                            <HandCoins size={14} />
+                            <span className="flex-1">{a.name}</span>
+                            {Math.abs(a.balance ?? 0) > 0 && (
+                              <span className="text-xs font-semibold">
+                                {fmt(Math.abs(a.balance))}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </>
+                    )}
+
                     <button
                       type="button"
                       onClick={() => {
@@ -477,34 +520,9 @@ export function AddTransactionModal({
                   )}
                 </div>
 
-                {/* Checkbox: Thanh toán nợ */}
-                <label className="flex items-center gap-2 cursor-pointer select-none p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={isDebtPayment}
-                    onChange={(e) => {
-                      setIsDebtPayment(e.target.checked);
-                      setToWalletId("");
-                    }}
-                    className="w-4 h-4 rounded border-border accent-red-500"
-                  />
-                  <div className="flex items-center gap-1.5">
-                    <HandCoins size={15} className="text-red-500" />
-                    <span className="text-sm font-medium text-foreground">Thanh toán nợ</span>
-                    <span className="text-xs text-muted-foreground">(chọn tài khoản nợ ở ví đích)</span>
-                  </div>
-                </label>
-
                 <div>
                   <label className="block text-sm font-semibold text-foreground mb-1.5">
-                    {isDebtPayment ? (
-                      <span className="flex items-center gap-1.5">
-                        <HandCoins size={14} className="text-red-500" />
-                        Trả nợ cho <span className="text-red-500">*</span>
-                      </span>
-                    ) : (
-                      <>Sang ví <span className="text-red-500">*</span></>
-                    )}
+                    Sang ví <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={toWalletId}
@@ -512,48 +530,31 @@ export function AddTransactionModal({
                     className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 text-sm ${
                       sameWalletError
                         ? "border-red-500 bg-red-500/10"
-                        : isDebtPayment
-                          ? "border-red-300 focus:ring-red-500 bg-red-50/30"
-                          : "border-border focus:ring-purple-500"
+                        : "border-border focus:ring-purple-500"
                     }`}
                     required
                   >
-                    <option value="">
-                      {isDebtPayment ? 'Chọn khoản nợ cần trả' : 'Chọn ví đích'}
-                    </option>
-                    {isDebtPayment
-                      ? liabilityAccounts
-                          .filter((a) => Math.abs(a.balance ?? 0) > 0)
-                          .map((a) => (
-                            <option key={a.accountId} value={a.accountId}>
-                              {debtWalletLabel(a)}
-                            </option>
-                          ))
-                      : assetAccounts
-                          .filter((a) => String(a.accountId) !== walletId)
-                          .map((a) => (
-                            <option key={a.accountId} value={a.accountId}>
-                              {walletLabel(a)}
-                            </option>
-                          ))
+                    <option value="">Chọn ví đích</option>
+                    {assetAccounts
+                        .filter((a) => String(a.accountId) !== walletId)
+                        .map((a) => (
+                          <option key={a.accountId} value={a.accountId}>
+                            {walletLabel(a)}
+                          </option>
+                        ))
                     }
                   </select>
-                  {isDebtPayment && liabilityAccounts.filter(a => Math.abs(a.balance ?? 0) > 0).length === 0 && (
-                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-                      <HandCoins size={12} /> Không có khoản nợ nào. Hãy thêm khoản nợ trước.
-                    </p>
-                  )}
-                  {!isDebtPayment && assetAccounts.length === 0 && (
+                  {assetAccounts.length === 0 && (
                     <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
                       <AlertCircle size={12} /> Chưa có ví. Hãy tạo ví trước.
                     </p>
                   )}
-                  {!isDebtPayment && assetAccounts.length === 1 && (
+                  {assetAccounts.length === 1 && (
                     <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
                       <AlertCircle size={12} /> Chỉ có 1 ví. Hãy tạo thêm ví trước.
                     </p>
                   )}
-                  {!isDebtPayment && sameWalletError && walletId && toWalletId && walletId === toWalletId && (
+                  {sameWalletError && walletId && toWalletId && walletId === toWalletId && (
                     <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
                       <AlertCircle size={12} /> Ví nguồn và ví đích phải khác nhau.
                     </p>
