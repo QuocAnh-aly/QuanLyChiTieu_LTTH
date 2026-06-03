@@ -2,7 +2,7 @@ import {
   useState, useEffect, useCallback, useMemo, Fragment, useRef,
 } from "react";
 import {
-  ArrowUpRight, ArrowDownRight, ArrowLeftRight,
+  ArrowUpRight, ArrowDownRight, ArrowLeftRight, HandCoins,
   Search, Plus, Trash2, Pencil, RefreshCw, TrendingUp,
 } from "lucide-react";
 import {
@@ -19,7 +19,7 @@ import { EditTransactionModal } from "../../components/modals/EditTransactionMod
 import { useSettings } from "../../context/SettingsContext";
 import { useNotifications } from "../../context/NotificationContext";
 
-// typeId: 1=Assets, 4=Revenue, 5=Expense
+// typeId: 1=Assets, 2=Liabilities, 4=Revenue, 5=Expense
 // Source = credit side, Destination = debit side (Firefly III model)
 function mapTransaction(t) {
   const details       = t.details || [];
@@ -27,16 +27,20 @@ function mapTransaction(t) {
   const creditDetail  = details.find(d => d.credit > 0);
   const expenseDetail = details.find(d => d.typeId === 5 && d.debit  > 0);
   const revenueDetail = details.find(d => d.typeId === 4 && d.credit > 0);
-  const isTransfer    = !expenseDetail && !revenueDetail;
+  const repaymentDetail = details.find(d => d.typeId === 2 && d.debit > 0);
+  const isRepayment   = !!repaymentDetail && !expenseDetail && !revenueDetail;
+  const isTransfer    = !expenseDetail && !revenueDetail && !isRepayment;
   const isIncome      = !!revenueDetail;
   let categoryName    = "Chưa phân loại";
-  if (expenseDetail)      categoryName = expenseDetail.accountName || "Chi tiêu";
+  if (isRepayment)        categoryName = repaymentDetail?.accountName || "Trả nợ";
+  else if (expenseDetail) categoryName = expenseDetail.accountName || "Chi tiêu";
   else if (revenueDetail) categoryName = revenueDetail.accountName || "Thu nhập";
   else if (isTransfer)    categoryName = "Chuyển khoản";
   return {
     ...t,
     categoryName,
     isIncome,
+    isRepayment,
     isTransfer,
     sourceAccount: creditDetail?.accountName || "—",
     destAccount:   debitDetail?.accountName  || "—",
@@ -167,7 +171,7 @@ export function Transactions() {
         // Estimate cash flow from loaded page
         setCashFlow({
           totalIncome:  items.filter(t => t.isIncome).reduce((s, t) => s + t.totalAmount, 0),
-          totalExpense: items.filter(t => !t.isIncome && !t.isTransfer).reduce((s, t) => s + t.totalAmount, 0),
+          totalExpense: items.filter(t => !t.isIncome && !t.isTransfer && !t.isRepayment).reduce((s, t) => s + t.totalAmount, 0),
           netCashFlow:  0,
         });
       }
@@ -236,10 +240,11 @@ export function Transactions() {
       (t.description ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.categoryName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchType =
-      filterType === "all"      ||
-      (filterType === "income"   && t.isIncome)              ||
-      (filterType === "transfer" && t.isTransfer)            ||
-      (filterType === "expense"  && !t.isIncome && !t.isTransfer);
+      filterType === "all"          ||
+      (filterType === "income"      && t.isIncome)                ||
+      (filterType === "transfer"    && t.isTransfer)              ||
+      (filterType === "expense"     && !t.isIncome && !t.isTransfer && !t.isRepayment) ||
+      (filterType === "repayment"   && t.isRepayment);
     return matchSearch && matchType;
   }), [transactions, searchTerm, filterType]);
 
@@ -257,14 +262,15 @@ export function Transactions() {
   }, [filtered]);
 
   const amountDisplay = (t) => {
-    if (t.isTransfer) return <span className="text-blue-600">{fmt(t.totalAmount)}</span>;
-    if (t.isIncome)   return <span className="text-green-600">+{fmt(t.totalAmount)}</span>;
-    return                   <span className="text-card-foreground">-{fmt(t.totalAmount)}</span>;
+    if (t.isRepayment) return <span className="text-red-600">-{fmt(t.totalAmount)}</span>;
+    if (t.isTransfer)  return <span className="text-blue-600">{fmt(t.totalAmount)}</span>;
+    if (t.isIncome)    return <span className="text-green-600">+{fmt(t.totalAmount)}</span>;
+    return                    <span className="text-card-foreground">-{fmt(t.totalAmount)}</span>;
   };
 
-  const txBg   = (t) => t.isTransfer ? "bg-blue-50" : t.isIncome ? "bg-green-100" : "bg-red-50";
-  const TxIcon = (t) => t.isTransfer ? ArrowLeftRight : t.isIncome ? ArrowUpRight : ArrowDownRight;
-  const txIconCls = (t) => t.isTransfer ? "text-blue-500" : t.isIncome ? "text-green-600" : "text-red-500";
+  const txBg   = (t) => t.isRepayment ? "bg-red-100" : t.isTransfer ? "bg-blue-50" : t.isIncome ? "bg-green-100" : "bg-red-50";
+  const TxIcon = (t) => t.isRepayment ? HandCoins : t.isTransfer ? ArrowLeftRight : t.isIncome ? ArrowUpRight : ArrowDownRight;
+  const txIconCls = (t) => t.isRepayment ? "text-red-600" : t.isTransfer ? "text-blue-500" : t.isIncome ? "text-green-600" : "text-red-500";
 
   const netPositive = cashFlow.netCashFlow >= 0;
 
@@ -402,6 +408,7 @@ export function Transactions() {
               { key: "all",      label: "Tất cả"       },
               { key: "income",   label: "Thu nhập"     },
               { key: "expense",  label: "Chi tiêu"     },
+              { key: "repayment", label: "Trả nợ"      },
               { key: "transfer", label: "Chuyển khoản" },
             ].map(({ key, label }) => (
               <button
@@ -446,7 +453,7 @@ export function Transactions() {
                 {[...grouped.entries()].map(([dateKey, txs]) => {
                   const dateLabel = format(new Date(dateKey), "EEEE, dd/MM/yyyy", { locale: vi });
                   const dayIncome  = txs.filter(t => t.isIncome).reduce((s, t) => s + t.totalAmount, 0);
-                  const dayExpense = txs.filter(t => !t.isIncome && !t.isTransfer).reduce((s, t) => s + t.totalAmount, 0);
+                  const dayExpense = txs.filter(t => !t.isIncome && !t.isTransfer && !t.isRepayment).reduce((s, t) => s + t.totalAmount, 0);
 
                   return (
                     <Fragment key={dateKey}>
@@ -487,7 +494,8 @@ export function Transactions() {
                                 <ArrowLeftRight size={10} className="text-muted-foreground shrink-0" />
                                 <span className={`font-semibold max-w-[70px] sm:max-w-[90px] truncate ${
                                   t.isTransfer ? "text-blue-600" :
-                                  t.isIncome   ? "text-green-600" : "text-red-600"
+                                  t.isIncome   ? "text-green-600" :
+                                  t.isRepayment ? "text-red-600" : "text-red-600"
                                 }`} title={t.destAccount}>
                                   {t.destAccount}
                                 </span>

@@ -637,12 +637,43 @@ export function AddTransactionModal({
                       <HandCoins size={16} />
                       <span className="font-semibold">Trả {selectedLiability.name}</span>
                     </div>
+                    {/* DueDate & InterestRate của khoản nợ đã chọn */}
+                    <div className="flex items-center gap-3 mt-1.5 text-[11px]">
+                      {selectedLiability.dueDate && (
+                        <span className={`flex items-center gap-1 ${
+                          new Date(selectedLiability.dueDate) < new Date()
+                            ? 'text-red-500 font-semibold'
+                            : 'text-red-600/70'
+                        }`}>
+                          📅 Hạn: {new Date(selectedLiability.dueDate).toLocaleDateString('vi-VN')}
+                          {new Date(selectedLiability.dueDate) < new Date() && ' ⚠️'}
+                        </span>
+                      )}
+                      {selectedLiability.interestRate != null && selectedLiability.interestRate > 0 && (
+                        <span className="text-red-600/70 flex items-center gap-1">
+                          📊 Lãi suất: {selectedLiability.interestRate}%/năm
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center justify-between mt-1.5 text-xs text-red-600">
-                      <span>Trả từ ví {assetAccounts.find(a => String(a.accountId) === walletId)?.name || ''}</span>
+                      <span>
+                        Trả từ ví{' '}
+                        <strong>
+                          {assetAccounts.find(a => String(a.accountId) === walletId)?.name || ''}
+                        </strong>
+                      </span>
                       <span className="font-bold text-sm">
                         {amount ? fmt(parseFloat(amount)) : '-'} {currencySymbol}
                       </span>
                     </div>
+                    {parseFloat(amount || '0') > 0 && selectedLiability.balance && (
+                      <div className="mt-1.5 pt-1.5 border-t border-red-200/60 flex items-center justify-between text-[11px] text-red-500">
+                        <span>Dư nợ còn lại sau khi trả:</span>
+                        <span className="font-semibold">
+                          {fmt(Math.abs(selectedLiability.balance) - parseFloat(amount))}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
               </>
