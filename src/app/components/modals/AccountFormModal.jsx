@@ -1,4 +1,4 @@
-import { X, Check, Landmark, Wallet, TrendingUp, CreditCard, PiggyBank, Home, HandCoins, Tag, ArrowLeftRight, DollarSign, ChevronDown, Sparkles } from "lucide-react";
+import { X, Check, Landmark, Wallet, TrendingUp, ShoppingCart, PiggyBank, Home, HandCoins, Tag, ArrowLeftRight, DollarSign, ChevronDown, Sparkles } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { accountApi } from "../../api/accountApi";
 import { formatVND, parseVND } from "../../utils/formatMoney";
@@ -36,7 +36,7 @@ const ACCOUNT_TYPES = [
   { typeId: 1, icon: Landmark,  label: 'Tài sản',    gradient: 'from-purple-500 to-purple-700', color: '#7c3aed' },
   { typeId: 2, icon: HandCoins, label: 'Nợ',         gradient: 'from-red-500 to-red-700',     color: '#dc2626' },
   { typeId: 4, icon: TrendingUp, label: 'Thu nhập',  gradient: 'from-emerald-500 to-emerald-700', color: '#059669' },
-  { typeId: 5, icon: CreditCard, label: 'Chi tiêu',  gradient: 'from-orange-500 to-orange-700', color: '#ea580c' },
+  { typeId: 5, icon: ShoppingCart, label: 'Chi tiêu',  gradient: 'from-orange-500 to-orange-700', color: '#ea580c' },
 ];
 
 const ACCOUNT_TYPE_MAP = Object.fromEntries(ACCOUNT_TYPES.map(t => [t.typeId, t]));
