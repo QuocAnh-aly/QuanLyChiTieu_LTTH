@@ -1,4 +1,4 @@
-import { X, Check, Landmark, Wallet, TrendingUp, ShoppingCart, PiggyBank, Home, HandCoins, Tag, ArrowLeftRight, DollarSign, ChevronDown, Sparkles } from "lucide-react";
+import { X, Check, Landmark, Wallet, TrendingUp, ShoppingCart, PiggyBank, Home, CreditCard, HandCoins, Tag, ArrowLeftRight, DollarSign, ChevronDown, Sparkles } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { accountApi } from "../../api/accountApi";
 import { formatVND, parseVND } from "../../utils/formatMoney";
@@ -30,6 +30,17 @@ const ASSET_SUBTYPES = [
 
 const ASSET_SUBTYPE_MAP = Object.fromEntries(ASSET_SUBTYPES.map(s => [s.key, s]));
 const SUBTYPE_ICONS = { Landmark, Wallet, PiggyBank, TrendingUp, Home };
+
+// Sub-types for Liabilities (typeId=2)
+const LIABILITY_SUBTYPES = [
+  { key: 'bank-loan',   label: 'Vay ngân hàng',   iconName: 'Landmark',      color: 'blue',    from: '#3b82f6', to: '#1d4ed8'  },
+  { key: 'credit-card', label: 'Nợ thẻ tín dụng',  iconName: 'CreditCard',    color: 'red',     from: '#ef4444', to: '#b91c1c'  },
+  { key: 'personal',    label: 'Vay mượn',         iconName: 'HandCoins',     color: 'amber',   from: '#f59e0b', to: '#d97706'  },
+  { key: 'other-debt',  label: 'Nợ khác',          iconName: 'ArrowLeftRight', color: 'slate',  from: '#64748b', to: '#475569'  },
+];
+
+const LIABILITY_SUBTYPE_MAP = Object.fromEntries(LIABILITY_SUBTYPES.map(s => [s.key, s]));
+const LIABILITY_SUBTYPE_ICONS = { Landmark, CreditCard, HandCoins, ArrowLeftRight };
 
 // Account types for the selector bar
 const ACCOUNT_TYPES = [
@@ -86,7 +97,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
 
   const blankForm = () => ({
     name: '',
-    assetSubtype: activeTypeId === 1 ? 'bank' : '',
+    assetSubtype: activeTypeId === 1 ? 'bank' : activeTypeId === 2 ? 'bank-loan' : '',
     color: DEFAULT_COLORS[activeTypeId] || 'blue',
     cardNumber: '',
     balance: '',
@@ -100,7 +111,11 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
   const [sourceAccounts, setSourceAccounts] = useState([]);
   const [loadingSources, setLoadingSources] = useState(false);
 
-  const selectedSubtype = isAsset ? ASSET_SUBTYPE_MAP[form.assetSubtype] : null;
+  const selectedSubtype = isAsset
+    ? ASSET_SUBTYPE_MAP[form.assetSubtype]
+    : isLiability
+      ? LIABILITY_SUBTYPE_MAP[form.assetSubtype]
+      : null;
   const hasSource = form.sourceAccountId && !isEdit;
 
   // Reset form khi chuyển loại
@@ -109,7 +124,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
     setActiveTypeId(newTypeId);
     setForm({
       name: '',
-      assetSubtype: newTypeId === 1 ? 'bank' : '',
+      assetSubtype: newTypeId === 1 ? 'bank' : newTypeId === 2 ? 'bank-loan' : '',
       color: DEFAULT_COLORS[newTypeId] || 'blue',
       cardNumber: '',
       balance: '',
@@ -176,7 +191,9 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
   useEffect(() => {
     if (!isOpen) return;
     if (account) {
-      const iconToKey = { Landmark: 'bank', Wallet: 'cash', WalletIcon: 'cash', PiggyBank: 'savings', TrendingUp: 'investment', Home: 'property' };
+      const assetIconToKey = { Landmark: 'bank', Wallet: 'cash', WalletIcon: 'cash', PiggyBank: 'savings', TrendingUp: 'investment', Home: 'property' };
+      const liabilityIconToKey = { Landmark: 'bank-loan', CreditCard: 'credit-card', HandCoins: 'personal', ArrowLeftRight: 'other-debt' };
+      const iconToKey = account.typeId === 2 ? liabilityIconToKey : assetIconToKey;
       setForm({
         name:           account.name        || '',
         assetSubtype:   iconToKey[account.iconName] || '',
@@ -202,7 +219,11 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
   };
 
   const handleSubtypeSelect = (key) => {
-    const st = ASSET_SUBTYPE_MAP[key];
+    const st = isAsset
+      ? ASSET_SUBTYPE_MAP[key]
+      : isLiability
+        ? LIABILITY_SUBTYPE_MAP[key]
+        : null;
     if (!st) return;
     setForm(f => ({ ...f, assetSubtype: key, color: st.color }));
   };
@@ -221,10 +242,14 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
       setError('Vui lòng chọn loại tài sản');
       return;
     }
+    if (isLiability && !selectedSubtype && !isEdit) {
+      setError('Vui lòng chọn loại nợ');
+      return;
+    }
 
     let col;
     let iconName;
-    if (isAsset && selectedSubtype) {
+    if (selectedSubtype) {
       col = COLOR_MAP[form.color] || COLOR_MAP.blue;
       iconName = selectedSubtype.iconName;
     } else {
@@ -556,6 +581,60 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
                     >
                       {(() => {
                         const PreviewIcon = SUBTYPE_ICONS[selectedSubtype.iconName] || Landmark;
+                        return <PreviewIcon size={14} />;
+                      })()}
+                      {selectedSubtype.label}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Liability sub-type */}
+              {isLiability && !isEdit && (
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-2">
+                    Loại nợ <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {LIABILITY_SUBTYPES.map(st => {
+                      const isActive = form.assetSubtype === st.key;
+                      const SubIcon = LIABILITY_SUBTYPE_ICONS[st.iconName] || HandCoins;
+                      return (
+                        <button
+                          key={st.key}
+                          type="button"
+                          onClick={() => handleSubtypeSelect(st.key)}
+                          className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 transition-all duration-200 ${
+                            isActive
+                              ? 'border-red-500 bg-red-50 dark:bg-red-900/30 shadow-sm'
+                              : 'border-border hover:border-muted-foreground/30 hover:bg-muted'
+                          }`}
+                        >
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 transition-all duration-200"
+                            style={{
+                              background: isActive
+                                ? `linear-gradient(135deg, ${st.from}, ${st.to})`
+                                : 'var(--color-muted)',
+                              transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                            }}
+                          >
+                            <SubIcon size={14} />
+                          </div>
+                          <span className={`text-[10px] font-semibold text-center leading-tight ${isActive ? 'text-red-700 dark:text-red-300' : 'text-muted-foreground'}`}>
+                            {st.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedSubtype && (
+                    <div
+                      className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl text-white text-xs font-semibold animate-in fade-in slide-in-from-top-1 duration-200"
+                      style={{ background: `linear-gradient(90deg, ${selectedSubtype.from}, ${selectedSubtype.to})` }}
+                    >
+                      {(() => {
+                        const PreviewIcon = LIABILITY_SUBTYPE_ICONS[selectedSubtype.iconName] || HandCoins;
                         return <PreviewIcon size={14} />;
                       })()}
                       {selectedSubtype.label}
