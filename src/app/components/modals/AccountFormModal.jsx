@@ -317,6 +317,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
         {/* ─────── Content (scrollable) ─────── */}
         <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
           <form onSubmit={handleSubmit} id="account-form">
+            <div key={activeTypeId} className="animate-in fade-in slide-in-from-bottom-1 duration-300">
             {/* ═══════════════ SECTION: SỐ TIỀN ═══════════════ */}
             <div className="mb-6">
               <div className="flex items-center gap-2 mb-4">
@@ -621,6 +622,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
                   />
                 </div>
               )}
+            </div>
             </div>
           </form>
         </div>
