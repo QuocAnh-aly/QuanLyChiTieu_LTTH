@@ -253,17 +253,9 @@ public class BillServiceTests
     public async Task RescanAsync_ActiveBill_LinksEntries()
     {
         var bill = MakeBill(1, name: "Test Bill");
-        // One matching expense inside the first billing period (starts 2026-01-15).
-        var candidates = new List<BillMatchCandidate>
-        {
-            new() { JournalId = 99, TransactionDate = new DateTime(2026, 1, 20), Amount = 250m },
-        };
         _billRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(bill);
         _billRepoMock.Setup(r => r.UnlinkAllEntriesAsync(1)).Returns(Task.CompletedTask);
-        _billRepoMock.Setup(r => r.GetMatchCandidatesAsync(
-                _userId, 200m, 300m, It.IsAny<DateTime>(), It.IsAny<DateTime>()))
-            .ReturnsAsync(candidates);
-        _billRepoMock.Setup(r => r.LinkEntriesAsync(1, It.IsAny<IEnumerable<int>>()))
+        _billRepoMock.Setup(r => r.LinkEntriesByAmountAsync(1, _userId, 200m, 300m))
             .Returns(Task.CompletedTask);
         _billRepoMock.Setup(r => r.GetLinkedEntriesAsync(1))
             .ReturnsAsync(Array.Empty<JournalEntry>());
@@ -271,9 +263,7 @@ public class BillServiceTests
         var result = await _service.RescanAsync(_userId, 1);
 
         result.Name.Should().Be("Test Bill");
-        // The candidate in the first period should be selected for linking.
-        _billRepoMock.Verify(r => r.LinkEntriesAsync(1,
-            It.Is<IEnumerable<int>>(ids => ids.Contains(99))), Times.Once);
+        _billRepoMock.Verify(r => r.LinkEntriesByAmountAsync(1, _userId, 200m, 300m), Times.Once);
     }
 
     [Fact]

@@ -437,7 +437,7 @@ export function AssetAccounts() {
                 animationDuration={600}
                 animationEasing="ease-out"
                 dot={(props) => {
-                  const { cx, cy, payload, index } = props;
+                  const { cx, cy, payload } = props;
                   if (!payload) return null;
                   const idx = payload.monthIndex + payload.year * 12;
                   const startIdx = selectedRange ? selectedRange.start.monthIndex + selectedRange.start.year * 12 : -1;
@@ -447,7 +447,6 @@ export function AssetAccounts() {
                   const isEnd   = selectedRange && idx === endIdx;
                   return (
                     <circle
-                      key={`dot-${payload.monthIndex}-${payload.year}-${index}`}
                       cx={cx}
                       cy={cy}
                       r={isStart || isEnd ? 9 : inRange ? 7 : 4}

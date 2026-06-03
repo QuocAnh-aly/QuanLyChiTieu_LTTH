@@ -1,54 +1,25 @@
-import { X, Plus, PiggyBank, ArrowRight, AlertCircle } from "lucide-react";
-import { useState, useEffect } from "react";
-import { walletApi } from "../../api/walletApi";
+import { X, Plus, PiggyBank } from "lucide-react";
+import { useState } from "react";
 import { useSettings } from "../../context/SettingsContext";
-
 export function AddMoneyModal({ isOpen, onClose, onSave, goal }) {
   const { fmt, currencySymbol } = useSettings();
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
-  const [sourceId, setSourceId] = useState("");
-  const [accounts, setAccounts] = useState([]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    setAmount("");
-    setNotes("");
-    setSourceId("");
-    walletApi
-      .getByType(1)
-      .then((data) => setAccounts(data.items || data || []))
-      .catch(() => setAccounts([]));
-  }, [isOpen]);
 
   if (!isOpen || !goal) return null;
-
-  // Money flows FROM a source account INTO the savings account this goal is linked to.
-  const sources = accounts.filter((a) => String(a.accountId) !== String(goal.accountId));
-  const hasSources = sources.length > 0;
 
   const leftToSave =
     goal.leftToSave ?? Math.max(0, goal.targetAmount - goal.currentAmount);
   const maxAmount = leftToSave;
   const enteredAmount = parseFloat(amount) || 0;
-  const sourceAcc = sources.find((a) => String(a.accountId) === String(sourceId));
-  const overBalance = sourceAcc && enteredAmount > (sourceAcc.balance ?? 0);
-  const canSubmit =
-    enteredAmount > 0 &&
-    enteredAmount <= maxAmount &&
-    (!hasSources || (!!sourceId && !overBalance));
+  const canSubmit = enteredAmount > 0 && enteredAmount <= maxAmount;
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!canSubmit) return;
-    onSave({
-      amount: enteredAmount,
-      notes: notes.trim() || null,
-      sourceAccountId: sourceId ? parseInt(sourceId) : null,
-    });
+    onSave({ amount: enteredAmount, notes: notes.trim() || null });
     setAmount("");
     setNotes("");
-    setSourceId("");
   };
 
   return (
@@ -66,9 +37,14 @@ export function AddMoneyModal({ isOpen, onClose, onSave, goal }) {
             <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
               <Plus size={16} className="text-green-600" />
             </div>
-            <h2 className="text-base font-bold text-card-foreground">Nạp tiền tiết kiệm</h2>
+            <h2 className="text-base font-bold text-card-foreground">
+              Nạp tiền
+            </h2>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
+          >
             <X size={18} />
           </button>
         </div>
@@ -78,7 +54,9 @@ export function AddMoneyModal({ isOpen, onClose, onSave, goal }) {
           <div className="flex items-center gap-3">
             <PiggyBank size={18} className="text-muted-foreground shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-foreground truncate">{goal.title}</p>
+              <p className="text-sm font-semibold text-foreground truncate">
+                {goal.title}
+              </p>
               <div className="flex items-center gap-2 mt-0.5">
                 <div className="flex-1 h-1.5 bg-muted rounded-full">
                   <div
@@ -93,51 +71,15 @@ export function AddMoneyModal({ isOpen, onClose, onSave, goal }) {
             </div>
             <div className="text-right shrink-0">
               <p className="text-xs text-muted-foreground">Còn lại</p>
-              <p className="text-sm font-bold text-green-600">{fmt(leftToSave)}</p>
+              <p className="text-sm font-bold text-green-600">
+                {fmt(leftToSave)}
+              </p>
             </div>
           </div>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="px-5 py-4 space-y-4">
-            {/* Source account → real transfer */}
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-1.5">
-                Chuyển từ tài khoản {hasSources && <span className="text-red-500">*</span>}
-              </label>
-              {hasSources ? (
-                <>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={sourceId}
-                      onChange={(e) => setSourceId(e.target.value)}
-                      required
-                      className="flex-1 px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-card"
-                    >
-                      <option value="">Chọn tài khoản nguồn</option>
-                      {sources.map((a) => (
-                        <option key={a.accountId} value={a.accountId}>
-                          {a.name} — {fmt(a.balance ?? 0)}
-                        </option>
-                      ))}
-                    </select>
-                    <ArrowRight size={16} className="text-muted-foreground shrink-0" />
-                    <span className="text-xs font-medium text-green-600 shrink-0 max-w-[90px] truncate" title={goal.accountName}>
-                      {goal.accountName || "Tiết kiệm"}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Tiền sẽ được chuyển khoản thật sang tài khoản tiết kiệm.
-                  </p>
-                </>
-              ) : (
-                <p className="text-xs text-amber-600 flex items-center gap-1">
-                  <AlertCircle size={12} /> Không có tài khoản nguồn — chỉ ghi nhận tiết kiệm.
-                </p>
-              )}
-            </div>
-
-            {/* Amount */}
             <div>
               <label className="block text-sm font-semibold text-foreground mb-1.5">
                 Số tiền nạp <span className="text-red-500">*</span>
@@ -155,7 +97,7 @@ export function AddMoneyModal({ isOpen, onClose, onSave, goal }) {
                   step="1"
                   max={maxAmount}
                   className={`w-full pl-9 pr-4 py-2.5 border rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 ${
-                    enteredAmount > maxAmount || overBalance
+                    enteredAmount > maxAmount
                       ? "border-red-400 focus:ring-red-400"
                       : "border-border focus:ring-green-500"
                   }`}
@@ -164,19 +106,19 @@ export function AddMoneyModal({ isOpen, onClose, onSave, goal }) {
                 />
               </div>
               {enteredAmount > maxAmount && (
-                <p className="text-xs text-red-500 mt-1">Tối đa có thể nạp: {fmt(maxAmount)}</p>
-              )}
-              {overBalance && enteredAmount <= maxAmount && (
                 <p className="text-xs text-red-500 mt-1">
-                  Vượt số dư tài khoản nguồn ({fmt(sourceAcc.balance ?? 0)})
+                  Tối đa có thể nạp: {formatVND(fmt(maxAmount))}
                 </p>
               )}
-              {!enteredAmount && <p className="text-xs text-muted-foreground mt-1">Tối đa: {fmt(maxAmount)}</p>}
+              <p className="text-xs text-muted-foreground mt-1">
+                Tối đa: {fmt(maxAmount)}
+              </p>
             </div>
 
-            {/* Notes */}
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-1.5">Ghi chú</label>
+              <label className="block text-sm font-semibold text-foreground mb-1.5">
+                Ghi chú
+              </label>
               <input
                 type="text"
                 value={notes}

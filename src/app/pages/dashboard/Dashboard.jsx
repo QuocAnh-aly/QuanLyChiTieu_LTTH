@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { dashboardApi } from "../../api/dashboardApi";
 import { piggyBankApi } from "../../api/piggyBankApi";
-import { splitTitle } from "../../utils/savingsGroup";
 import { useAuth } from "../../context/AuthContext";
 import { useSettings } from "../../context/SettingsContext";
 import { toast } from "sonner";
@@ -74,7 +73,6 @@ export function Dashboard() {
   const [monthlyTrend, setMonthlyTrend] = useState([]);
   const [categorySpending, setCategorySpending] = useState([]);
   const [recentTransactions, setRecentTransactions] = useState([]);
-  const [piggyBanks, setPiggyBanks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -131,10 +129,9 @@ export function Dashboard() {
       const goals = (Array.isArray(piggyRaw) ? piggyRaw : []).map(g => {
         const saved  = g.currentAmount ?? 0;
         const target = g.targetAmount  ?? 0;
-        const { group, name, standalone } = splitTitle(g.title || "Mục tiêu");
         return {
           id:     g.budgetId,
-          name:   standalone ? name : `${group} · ${name}`,
+          name:   g.title || "Mục tiêu",
           saved,
           target,
           pct:    Math.min(g.percentage ?? (target > 0 ? (saved / target) * 100 : 0), 100),

@@ -11,13 +11,11 @@ import {
 import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 import { piggyBankApi } from "../../api/piggyBankApi";
-import { transactionApi } from "../../api/transactionApi";
 import { toast } from "sonner";
 import { useNotifications } from "../../context/NotificationContext";
 import { AddMoneyModal } from "../../components/modals/AddMoneyModal";
 import { RemoveMoneyModal } from "../../components/modals/RemoveMoneyModal";
 import { PiggyBankFormModal } from "../../components/modals/PiggyBankFormModal";
-import { splitTitle } from "../../utils/savingsGroup";
 import { useSettings } from "../../context/SettingsContext";
 
 const COLOR_MAP = {
@@ -87,20 +85,8 @@ export function PiggyBankDetail() {
 
   const { addNotification } = useNotifications();
 
-  const handleAddMoney = async ({ amount, notes, sourceAccountId }) => {
+  const handleAddMoney = async ({ amount, notes }) => {
     try {
-      // Real transfer: move money from the source account into the savings account
-      // this goal is linked to, then record the savings event.
-      if (sourceAccountId && goal?.accountId) {
-        await transactionApi.create({
-          amount,
-          description: `Tiết kiệm: ${goal.title}`,
-          notes: notes || null,
-          transactionDate: new Date().toISOString(),
-          debitAccountId: goal.accountId,        // destination (savings)
-          creditAccountId: sourceAccountId,      // source
-        });
-      }
       await piggyBankApi.addMoney(id, { amount, notes });
       await load();
       setAddOpen(false);
@@ -219,17 +205,7 @@ export function PiggyBankDetail() {
             <PiggyBank size={22} className={c.text} />
           </div>
           <div className="min-w-0">
-            {(() => {
-              const { group, name, standalone } = splitTitle(goal.title);
-              return (
-                <>
-                  {!standalone && (
-                    <p className="text-xs font-medium text-purple-600 mb-0.5 truncate">{group}</p>
-                  )}
-                  <h1 className="text-xl md:text-2xl font-bold text-card-foreground truncate">{name}</h1>
-                </>
-              );
-            })()}
+            <h1 className="text-xl md:text-2xl font-bold text-card-foreground truncate">{goal.title}</h1>
             {goal.notes && <p className="text-sm text-muted-foreground mt-0.5 truncate">{goal.notes}</p>}
           </div>
         </div>
