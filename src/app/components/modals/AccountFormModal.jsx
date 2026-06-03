@@ -131,6 +131,8 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
     balance: '',
     initialBalance: '',
     notes: '',
+    dueDate: '',
+    interestRate: '',
     sourceAccountId: '',
   });
 
@@ -162,6 +164,8 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
       balance: '',
       initialBalance: '',
       notes: '',
+      dueDate: '',
+      interestRate: '',
       sourceAccountId: '',
     });
     setError('');
@@ -241,9 +245,11 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
         cardNumber:     account.cardNumber  || '',
         balance:        account.balance        != null ? String(Math.abs(account.balance))        : '',
         initialBalance: account.initialBalance != null ? String(Math.abs(account.initialBalance)) : '',
-        notes:          account.notes || '',
-        sourceAccountId: '',
-      });
+    notes:          account.notes || '',
+    dueDate:        account.dueDate ? account.dueDate.split('T')[0] : '',
+    interestRate:   account.interestRate != null ? String(account.interestRate) : '',
+    sourceAccountId: '',
+  });
     } else {
       setForm(blankForm());
     }
@@ -329,7 +335,12 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
         data.balance        = -amount;
         data.initialBalance = -(parseFloat(form.initialBalance) || amount);
       }
+
+      // DueDate + InterestRate cho Liability
+      if (form.dueDate) data.dueDate = form.dueDate;
+      if (form.interestRate) data.interestRate = parseFloat(form.interestRate);
     } else {
+      // Asset/Revenue/Expense
       const amount = parseFloat(form.balance) || 0;
       if (hasSource && amount > 0) {
         data.balance = amount;
@@ -432,6 +443,41 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
                       </p>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Liability: Due Date & Interest Rate */}
+              {isLiability && (
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">
+                      Hạn trả nợ <span className="text-muted-foreground font-normal">(tùy chọn)</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={form.dueDate || ''}
+                      onChange={(e) => setForm(f => ({ ...f, dueDate: e.target.value }))}
+                      className="w-full px-4 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">
+                      Lãi suất % <span className="text-muted-foreground font-normal">(tùy chọn)</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={form.interestRate || ''}
+                        onChange={(e) => setForm(f => ({ ...f, interestRate: e.target.value }))}
+                        placeholder="VD: 8.5"
+                        className="w-full px-4 pr-8 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
+                      />
+                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-semibold">%</span>
+                    </div>
+                  </div>
                 </div>
               )}
 

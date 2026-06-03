@@ -13,6 +13,8 @@ import {
   PieChart,
   Landmark,
   ArrowUpRight,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
@@ -22,6 +24,8 @@ import { walletApi } from "../../../api/walletApi";
 import { transactionApi } from "../../../api/transactionApi";
 import { useSettings } from "../../../context/SettingsContext";
 import { PageLayout } from "../../../components/layout/PageLayout";
+import { AccountFormModal } from "../../../components/modals/AccountFormModal";
+import { toast } from "sonner";
 
 const PIE_COLORS = ["#ef4444", "#f97316", "#eab308", "#ec4899", "#a855f7", "#f43f5e", "#fb923c", "#fdba74"];
 
@@ -71,6 +75,7 @@ export function Liabilities() {
   const [txCache, setTxCache] = useState({});
   const [loadingTx, setLoadingTx] = useState({});
   const [expandedCard, setExpandedCard] = useState(null);
+  const [editingAccount, setEditingAccount] = useState(null);
 
   const fetchAccounts = useCallback(async () => {
     setIsLoading(true);
@@ -83,6 +88,29 @@ export function Liabilities() {
       setIsLoading(false);
     }
   }, []);
+
+  const handleEditLiability = useCallback(async (id, data) => {
+    try {
+      await walletApi.update(id, data);
+      toast.success("Đã cập nhật khoản nợ");
+      setEditingAccount(null);
+      fetchAccounts();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Không thể cập nhật khoản nợ");
+    }
+  }, [fetchAccounts]);
+
+  const handleDeleteLiability = useCallback(async (id, name) => {
+    if (!window.confirm(`Xóa khoản nợ "${name}"?\nHành động này không thể hoàn tác.`)) return;
+    try {
+      await walletApi.delete(id);
+      toast.success(`Đã xóa "${name}".`);
+      fetchAccounts();
+    } catch (error) {
+      const msg = error?.response?.data?.message;
+      toast.error(msg || `Không thể xóa "${name}". Khoản nợ có thể đang được sử dụng trong giao dịch.`);
+    }
+  }, [fetchAccounts]);
 
   useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
 
@@ -472,6 +500,26 @@ export function Liabilities() {
                         <h3 className={`font-bold ${isPaidOff ? "text-muted-foreground line-through" : "text-card-foreground"}`}>
                           {acc.name}
                         </h3>
+                        {/* Due Date & Interest Rate */}
+                        <div className="flex items-center gap-3 mt-0.5">
+                          {acc.dueDate && (
+                            <span className={`text-[11px] flex items-center gap-1 ${
+                              new Date(acc.dueDate) < new Date() && !isPaidOff
+                                ? 'text-red-500 font-semibold'
+                                : 'text-muted-foreground'
+                            }`}>
+                              <span>📅</span>
+                              Hạn: {format(new Date(acc.dueDate), "dd/MM/yyyy", { locale: vi })}
+                              {new Date(acc.dueDate) < new Date() && !isPaidOff && ' ⚠️ Quá hạn'}
+                            </span>
+                          )}
+                          {acc.interestRate != null && acc.interestRate > 0 && (
+                            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                              <span>📊</span>
+                              LS: {acc.interestRate}%/năm
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Amounts */}
@@ -519,23 +567,39 @@ export function Liabilities() {
                         )}
                       </div>
 
-                      {/* Expand button */}
-                      <button
-                        onClick={() => toggleExpand(acc.accountId)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${
-                          isPaidOff
-                            ? "border-border text-muted-foreground hover:bg-muted"
-                            : "border-border text-card-foreground hover:bg-muted"
-                        }`}
-                      >
-                        {loadingTx[acc.accountId] ? (
-                          <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                          </svg>
-                        ) : isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                        {loadingTx[acc.accountId] ? "Đang tải..." : "Giao dịch"}
-                      </button>
+                      {/* Actions */}
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setEditingAccount(acc)}
+                          className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border border-border"
+                          title="Sửa"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteLiability(acc.accountId, acc.name)}
+                          className="p-2 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors border border-border"
+                          title="Xóa"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                        <button
+                          onClick={() => toggleExpand(acc.accountId)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${
+                            isPaidOff
+                              ? "border-border text-muted-foreground hover:bg-muted"
+                              : "border-border text-card-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {loadingTx[acc.accountId] ? (
+                            <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                            </svg>
+                          ) : isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                          {loadingTx[acc.accountId] ? "Đang tải..." : "Giao dịch"}
+                        </button>
+                      </div>
                     </div>
 
                     {/* Expanded transaction history */}
@@ -600,6 +664,20 @@ export function Liabilities() {
             </p>
           </div>
         </div>
+      )}
+      {/* ════════════════════ EDIT LIABILITY MODAL ════════════════════ */}
+      {editingAccount && (
+        <AccountFormModal
+          isOpen={!!editingAccount}
+          onClose={() => setEditingAccount(null)}
+          onSubmit={(data) => handleEditLiability(editingAccount.accountId, data)}
+          account={{
+            ...editingAccount,
+            id: editingAccount.accountId,
+            typeId: 2,
+          }}
+          typeId={2}
+        />
       )}
     </PageLayout>
   );

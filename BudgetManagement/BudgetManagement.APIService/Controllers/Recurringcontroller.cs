@@ -2,6 +2,7 @@ using BudgetManagement.Dto;
 using BudgetManagement.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace BudgetManagement.APIService.Controllers;
 
@@ -50,8 +51,18 @@ public class RecurringController : BaseController
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateRecurringDto request)
     {
-        var result = await _recurringService.CreateAsync(GetUserId(), request);
-        return CreatedAtAction(nameof(GetById), new { id = result.RecurringId }, result);
+        try
+        {
+            var result = await _recurringService.CreateAsync(GetUserId(), request);
+            return CreatedAtAction(nameof(GetById), new { id = result.RecurringId }, result);
+        }
+        catch (DbUpdateException ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            if (msg.Contains("FK") || msg.Contains("REFERENCE") || msg.Contains("conflicted"))
+                return BadRequest(new { message = "Không thể tạo giao dịch định kỳ vì tài khoản liên quan không tồn tại." });
+            return StatusCode(500, new { message = "Lỗi cơ sở dữ liệu. Vui lòng thử lại sau." });
+        }
     }
 
     // PUT api/recurring/{id}
@@ -71,6 +82,13 @@ public class RecurringController : BaseController
         {
             return StatusCode(403, new { message = ex.Message });
         }
+        catch (DbUpdateException ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            if (msg.Contains("FK") || msg.Contains("REFERENCE") || msg.Contains("conflicted"))
+                return BadRequest(new { message = "Không thể cập nhật giao dịch định kỳ vì tài khoản liên quan không tồn tại." });
+            return StatusCode(500, new { message = "Lỗi cơ sở dữ liệu. Vui lòng thử lại sau." });
+        }
     }
 
     // DELETE api/recurring/{id}
@@ -88,6 +106,13 @@ public class RecurringController : BaseController
         }        catch (UnauthorizedAccessException ex)
         {
             return StatusCode(403, new { message = ex.Message });
+        }
+        catch (DbUpdateException ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            if (msg.Contains("FK") || msg.Contains("REFERENCE") || msg.Contains("conflicted"))
+                return BadRequest(new { message = "Không thể xoá giao dịch định kỳ vì dữ liệu đang được sử dụng." });
+            return StatusCode(500, new { message = "Lỗi cơ sở dữ liệu. Vui lòng thử lại sau." });
         }
     }
 }

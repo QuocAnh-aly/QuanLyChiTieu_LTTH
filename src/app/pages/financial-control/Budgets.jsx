@@ -1,12 +1,7 @@
 import {
   Plus,
   TrendingUp,
-  ShoppingBag,
   Coffee,
-  Car,
-  Home,
-  Zap,
-  Heart,
   Pencil,
   Trash2,
   Calendar,
@@ -19,7 +14,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { AddBudgetModal } from "../../components/modals/AddBudgetModal";
 import { EditBudgetModal } from "../../components/modals/EditBudgetModal";
 import { toast } from "sonner";
@@ -28,79 +23,10 @@ import { useSettings } from "../../context/SettingsContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { shouldShowToast } from "../../utils/toastOnce";
 
-export const iconMap = {
-  Coffee,
-  ShoppingBag,
-  Car,
-  Heart,
-  Zap,
-  Home,
-  Wallet,
-  TrendingUp,
-};
+import { ICON_MAP, COLOR_MAP } from "../../utils/icons";
 
-export const colorMap = {
-  orange: {
-    text: "text-orange-600",
-    bg: "bg-orange-100",
-    bar: "from-orange-400 to-orange-600",
-    pie: "#f97316",
-  },
-  pink: {
-    text: "text-pink-600",
-    bg: "bg-pink-100",
-    bar: "from-pink-400 to-pink-600",
-    pie: "#ec4899",
-  },
-  blue: {
-    text: "text-blue-600",
-    bg: "bg-blue-100",
-    bar: "from-blue-400 to-blue-600",
-    pie: "#3b82f6",
-  },
-  purple: {
-    text: "text-purple-600",
-    bg: "bg-purple-100",
-    bar: "from-purple-400 to-purple-600",
-    pie: "#a855f7",
-  },
-  yellow: {
-    text: "text-yellow-600",
-    bg: "bg-yellow-100",
-    bar: "from-yellow-400 to-yellow-600",
-    pie: "#eab308",
-  },
-  green: {
-    text: "text-green-600",
-    bg: "bg-green-100",
-    bar: "from-green-400 to-green-600",
-    pie: "#22c55e",
-  },
-  red: {
-    text: "text-red-600",
-    bg: "bg-red-100",
-    bar: "from-red-400 to-red-600",
-    pie: "#ef4444",
-  },
-  indigo: {
-    text: "text-indigo-600",
-    bg: "bg-indigo-100",
-    bar: "from-indigo-400 to-indigo-600",
-    pie: "#6366f1",
-  },
-  emerald: {
-    text: "text-emerald-600",
-    bg: "bg-emerald-100",
-    bar: "from-emerald-400 to-emerald-600",
-    pie: "#10b981",
-  },
-  slate: {
-    text: "text-muted-foreground",
-    bg: "bg-muted",
-    bar: "from-slate-400 to-slate-600",
-    pie: "#64748b",
-  },
-};
+const iconMap = ICON_MAP;
+const colorMap = COLOR_MAP;
 
 function mapBudget(b) {
   const colors = colorMap[b.color] || colorMap.orange;
@@ -183,10 +109,6 @@ export function Budgets() {
     setPage(1);
   }, [search, filterStatus, sortBy]);
 
-  // Track previously notified budget IDs so we don't spam
-  const notifiedOverRef = useRef(new Set());
-  const notifiedWarningRef = useRef(new Set());
-
   const fetchBudgets = async () => {
     try {
       setIsLoading(true);
@@ -202,42 +124,39 @@ export function Budgets() {
       const mapped = items.map(mapBudget);
       setBudgets(mapped);
 
-      // Check for budget warnings and send notifications (session-deduplicated toasts)
+      // Check for budget warnings and send notifications (session-deduplicated)
       mapped.forEach((b) => {
-        if (b.percentage > 100 && !notifiedOverRef.current.has(b.id)) {
-          notifiedOverRef.current.add(b.id);
-          const toastKey = `budget-over:${b.id}`;
-          if (shouldShowToast(toastKey)) {
+        const overKey = `budget-over:${b.id}`;
+        const warnKey = `budget-warn:${b.id}`;
+
+        if (b.percentage > 100) {
+          if (shouldShowToast(overKey)) {
             toast.error(`"${b.name}" đã vượt hạn mức!`, {
               description: `Đã chi ${fmt(b.spent)} trên ${fmt(b.budget)} (${b.percentage.toFixed(1)}%)`,
               duration: 6000,
             });
+            // Toast shown → also add notification center (once per session)
+            addNotification({
+              type: "error",
+              title: "⚠️ Vượt hạn mức ngân sách",
+              message: `"${b.name}" đã chi ${fmt(b.spent)}/${fmt(b.budget)} (${b.percentage.toFixed(1)}%)`,
+              link: `/budgets/${b.id}`,
+            });
           }
-          addNotification({
-            type: "error",
-            title: "⚠️ Vượt hạn mức ngân sách",
-            message: `"${b.name}" đã chi ${fmt(b.spent)}/${fmt(b.budget)} (${b.percentage.toFixed(1)}%)`,
-            link: `/budgets/${b.id}`,
-          });
-        } else if (
-          b.percentage >= 80 &&
-          b.percentage <= 100 &&
-          !notifiedWarningRef.current.has(b.id)
-        ) {
-          notifiedWarningRef.current.add(b.id);
-          const toastKey = `budget-warn:${b.id}`;
-          if (shouldShowToast(toastKey)) {
+        } else if (b.percentage >= 80 && b.percentage <= 100) {
+          if (shouldShowToast(warnKey)) {
             toast.warning(`"${b.name}" sắp đạt hạn mức`, {
               description: `Đã dùng ${b.percentage.toFixed(1)}% (${fmt(b.spent)}/${fmt(b.budget)})`,
               duration: 5000,
             });
+            // Toast shown → also add notification center (once per session)
+            addNotification({
+              type: "warning",
+              title: "⚠️ Ngân sách sắp hết",
+              message: `"${b.name}" đã dùng ${b.percentage.toFixed(1)}% (${fmt(b.spent)}/${fmt(b.budget)})`,
+              link: `/budgets/${b.id}`,
+            });
           }
-          addNotification({
-            type: "warning",
-            title: "⚠️ Ngân sách sắp hết",
-            message: `"${b.name}" đã dùng ${b.percentage.toFixed(1)}% (${fmt(b.spent)}/${fmt(b.budget)})`,
-            link: `/budgets/${b.id}`,
-          });
         }
       });
     } catch {
@@ -620,9 +539,9 @@ export function Budgets() {
               </PieChart>
             </ResponsiveContainer>
             <div className="mt-3 space-y-2">
-              {pieData.slice(0, 5).map((d) => (
+              {pieData.slice(0, 5).map((d, i) => (
                 <div
-                  key={d.name}
+                  key={d.name + i}
                   className="flex items-center justify-between text-xs"
                 >
                   <div className="flex items-center gap-1.5 min-w-0">

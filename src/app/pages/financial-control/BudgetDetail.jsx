@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, TrendingUp, Wallet, Target,
@@ -21,7 +21,7 @@ import { useSettings } from "../../context/SettingsContext";
 import { PageLayout } from "../../components/layout/PageLayout";
 import { shouldShowToast } from "../../utils/toastOnce";
 import { EditBudgetModal } from "../../components/modals/EditBudgetModal";
-import { iconMap, colorMap } from "./Budgets";
+import { ICON_MAP as iconMap, COLOR_MAP as colorMap } from "../../utils/icons";
 
 const PERIOD_LABELS = {
   monthly: "Hàng tháng",
@@ -200,8 +200,7 @@ export function BudgetDetail() {
       setBudget(data);
 
       // Show warning toast if budget is over or near limit (session-deduplicated)
-      if (data && !warnedRef.current) {
-        warnedRef.current = true;
+      if (data) {
         const pct = data.percentage ?? (data.targetAmount > 0 ? (data.currentAmount / data.targetAmount) * 100 : 0);
         if (pct > 100) {
           const toastKey = `budget-over:${id}`;
@@ -210,13 +209,13 @@ export function BudgetDetail() {
               description: `Đã chi ${fmt(data.currentAmount)} trên ${fmt(data.targetAmount)}`,
               duration: 6000,
             });
+            addNotification({
+              type: 'error',
+              title: '⚠️ Vượt hạn mức ngân sách',
+              message: `"${data.title}" đã chi ${fmt(data.currentAmount)}/${fmt(data.targetAmount)}`,
+              link: `/budgets/${id}`,
+            });
           }
-          addNotification({
-            type: 'error',
-            title: '⚠️ Vượt hạn mức ngân sách',
-            message: `"${data.title}" đã chi ${fmt(data.currentAmount)}/${fmt(data.targetAmount)}`,
-            link: `/budgets/${id}`,
-          });
         } else if (pct >= 80) {
           const toastKey = `budget-warn:${id}`;
           if (shouldShowToast(toastKey)) {
@@ -224,13 +223,13 @@ export function BudgetDetail() {
               description: `Đã dùng ${pct.toFixed(1)}% (${fmt(data.currentAmount)}/${fmt(data.targetAmount)})`,
               duration: 5000,
             });
+            addNotification({
+              type: 'warning',
+              title: '⚠️ Ngân sách sắp hết',
+              message: `"${data.title}" đã dùng ${pct.toFixed(1)}% (${fmt(data.currentAmount)}/${fmt(data.targetAmount)})`,
+              link: `/budgets/${id}`,
+            });
           }
-          addNotification({
-            type: 'warning',
-            title: '⚠️ Ngân sách sắp hết',
-            message: `"${data.title}" đã dùng ${pct.toFixed(1)}% (${fmt(data.currentAmount)}/${fmt(data.targetAmount)})`,
-            link: `/budgets/${id}`,
-          });
         }
       }
 
@@ -265,7 +264,6 @@ export function BudgetDetail() {
   useEffect(() => { load(); }, [load]);
 
   const { addNotification } = useNotifications();
-  const warnedRef = useRef(false);
 
   const handleUpdate = async (budgetId, payload) => {
     try {

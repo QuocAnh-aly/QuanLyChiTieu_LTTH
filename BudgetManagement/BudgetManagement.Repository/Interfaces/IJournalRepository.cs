@@ -10,4 +10,6 @@ public interface IJournalRepository : IBaseRepository<JournalEntry>
     Task<JournalEntry?> GetWithDetailsAsync(int journalId); // include JournalDetails + Accounts
     Task<JournalEntry> CreateWithDetailsAsync(JournalEntry entry, IEnumerable<JournalDetail> details);
     Task<bool> UpdateEntryAsync(int journalId, string? description, string? notes, string? tags, DateTime? transactionDate);
+    Task<bool> UpdateEntryAmountAsync(int journalId, decimal newAmount);
+    Task<bool> HasDetailsForAccountAsync(int accountId);
 }

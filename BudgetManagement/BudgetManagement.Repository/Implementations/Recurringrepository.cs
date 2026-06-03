@@ -60,6 +60,9 @@ public class RecurringRepository : BaseRepository<RecurringJournal>, IRecurringR
         return instance;
     }
 
+    public async Task<bool> HasJournalsForAccountAsync(int accountId)
+        => await _dbSet.AnyAsync(r => r.DebitAccountId == accountId || r.CreditAccountId == accountId);
+
     // Override GetByIdAsync để include Accounts
     public override async Task<RecurringJournal?> GetByIdAsync(int id)
         => await _dbSet

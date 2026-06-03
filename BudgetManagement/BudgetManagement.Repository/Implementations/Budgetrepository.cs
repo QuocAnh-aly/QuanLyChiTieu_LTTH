@@ -121,6 +121,13 @@ public class BudgetRepository : BaseRepository<Budget>, IBudgetRepository
                 s.SetProperty(b => b.CurrentAmount, amount)
             );
 
+    public async Task<IEnumerable<Budget>> GetExpenseBudgetsNeedingResetAsync()
+        => await _dbSet
+            .Where(b => b.BudgetType == "expense"
+                     && b.IsActive == true
+                     && b.CurrentAmount > 0)
+            .ToListAsync();
+
     // Override GetByIdAsync để include Account + Events
     public override async Task<Budget?> GetByIdAsync(int id)
         => await _dbSet
@@ -145,6 +152,13 @@ public class BudgetRepository : BaseRepository<Budget>, IBudgetRepository
             .Where(e => e.BudgetId == budgetId)
             .OrderByDescending(e => e.EventDate)
             .ToListAsync();
+
+    public async Task DeleteByAccountIdAsync(int accountId)
+    {
+        await _dbSet
+            .Where(b => b.AccountId == accountId)
+            .ExecuteDeleteAsync();
+    }
 
     public async Task DeleteEventsByBudgetIdAsync(int budgetId)
     {

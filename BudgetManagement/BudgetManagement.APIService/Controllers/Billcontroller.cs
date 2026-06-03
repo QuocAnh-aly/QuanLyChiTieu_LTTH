@@ -2,6 +2,7 @@ using BudgetManagement.Dto;
 using BudgetManagement.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace BudgetManagement.APIService.Controllers;
 
@@ -44,8 +45,18 @@ public class BillController : BaseController
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateBillDto request)
     {
-        var result = await _billService.CreateAsync(GetUserId(), request);
-        return CreatedAtAction(nameof(GetById), new { id = result.BillId }, result);
+        try
+        {
+            var result = await _billService.CreateAsync(GetUserId(), request);
+            return CreatedAtAction(nameof(GetById), new { id = result.BillId }, result);
+        }
+        catch (DbUpdateException ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            if (msg.Contains("FK") || msg.Contains("REFERENCE") || msg.Contains("conflicted"))
+                return BadRequest(new { message = "Không thể tạo hoá đơn vì dữ liệu liên quan không tồn tại." });
+            return StatusCode(500, new { message = "Lỗi cơ sở dữ liệu. Vui lòng thử lại sau." });
+        }
     }
 
     // PUT api/bills/{id}
@@ -59,6 +70,13 @@ public class BillController : BaseController
         }
         catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
         catch (UnauthorizedAccessException) { return Forbid(); }
+        catch (DbUpdateException ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            if (msg.Contains("FK") || msg.Contains("REFERENCE") || msg.Contains("conflicted"))
+                return BadRequest(new { message = "Không thể cập nhật hoá đơn vì dữ liệu liên quan không tồn tại." });
+            return StatusCode(500, new { message = "Lỗi cơ sở dữ liệu. Vui lòng thử lại sau." });
+        }
     }
 
     // DELETE api/bills/{id}
@@ -72,6 +90,13 @@ public class BillController : BaseController
         }
         catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
         catch (UnauthorizedAccessException) { return Forbid(); }
+        catch (DbUpdateException ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            if (msg.Contains("FK") || msg.Contains("REFERENCE") || msg.Contains("conflicted"))
+                return BadRequest(new { message = "Không thể xoá hoá đơn vì dữ liệu đang được sử dụng." });
+            return StatusCode(500, new { message = "Lỗi cơ sở dữ liệu. Vui lòng thử lại sau." });
+        }
     }
 
     // POST api/bills/{id}/rescan

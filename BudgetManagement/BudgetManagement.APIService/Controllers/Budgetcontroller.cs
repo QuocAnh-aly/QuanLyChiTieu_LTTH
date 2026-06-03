@@ -2,6 +2,7 @@ using BudgetManagement.Dto;
 using BudgetManagement.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace BudgetManagement.APIService.Controllers;
 
@@ -70,6 +71,13 @@ public class BudgetController : BaseController
         {
             return Forbid();
         }
+        catch (DbUpdateException ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            if (msg.Contains("FK") || msg.Contains("REFERENCE") || msg.Contains("conflicted"))
+                return BadRequest(new { message = "Không thể tạo ngân sách vì tài khoản liên quan không tồn tại." });
+            return StatusCode(500, new { message = "Lỗi cơ sở dữ liệu. Vui lòng thử lại sau." });
+        }
     }
 
     // PUT api/budgets/expense/{id}
@@ -89,6 +97,13 @@ public class BudgetController : BaseController
         {
             return StatusCode(403, new { message = ex.Message });
         }
+        catch (DbUpdateException ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            if (msg.Contains("FK") || msg.Contains("REFERENCE") || msg.Contains("conflicted"))
+                return BadRequest(new { message = "Không thể cập nhật ngân sách vì dữ liệu liên quan không tồn tại." });
+            return StatusCode(500, new { message = "Lỗi cơ sở dữ liệu. Vui lòng thử lại sau." });
+        }
     }
 
     // DELETE api/budgets/{id}
@@ -107,6 +122,13 @@ public class BudgetController : BaseController
         catch (UnauthorizedAccessException ex)
         {
             return StatusCode(403, new { message = ex.Message });
+        }
+        catch (DbUpdateException ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            if (msg.Contains("FK") || msg.Contains("REFERENCE") || msg.Contains("conflicted"))
+                return BadRequest(new { message = "Không thể xoá ngân sách vì dữ liệu đang được sử dụng." });
+            return StatusCode(500, new { message = "Lỗi cơ sở dữ liệu. Vui lòng thử lại sau." });
         }
     }
 
@@ -212,6 +234,13 @@ public class BudgetController : BaseController
         }        catch (UnauthorizedAccessException ex)
         {
             return StatusCode(403, new { message = ex.Message });
+        }
+        catch (DbUpdateException ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            if (msg.Contains("FK") || msg.Contains("REFERENCE") || msg.Contains("conflicted"))
+                return BadRequest(new { message = "Không thể cập nhật mục tiêu vì dữ liệu liên quan không tồn tại." });
+            return StatusCode(500, new { message = "Lỗi cơ sở dữ liệu. Vui lòng thử lại sau." });
         }
     }
 }

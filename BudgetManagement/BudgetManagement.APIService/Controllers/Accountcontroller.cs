@@ -2,6 +2,7 @@ using BudgetManagement.Dto;
 using BudgetManagement.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace BudgetManagement.APIService.Controllers;
 
@@ -159,9 +160,21 @@ public class AccountController : BaseController
         catch (KeyNotFoundException ex)
         {
             return NotFound(new { message = ex.Message });
-        }        catch (UnauthorizedAccessException ex)
+        }
+        catch (UnauthorizedAccessException ex)
         {
             return StatusCode(403, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (DbUpdateException ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            if (msg.Contains("FK") || msg.Contains("REFERENCE") || msg.Contains("conflicted"))
+                return BadRequest(new { message = "Không thể xoá vì dữ liệu này đang được sử dụng. Hãy xoá các bản ghi liên quan trước." });
+            return StatusCode(500, new { message = "Lỗi cơ sở dữ liệu. Vui lòng thử lại sau." });
         }
     }
 }

@@ -50,6 +50,7 @@ public class UpdateTransactionDto
     public string?   Notes           { get; set; }
     public string?   Tags            { get; set; }
     public DateTime? TransactionDate { get; set; }
+    public decimal?  Amount          { get; set; }   // null = không đổi, có giá trị = cập nhật số tiền
 }
 
 public class CashFlowSummaryDto

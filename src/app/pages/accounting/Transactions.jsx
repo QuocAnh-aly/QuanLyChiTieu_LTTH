@@ -88,6 +88,19 @@ export function Transactions() {
   const sentinelRef = useRef(null);
   const PAGE_SIZE = 25;
 
+  // Resolve active date range
+  const { from: rangeFrom, to: rangeTo } = useMemo(() => {
+    if (preset === "custom") {
+      return {
+        from: customFrom ? startOfDay(new Date(customFrom)) : null,
+        to:   customTo   ? endOfDay(new Date(customTo))     : null,
+      };
+    }
+    return getPresetRange(preset);
+  }, [preset, customFrom, customTo]);
+
+  const useRange = !!(rangeFrom && rangeTo);
+
   // Load more pages (infinite scroll) — only in "all" mode
   const loadMore = useCallback(async () => {
     if (isLoadingMore || !hasMore || useRange) return;
@@ -126,19 +139,6 @@ export function Transactions() {
     observer.observe(el);
     return () => observer.disconnect();
   }, [hasMore, isLoadingMore, useRange, loadMore]);
-
-  // Resolve active date range
-  const { from: rangeFrom, to: rangeTo } = useMemo(() => {
-    if (preset === "custom") {
-      return {
-        from: customFrom ? startOfDay(new Date(customFrom)) : null,
-        to:   customTo   ? endOfDay(new Date(customTo))     : null,
-      };
-    }
-    return getPresetRange(preset);
-  }, [preset, customFrom, customTo]);
-
-  const useRange = !!(rangeFrom && rangeTo);
 
   const loadData = useCallback(async (silent = false) => {
     try {

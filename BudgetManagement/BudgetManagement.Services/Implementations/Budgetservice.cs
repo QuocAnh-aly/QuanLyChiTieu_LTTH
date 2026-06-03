@@ -249,6 +249,48 @@ public class BudgetService : IBudgetService
 
     // ─── Private helpers ────────────────────────────────────────────────────
 
+    private static int CalculatePeriodsElapsed(DateTime startDate, string periodType, DateTime now)
+    {
+        return periodType.ToLower() switch
+        {
+            "weekly"  => (int)((now.Date - startDate.Date).TotalDays / 7),
+            "monthly" => CalcMonthlyPeriods(startDate, now),
+            "yearly"  => now.Year - startDate.Year
+                         - (now < startDate.AddYears(now.Year - startDate.Year) ? 1 : 0),
+            _         => 0
+        };
+    }
+
+    private static int CalcMonthlyPeriods(DateTime startDate, DateTime now)
+    {
+        var months = (now.Year - startDate.Year) * 12 + now.Month - startDate.Month;
+        // Handle variable-day months (e.g., Jan 31 + 1 month = Feb 28)
+        if (now < startDate.AddMonths(months)) months--;
+        return Math.Max(0, months);
+    }
+
+    public async Task ResetExpiredPeriodsAsync()
+    {
+        var budgets = await _budgetRepo.GetExpenseBudgetsNeedingResetAsync();
+        var today = DateTime.UtcNow.Date;
+        var yesterday = today.AddDays(-1);
+
+        foreach (var budget in budgets)
+        {
+            var periodType = budget.PeriodType ?? "monthly";
+
+            // So sánh số thứ tự period hôm nay vs hôm qua
+            // Nếu khác nhau → vừa sang kỳ mới → reset CurrentAmount về 0
+            var periodsToday     = CalculatePeriodsElapsed(budget.StartDate, periodType, today);
+            var periodsYesterday = CalculatePeriodsElapsed(budget.StartDate, periodType, yesterday);
+
+            if (periodsToday > periodsYesterday)
+            {
+                await _budgetRepo.UpdateCurrentAmountAsync(budget.BudgetId, 0);
+            }
+        }
+    }
+
     private static BudgetDto MapToBudgetDto(Budget b) => new()
     {
         BudgetId      = b.BudgetId,

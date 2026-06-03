@@ -27,6 +27,7 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
 
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
+  const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedTags, setSelectedTags] = useState([]);
 
@@ -38,6 +39,7 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
         ? new Date(transaction.transactionDate).toISOString().slice(0, 10)
         : new Date().toISOString().slice(0, 10),
     );
+    setAmount(String(transaction.totalAmount ?? 0));
     setNotes(transaction.notes ?? "");
     setSelectedTags(
       transaction.tags
@@ -95,11 +97,13 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const parsed = parseFloat(amount.replace(/,/g, ""));
     onSave({
       description: description.trim() || null,
       notes: notes.trim() || null,
       tags: selectedTags.length > 0 ? selectedTags.join(",") : null,
       transactionDate: new Date(date).toISOString(),
+      amount: isNaN(parsed) || parsed <= 0 ? undefined : parsed,
     });
   };
 
@@ -180,6 +184,29 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
 
             <div>
               <label className="block text-sm font-semibold text-foreground mb-1.5">
+                Số tiền
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-semibold">
+                  {amountPfx}
+                </span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={amount}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/[^0-9,]/g, "");
+                    setAmount(raw);
+                  }}
+                  placeholder="0"
+                  className="w-full pl-8 pr-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 text-right font-semibold"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-1.5">
                 Ngày giao dịch
               </label>
               <input
@@ -234,10 +261,7 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
               />
             </div>
 
-            <p className="text-xs text-muted-foreground bg-muted rounded-lg px-3 py-2">
-              Số tiền và tài khoản không thể thay đổi. Nếu cần, hãy xóa và tạo
-              lại giao dịch.
-            </p>
+
           </div>
 
           <div className="flex gap-3 px-5 py-4 border-t border-border">

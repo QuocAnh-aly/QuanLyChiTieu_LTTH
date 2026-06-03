@@ -42,6 +42,10 @@ public class RecurringHostedService : BackgroundService
 
                 _logger.LogInformation("Processing due recurring transactions at {Time}", DateTime.UtcNow);
                 await recurringService.ProcessDueRecurringsAsync();
+
+                // Reset expired budget periods (CurrentAmount = 0 for new cycle)
+                var budgetService = scope.ServiceProvider.GetRequiredService<IBudgetService>();
+                await budgetService.ResetExpiredPeriodsAsync();
             }
             catch (Exception ex)
             {

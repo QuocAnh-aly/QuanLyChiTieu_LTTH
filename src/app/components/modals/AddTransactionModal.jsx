@@ -32,18 +32,26 @@ const TX_TYPES = [
     Icon: ArrowLeftRight,
     activeCls: "bg-blue-500 text-white",
   },
+  {
+    key: "repayment",
+    label: "Trả nợ",
+    Icon: HandCoins,
+    activeCls: "bg-red-600 text-white",
+  },
 ];
 
 const SUBMIT_CLS = {
   expense: "bg-red-500   hover:bg-red-600",
   income: "bg-green-500 hover:bg-green-600",
   transfer: "bg-blue-500  hover:bg-blue-600",
+  repayment: "bg-red-600  hover:bg-red-700",
 };
 
 const SUBMIT_LABEL = {
   expense: "Ghi chi tiêu",
   income: "Ghi thu nhập",
   transfer: "Chuyển tiền",
+  repayment: "Trả nợ",
 };
 
 const TAG_COLORS = {
@@ -76,6 +84,8 @@ export function AddTransactionModal({
   const [walletId, setWalletId] = useState("");
   const [toWalletId, setToWalletId] = useState("");
   const [liabilityAccounts, setLiabilityAccounts] = useState([]);
+  const [liabilityId, setLiabilityId] = useState("");
+  const selectedLiability = liabilityAccounts.find(a => String(a.accountId) === liabilityId);
   const [expenseCategory, setExpenseCategory] = useState(DEFAULT_CATEGORY);
   const [incomeCategory, setIncomeCategory] = useState(DEFAULT_CATEGORY);
   const [showCustomCategory, setShowCustomCategory] = useState(false);
@@ -109,6 +119,7 @@ export function AddTransactionModal({
     setToWalletId("");
     setExpenseCategory(DEFAULT_CATEGORY);
     setIncomeCategory(DEFAULT_CATEGORY);
+    setLiabilityId("");
     setAmount("");
     setDescription("");
     setNotes("");
@@ -122,6 +133,7 @@ export function AddTransactionModal({
     setToWalletId("");
     setExpenseCategory(DEFAULT_CATEGORY);
     setIncomeCategory(DEFAULT_CATEGORY);
+    setLiabilityId("");
     setShowCustomCategory(false);
   };
 
@@ -133,6 +145,7 @@ export function AddTransactionModal({
     if (txType === "expense") return expenseCategory.accountId > 0 || (showCustomCategory && expenseCategory.name.trim());
     if (txType === "income") return incomeCategory.accountId > 0 || (showCustomCategory && incomeCategory.name.trim());
     if (txType === "transfer") return !!toWalletId && !sameWalletError;
+    if (txType === "repayment") return !!liabilityId && !!selectedLiability && Math.abs(selectedLiability.balance ?? 0) > 0;
     return false;
   })();
 
@@ -145,16 +158,11 @@ export function AddTransactionModal({
       transactionDate: new Date(date).toISOString(),
     };
     if (txType === "expense") {
-      const isLiability = liabilityAccounts.some(
-        (a) => a.accountId === expenseCategory.accountId,
-      );
       return {
         ...base,
         debitAccountId: expenseCategory.accountId,
         creditAccountId: parseInt(walletId),
-        expenseCategoryName: isLiability
-          ? null
-          : expenseCategory.name.trim() || "Chưa phân loại",
+        expenseCategoryName: expenseCategory.name.trim() || "Chưa phân loại",
       };
     }
     if (txType === "income")
@@ -163,6 +171,12 @@ export function AddTransactionModal({
         debitAccountId: parseInt(walletId),
         creditAccountId: incomeCategory.accountId,
         incomeCategoryName: incomeCategory.name.trim() || "Khác",
+      };
+    if (txType === "repayment")
+      return {
+        ...base,
+        debitAccountId: parseInt(liabilityId),
+        creditAccountId: parseInt(walletId),
       };
     return {
       ...base,
@@ -274,7 +288,9 @@ export function AddTransactionModal({
                     ? "VD: Mua đồ ăn tối, cà phê sáng..."
                     : txType === "income"
                       ? "VD: Lương tháng 5, tiền thưởng..."
-                      : "VD: Chuyển sang ví tiết kiệm..."
+                      : txType === "repayment"
+                        ? "VD: Trả nợ tháng này..."
+                        : "VD: Chuyển sang ví tiết kiệm..."
                 }
               />
             </div>
@@ -332,47 +348,6 @@ export function AddTransactionModal({
                         {cat.name}
                       </button>
                     ))}
-
-                    {/* Liability accounts — trả nợ */}
-                    {liabilityAccounts.length > 0 && (
-                      <>
-                        <div className="col-span-2 mt-1 mb-0.5">
-                          <div className="flex items-center gap-1.5">
-                            <div className="h-px flex-1 bg-red-200" />
-                            <HandCoins size={12} className="text-red-400" />
-                            <span className="text-xs font-semibold text-red-500">Trả nợ</span>
-                            <div className="h-px flex-1 bg-red-200" />
-                          </div>
-                        </div>
-                        {liabilityAccounts.map((a) => (
-                          <button
-                            key={a.accountId}
-                            type="button"
-                            onClick={() => {
-                              setExpenseCategory({
-                                accountId: a.accountId,
-                                name: a.name,
-                              });
-                              setShowCustomCategory(false);
-                            }}
-                            className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all flex items-center gap-1.5 ${
-                              expenseCategory.accountId === a.accountId &&
-                              expenseCategory.accountId !== 0
-                                ? "border-red-400 bg-red-50 text-red-700"
-                                : "border-red-200 hover:border-red-300 text-red-600"
-                            }`}
-                          >
-                            <HandCoins size={14} />
-                            <span className="flex-1">{a.name}</span>
-                            {Math.abs(a.balance ?? 0) > 0 && (
-                              <span className="text-xs font-semibold">
-                                {fmt(Math.abs(a.balance))}
-                              </span>
-                            )}
-                          </button>
-                        ))}
-                      </>
-                    )}
 
                     <button
                       type="button"
@@ -560,6 +535,116 @@ export function AddTransactionModal({
                     </p>
                   )}
                 </div>
+              </>
+            )}
+
+            {/* ── REPAYMENT ── */}
+            {txType === "repayment" && (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">
+                    Trả từ ví <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={walletId}
+                    onChange={(e) => setWalletId(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                    required
+                  >
+                    <option value="">Chọn ví thanh toán</option>
+                    {assetAccounts.map((a) => (
+                      <option key={a.accountId} value={a.accountId}>
+                        {walletLabel(a)}
+                      </option>
+                    ))}
+                  </select>
+                  {assetAccounts.length === 0 && (
+                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                      <AlertCircle size={12} /> Chưa có ví. Hãy tạo ví trước.
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">
+                    Khoản nợ <span className="text-red-500">*</span>
+                  </label>
+                  {liabilityAccounts.length === 0 ? (
+                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                      <AlertCircle size={12} /> Chưa có khoản nợ. Hãy tạo khoản nợ trước.
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
+                      {liabilityAccounts.map((a) => {
+                        const isActive = liabilityId === String(a.accountId);
+                        const remaining = Math.abs(a.balance ?? 0);
+                        const isPaidOff = remaining === 0;
+                        return (
+                          <button
+                            key={a.accountId}
+                            type="button"
+                            disabled={isPaidOff}
+                            onClick={() => setLiabilityId(String(a.accountId))}
+                            className={`w-full px-4 py-3 rounded-xl border-2 text-sm font-medium text-left transition-all flex items-center gap-3 ${
+                              isActive
+                                ? 'border-red-500 bg-red-50 text-red-700'
+                                : isPaidOff
+                                  ? 'border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed'
+                                  : 'border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50/50'
+                            }`}
+                          >
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                              isActive ? 'bg-red-500 text-white' : isPaidOff ? 'bg-slate-200 text-slate-400' : 'bg-red-100 text-red-600'
+                            }`}>
+                              <HandCoins size={14} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`font-semibold truncate ${isPaidOff ? 'line-through' : ''}`}>{a.name}</p>
+                              {a.dueDate && (
+                                <p className={`text-[10px] mt-0.5 ${
+                                  new Date(a.dueDate) < new Date() && !isPaidOff
+                                    ? 'text-red-500 font-semibold'
+                                    : 'text-muted-foreground'
+                                }`}>
+                                  📅 {new Date(a.dueDate).toLocaleDateString('vi-VN')}
+                                  {new Date(a.dueDate) < new Date() && !isPaidOff && ' ⚠️ Quá hạn'}
+                                </p>
+                              )}
+                            </div>
+                            <div className="text-right shrink-0">
+                              {isPaidOff ? (
+                                <span className="text-xs font-semibold text-green-500">✓ Đã tất toán</span>
+                              ) : (
+                                <>
+                                  <p className="text-sm font-bold">{fmt(remaining)}</p>
+                                  {a.interestRate != null && a.interestRate > 0 && (
+                                    <p className="text-[10px] text-muted-foreground">{a.interestRate}%/năm</p>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Repayment summary when both selected */}
+                {walletId && liabilityId && selectedLiability && (
+                  <div className="p-3 rounded-xl bg-red-50 border border-red-200 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <div className="flex items-center gap-2 text-sm text-red-700">
+                      <HandCoins size={16} />
+                      <span className="font-semibold">Trả {selectedLiability.name}</span>
+                    </div>
+                    <div className="flex items-center justify-between mt-1.5 text-xs text-red-600">
+                      <span>Trả từ ví {assetAccounts.find(a => String(a.accountId) === walletId)?.name || ''}</span>
+                      <span className="font-bold text-sm">
+                        {amount ? fmt(parseFloat(amount)) : '-'} {currencySymbol}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </>
             )}
 

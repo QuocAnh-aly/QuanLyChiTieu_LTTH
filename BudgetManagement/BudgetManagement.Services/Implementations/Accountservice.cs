@@ -8,6 +8,9 @@ namespace BudgetManagement.Services.Implementations;
 public class AccountService : IAccountService
 {
     private readonly IAccountRepository _accountRepo;
+    private readonly IBudgetRepository _budgetRepo;
+    private readonly IJournalRepository _journalRepo;
+    private readonly IRecurringRepository _recurringRepo;
     private const int DefaultPageSize = 20;
 
     // Account_Types IDs (khớp với INSERT trong SQL schema)
@@ -17,9 +20,12 @@ public class AccountService : IAccountService
     private const int TypeRevenue     = 4;
     private const int TypeExpense     = 5;
 
-    public AccountService(IAccountRepository accountRepo)
+    public AccountService(IAccountRepository accountRepo, IBudgetRepository budgetRepo, IJournalRepository journalRepo, IRecurringRepository recurringRepo)
     {
         _accountRepo = accountRepo;
+        _budgetRepo = budgetRepo;
+        _journalRepo = journalRepo;
+        _recurringRepo = recurringRepo;
     }
 
     public async Task<IEnumerable<AccountDto>> GetAllAsync(int userId)
@@ -84,6 +90,8 @@ public class AccountService : IAccountService
             InitialBalance = request.InitialBalance ?? request.Balance ?? 0,
             CardNumber     = request.CardNumber   ?? "•••• ••••",
             CurrencyCode = request.CurrencyCode,
+            DueDate      = request.DueDate,
+            InterestRate = request.InterestRate,
             IsActive     = true,
             CreatedAt    = DateTime.UtcNow
         };
@@ -107,6 +115,8 @@ public class AccountService : IAccountService
         account.GradientTo   = request.GradientTo   ?? account.GradientTo;
         account.CardNumber     = request.CardNumber     ?? account.CardNumber;
         account.CurrencyCode   = request.CurrencyCode   ?? account.CurrencyCode;
+        account.DueDate        = request.DueDate        ?? account.DueDate;
+        account.InterestRate   = request.InterestRate   ?? account.InterestRate;
         account.IsActive       = request.IsActive       ?? account.IsActive;
 
         var updated = await _accountRepo.UpdateAsync(account);
@@ -121,6 +131,22 @@ public class AccountService : IAccountService
         if (account.UserId != userId)
             throw new UnauthorizedAccessException("Access denied.");
 
+        // 1. Kiểm tra JournalDetails — nếu có giao dịch liên quan, báo lỗi
+        var hasTransactions = await _journalRepo.HasDetailsForAccountAsync(accountId);
+        if (hasTransactions)
+            throw new InvalidOperationException(
+                $"Không thể xóa tài khoản \"{account.Name}\" vì có giao dịch liên quan. Hãy xóa các giao dịch đó trước.");
+
+        // 2. Kiểm tra RecurringJournals — nếu có giao dịch định kỳ, báo lỗi
+        var hasRecurring = await _recurringRepo.HasJournalsForAccountAsync(accountId);
+        if (hasRecurring)
+            throw new InvalidOperationException(
+                $"Không thể xóa tài khoản \"{account.Name}\" vì có giao dịch định kỳ liên quan. Hãy xóa các giao dịch định kỳ đó trước.");
+
+        // 3. Xoá Budgets liên quan (an toàn — budgets là dữ liệu phụ thuộc)
+        await _budgetRepo.DeleteByAccountIdAsync(accountId);
+
+        // 4. Xoá Account
         return await _accountRepo.DeleteAsync(accountId);
     }
 
@@ -202,6 +228,8 @@ public class AccountService : IAccountService
         Balance        = a.Balance        ?? 0,
         InitialBalance = a.InitialBalance ?? 0,
         CardNumber     = a.CardNumber,
+        DueDate        = a.DueDate,
+        InterestRate   = a.InterestRate,
         CurrencyCode = a.CurrencyCode,
         IsActive     = a.IsActive ?? true,
         CreatedAt    = a.CreatedAt
