@@ -433,7 +433,7 @@ export function Liabilities() {
 
           {/* Rows */}
           <div className="divide-y divide-border">
-            {filtered.map((acc) => {
+            {filtered.map((acc, index) => {
               const progress = repayProgress(acc);
               const remaining = Math.abs(acc.balance);
               const original = Math.abs(acc.initialBalance);
@@ -444,7 +444,8 @@ export function Liabilities() {
               return (
                 <div
                   key={acc.accountId}
-                  className={`transition-colors ${isPaidOff ? "bg-muted/30" : "hover:bg-muted/30"}`}
+                  className={`animate-list-item transition-colors ${isPaidOff ? "bg-muted/30" : "hover:bg-muted/30"}`}
+                  style={{ animationDelay: `${index * 40}ms` }}
                 >
                   <div className="px-4 sm:px-6 py-4">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">

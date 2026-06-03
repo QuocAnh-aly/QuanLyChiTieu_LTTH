@@ -545,24 +545,26 @@ export function Budgets() {
             </div>
           ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {displayBudgets.map((b) => (
-                <BudgetCard
-                  key={b.id}
-                  b={b}
-                  onEdit={setEditingBudget}
-                  onDelete={handleDeleteBudget}
-                />
+              {displayBudgets.map((b, idx) => (
+                <div key={b.id} className="animate-list-item" style={{ animationDelay: `${idx * 50}ms` }}>
+                  <BudgetCard
+                    b={b}
+                    onEdit={setEditingBudget}
+                    onDelete={handleDeleteBudget}
+                  />
+                </div>
               ))}
             </div>
           ) : (
             <div className="space-y-3">
-              {displayBudgets.map((b) => (
-                <BudgetListRow
-                  key={b.id}
-                  b={b}
-                  onEdit={setEditingBudget}
-                  onDelete={handleDeleteBudget}
-                />
+              {displayBudgets.map((b, idx) => (
+                <div key={b.id} className="animate-list-item" style={{ animationDelay: `${idx * 40}ms` }}>
+                  <BudgetListRow
+                    b={b}
+                    onEdit={setEditingBudget}
+                    onDelete={handleDeleteBudget}
+                  />
+                </div>
               ))}
             </div>
           )}

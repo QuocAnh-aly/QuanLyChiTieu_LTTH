@@ -424,10 +424,10 @@ export function Transactions() {
                       </tr>
 
                       {/* Transaction rows */}
-                      {txs.map(t => {
+                      {txs.map((t, txIndex) => {
                         const Icon = TxIcon(t);
                         return (
-                          <tr key={t.journalId} className="hover:bg-muted transition-colors group">
+                          <tr key={t.journalId} className="animate-list-item hover:bg-muted transition-colors group" style={{ animationDelay: `${txIndex * 50}ms` }}>
                             <td className="px-3 sm:px-6 py-3 sm:py-3.5">
                               <div className="flex items-center gap-2 sm:gap-3">
                                 <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center shrink-0 ${txBg(t)}`}>
