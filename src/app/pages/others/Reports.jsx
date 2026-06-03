@@ -16,9 +16,12 @@ const CHART_PALETTE = [
   "#facc15", "#ef4444", "#06b6d4", "#84cc16", "#ec4899",
 ];
 
-const VN_MONTH_LABEL = (yyyyMm) => {
-  const [, m] = yyyyMm.split("-");
-  return `Th${parseInt(m, 10)}`;
+// When the range covers a single year, "Th3" is unambiguous; when it spans
+// multiple years (e.g. "Toàn thời gian") we append the 2-digit year so bars
+// from different years don't collide under the same label.
+const monthLabel = (yyyyMm, multiYear) => {
+  const [y, m] = yyyyMm.split("-");
+  return multiYear ? `T${parseInt(m, 10)}/${y.slice(2)}` : `Th${parseInt(m, 10)}`;
 };
 
 function resolveRange(rangeKey) {
@@ -85,14 +88,18 @@ export function Reports() {
   useEffect(() => { fetchAll(); }, [dateRange]);
 
   const savings = incomeTotal - expenseTotal;
+  const savingsRate = incomeTotal > 0 ? (savings / incomeTotal) * 100 : 0;
 
   const monthlyData = useMemo(
-    () => monthly.map(r => ({
-      name:    VN_MONTH_LABEL(r.month),
-      monthKey: r.month,
-      income:  Number(r.income  ?? 0),
-      expense: Number(r.expense ?? 0),
-    })),
+    () => {
+      const multiYear = new Set(monthly.map(r => r.month.split("-")[0])).size > 1;
+      return monthly.map(r => ({
+        name:    monthLabel(r.month, multiYear),
+        monthKey: r.month,
+        income:  Number(r.income  ?? 0),
+        expense: Number(r.expense ?? 0),
+      }));
+    },
     [monthly]
   );
 
@@ -172,14 +179,19 @@ export function Reports() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-600 to-indigo-700 rounded-2xl p-6 shadow-sm flex items-center gap-4 text-white relative overflow-hidden">
+        <div className={`rounded-2xl p-6 shadow-sm flex items-center gap-4 text-white relative overflow-hidden bg-gradient-to-br ${savings >= 0 ? "from-purple-600 to-indigo-700" : "from-rose-600 to-red-700"}`}>
           <div className="absolute right-0 top-0 w-32 h-32 bg-card opacity-10 rounded-full -mr-10 -mt-10" />
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center relative z-10">
             <DollarSign size={24} className="text-white" />
           </div>
           <div className="relative z-10">
-            <p className="text-sm font-medium text-indigo-100">Tiết kiệm ròng</p>
+            <p className="text-sm font-medium text-white/80">{savings >= 0 ? "Tiết kiệm ròng" : "Bội chi"}</p>
             <p className="text-2xl font-bold">{fmt(savings)}</p>
+            {incomeTotal > 0 && (
+              <p className="text-xs font-medium text-white/80 mt-0.5">
+                Tỷ lệ tiết kiệm: {savingsRate.toFixed(1)}%
+              </p>
+            )}
           </div>
         </div>
       </div>
