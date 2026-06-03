@@ -19,6 +19,7 @@ import { budgetApi } from "../../api/budgetApi";
 import { transactionApi } from "../../api/transactionApi";
 import { useSettings } from "../../context/SettingsContext";
 import { PageLayout } from "../../components/layout/PageLayout";
+import { shouldShowToast } from "../../utils/toastOnce";
 import { EditBudgetModal } from "../../components/modals/EditBudgetModal";
 import { iconMap, colorMap } from "./Budgets";
 
@@ -198,15 +199,18 @@ export function BudgetDetail() {
       const data = await budgetApi.getExpenseBudgetById(id);
       setBudget(data);
 
-      // Show warning toast if budget is over or near limit (once per visit)
+      // Show warning toast if budget is over or near limit (session-deduplicated)
       if (data && !warnedRef.current) {
         warnedRef.current = true;
         const pct = data.percentage ?? (data.targetAmount > 0 ? (data.currentAmount / data.targetAmount) * 100 : 0);
         if (pct > 100) {
-          toast.error(`"${data.title}" đã vượt hạn mức!`, {
-            description: `Đã chi ${fmt(data.currentAmount)} trên ${fmt(data.targetAmount)}`,
-            duration: 6000,
-          });
+          const toastKey = `budget-over:${id}`;
+          if (shouldShowToast(toastKey)) {
+            toast.error(`"${data.title}" đã vượt hạn mức!`, {
+              description: `Đã chi ${fmt(data.currentAmount)} trên ${fmt(data.targetAmount)}`,
+              duration: 6000,
+            });
+          }
           addNotification({
             type: 'error',
             title: '⚠️ Vượt hạn mức ngân sách',
@@ -214,10 +218,13 @@ export function BudgetDetail() {
             link: `/budgets/${id}`,
           });
         } else if (pct >= 80) {
-          toast.warning(`"${data.title}" sắp đạt hạn mức`, {
-            description: `Đã dùng ${pct.toFixed(1)}% (${fmt(data.currentAmount)}/${fmt(data.targetAmount)})`,
-            duration: 5000,
-          });
+          const toastKey = `budget-warn:${id}`;
+          if (shouldShowToast(toastKey)) {
+            toast.warning(`"${data.title}" sắp đạt hạn mức`, {
+              description: `Đã dùng ${pct.toFixed(1)}% (${fmt(data.currentAmount)}/${fmt(data.targetAmount)})`,
+              duration: 5000,
+            });
+          }
           addNotification({
             type: 'warning',
             title: '⚠️ Ngân sách sắp hết',

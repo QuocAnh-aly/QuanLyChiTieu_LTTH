@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { budgetApi } from "../../api/budgetApi";
 import { useSettings } from "../../context/SettingsContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { shouldShowToast } from "../../utils/toastOnce";
 
 export const iconMap = {
   Coffee,
@@ -201,14 +202,17 @@ export function Budgets() {
       const mapped = items.map(mapBudget);
       setBudgets(mapped);
 
-      // Check for budget warnings and send notifications
+      // Check for budget warnings and send notifications (session-deduplicated toasts)
       mapped.forEach((b) => {
         if (b.percentage > 100 && !notifiedOverRef.current.has(b.id)) {
           notifiedOverRef.current.add(b.id);
-          toast.error(`"${b.name}" đã vượt hạn mức!`, {
-            description: `Đã chi ${fmt(b.spent)} trên ${fmt(b.budget)} (${b.percentage.toFixed(1)}%)`,
-            duration: 6000,
-          });
+          const toastKey = `budget-over:${b.id}`;
+          if (shouldShowToast(toastKey)) {
+            toast.error(`"${b.name}" đã vượt hạn mức!`, {
+              description: `Đã chi ${fmt(b.spent)} trên ${fmt(b.budget)} (${b.percentage.toFixed(1)}%)`,
+              duration: 6000,
+            });
+          }
           addNotification({
             type: "error",
             title: "⚠️ Vượt hạn mức ngân sách",
@@ -221,10 +225,13 @@ export function Budgets() {
           !notifiedWarningRef.current.has(b.id)
         ) {
           notifiedWarningRef.current.add(b.id);
-          toast.warning(`"${b.name}" sắp đạt hạn mức`, {
-            description: `Đã dùng ${b.percentage.toFixed(1)}% (${fmt(b.spent)}/${fmt(b.budget)})`,
-            duration: 5000,
-          });
+          const toastKey = `budget-warn:${b.id}`;
+          if (shouldShowToast(toastKey)) {
+            toast.warning(`"${b.name}" sắp đạt hạn mức`, {
+              description: `Đã dùng ${b.percentage.toFixed(1)}% (${fmt(b.spent)}/${fmt(b.budget)})`,
+              duration: 5000,
+            });
+          }
           addNotification({
             type: "warning",
             title: "⚠️ Ngân sách sắp hết",
