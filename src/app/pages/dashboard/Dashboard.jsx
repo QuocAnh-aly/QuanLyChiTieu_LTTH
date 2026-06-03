@@ -76,6 +76,7 @@ export function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [piggyBanks, setPiggyBanks] = useState([]);
   // Cross-filter applied when the user clicks a chart element.
   // { kind: 'category' | 'flow', value, label }
   const [activeFilter, setActiveFilter] = useState(null);
