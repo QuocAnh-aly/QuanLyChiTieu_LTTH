@@ -8,9 +8,10 @@
 ┌──────────────┐     ┌──────────────┐     ┌──────────────────┐
 │   Frontend   │────▶│ API Gateway  │────▶│   APIService     │
 │  (React/Vite)│     │ (Ocelot:5229)│     │  (Business API)  │
-└──────────────┘     └──────────────┘     ├──────────────────┤
+└──────────────┘     └──────────────┘     │  (API: 5133)     │
+                                          ├──────────────────┤
                                           │   AuthService    │
-                                          │  (Auth: 5100)    │
+                                          │  (Auth: 5134)    │
                                           ├──────────────────┤
                                           │   LogService     │
                                           │  (Logging)       │
@@ -219,8 +220,7 @@ src/
 │       │   ├── EditTransactionModal.jsx
 │       │   ├── AddBudgetModal.jsx
 │       │   ├── EditBudgetModal.jsx
-│       │   ├── QuickTransferModal.jsx     # Chuyển khoản nhanh
-│       │   ├── AccountFormModal.jsx       # Tạo/Sửa tài khoản
+│       │   ├── QuickTransferModal.jsx     # Chuyển khoản nhanh│   │   ├── AccountFormModal.jsx       # Tạo/Sửa tài khoản + subtype grids (Asset/Liability/Revenue/Expense)
 │       │   ├── AddWalletModal.jsx         # Thêm ví (legacy)
 │       │   ├── EditWalletModal.jsx
 │       │   ├── PiggyBankFormModal.jsx
@@ -769,7 +769,7 @@ addNotification({ type: 'error', title: '⚠️ Vượt hạn mức...', message
 
 ## 🔐 API Endpoints
 
-### AuthService (Port 5100)
+### AuthService (Port 5134)
 
 | Method | Path | Mô tả |
 |---|---|---|
@@ -886,6 +886,8 @@ addNotification({ type: 'error', title: '⚠️ Vượt hạn mức...', message
 | 13 | QuickTransferModal.jsx | Debt payment không hiển thị liability accounts | Sửa dropdown đích hiển thị liabilities khi check "Thanh toán nợ" |
 | 14 | Budgets.jsx, BudgetDetail.jsx | Toast lặp lại mỗi lần load trang | Thêm session-based dedup (`shouldShowToast`) |
 | 15 | Subscriptions.jsx, SubscriptionDetail.jsx | Toast lặp lại | Thêm session-based dedup |
+| 16 | Accounts DB | Account balances stale (không phản ánh journal entries) | Recalculate: `balance = initial_balance + SUM(debits) - SUM(credits)` |
+| 17 | AccountFormModal.jsx | Thiếu subtype grid cho Nợ, Thu nhập, Chi tiêu | Thêm subtype grids (4 loại: Asset/Liability/Revenue/Expense) |
 
 ---
 
@@ -894,28 +896,17 @@ addNotification({ type: 'error', title: '⚠️ Vượt hạn mức...', message
 | Entity | Số lượng |
 |---|---|
 | Accounts | 19 (Assets: 5, Liabilities: 2, Equity: 1, Revenue: 4, Expense: 7) |
-| Budgets | 11 (Expense: 8, Savings: 3) |
-| Journal Entries | 16 (8 expense, 2 income, 3 transfer, 3 other) |
-| Bills | 8 |
-| Recurring Journals | 4 |
+| Budgets | 21 (Expense: 18, Savings: 3) |
+| Journal Entries | 66 (trải đều tháng 1→6/2026 — đủ test pagination) |
+| Bills | 18 |
+| Recurring Journals | 12 |
 | Currencies | 4 (VND, USD, EUR, JPY) |
 | Exchange Rates | 6 |
-| Rules | 2 (+1 Rule Group) |
+| Rules | 7 (+2 Rule Groups) |
 | Webhooks | 2 |
-| Piggy Bank Events | 11 (từ các lần nạp/rút ống heo) |
+| Piggy Bank Events | 21 (lịch sử nạp tiết kiệm 6 tháng) |
 
-### Expense Budgets + Giao dịch thực tế
-
-| Budget | Target | Spent | Transactions |
-|---|---|---|---|
-| Ăn uống hàng tháng | 3,000,000 | 150,000 | 1 (Ăn trưa cùng đồng nghiệp) |
-| Mua sắm hàng tháng | 2,000,000 | 1,200,000 | 2 (Mua sách, Mua sắm Shopee) |
-| Di chuyển hàng tháng | 1,500,000 | 500,000 | 1 (Đổ xăng xe) |
-| Hóa đơn hàng tháng | 2,000,000 | 1,250,000 | 2 (Tiền điện + hóa đơn tháng 6) |
-| Nhà ở hàng tháng | 5,000,000 | 5,000,000 | 1 (Tiền thuê nhà) |
-| Giải trí hàng tháng | 1,000,000 | 200,000 | 1 (Xem phim CGV) |
-| Sức khỏe | 1,000,000 | 120,000 | 1 (Mua thuốc cảm cúm) |
-| Giáo dục | 2,000,000 | 1,500,000 | 1 (Khóa học React) |
+**Net Worth:** ~51.78M₫ (Assets: 119.78M + Equity: 25M - Liabilities: 93M)
 
 ---
 
