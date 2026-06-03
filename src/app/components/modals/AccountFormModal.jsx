@@ -1,4 +1,4 @@
-import { X, Check, Landmark, Wallet, TrendingUp, CreditCard, PiggyBank, Home, Package, HandCoins, Tag, ArrowLeftRight, DollarSign, ChevronDown, Sparkles } from "lucide-react";
+import { X, Check, Landmark, Wallet, TrendingUp, CreditCard, PiggyBank, Home, HandCoins, Tag, ArrowLeftRight, DollarSign, ChevronDown, Sparkles } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { accountApi } from "../../api/accountApi";
 import { formatVND, parseVND } from "../../utils/formatMoney";
@@ -26,11 +26,10 @@ const ASSET_SUBTYPES = [
   { key: 'savings',    label: 'Tiết kiệm',     iconName: 'PiggyBank',   color: 'green',   from: '#22c55e', to: '#15803d'  },
   { key: 'investment', label: 'Đầu tư',        iconName: 'TrendingUp',  color: 'purple',  from: '#a855f7', to: '#7e22ce'  },
   { key: 'property',   label: 'Bất động sản',  iconName: 'Home',        color: 'orange',  from: '#f97316', to: '#c2410c'  },
-  { key: 'other',      label: 'Khác',          iconName: 'Package',     color: 'slate',   from: '#64748b', to: '#475569'  },
 ];
 
 const ASSET_SUBTYPE_MAP = Object.fromEntries(ASSET_SUBTYPES.map(s => [s.key, s]));
-const SUBTYPE_ICONS = { Landmark, Wallet, PiggyBank, TrendingUp, Home, Package };
+const SUBTYPE_ICONS = { Landmark, Wallet, PiggyBank, TrendingUp, Home };
 
 // Account types for the selector bar
 const ACCOUNT_TYPES = [
@@ -177,7 +176,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
   useEffect(() => {
     if (!isOpen) return;
     if (account) {
-      const iconToKey = { Landmark: 'bank', Wallet: 'cash', WalletIcon: 'cash', PiggyBank: 'savings', TrendingUp: 'investment', Home: 'property', Package: 'other' };
+      const iconToKey = { Landmark: 'bank', Wallet: 'cash', WalletIcon: 'cash', PiggyBank: 'savings', TrendingUp: 'investment', Home: 'property' };
       setForm({
         name:           account.name        || '',
         assetSubtype:   iconToKey[account.iconName] || '',
