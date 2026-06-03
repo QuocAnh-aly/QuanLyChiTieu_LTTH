@@ -169,6 +169,41 @@ html.theme-transitioning * {
   width: 7px;
 }
 
+/* DataTable / table horizontal scrollbar */
+[data-slot="table-container"]::-webkit-scrollbar,
+[data-slot="table-container"]::-webkit-scrollbar:horizontal,
+.overflow-x-auto::-webkit-scrollbar:horizontal {
+  height: 5px;
+}
+
+[data-slot="table-container"]::-webkit-scrollbar-thumb:horizontal,
+.overflow-x-auto::-webkit-scrollbar-thumb:horizontal {
+  background: var(--border);
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background-clip: content-box;
+  min-width: 40px;
+}
+
+[data-slot="table-container"]::-webkit-scrollbar-thumb:horizontal:hover,
+.overflow-x-auto::-webkit-scrollbar-thumb:horizontal:hover {
+  background: var(--muted-foreground);
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+
+[data-slot="table-container"]::-webkit-scrollbar-track:horizontal,
+.overflow-x-auto::-webkit-scrollbar-track:horizontal {
+  background: transparent;
+}
+
+/* Table containers Firefox */
+[data-slot="table-container"],
+.overflow-x-auto {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
 /* Radix Select dropdown scrollbar */
 [data-slot="select-content"]::-webkit-scrollbar {
   width: 5px;
