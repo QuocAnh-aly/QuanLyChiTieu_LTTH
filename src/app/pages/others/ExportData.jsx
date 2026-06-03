@@ -89,6 +89,12 @@ export function ExportData() {
   const showRange = dataType === "transactions";
   const summaryDataLabel = DATA_TYPES.find(d => d.key === dataType)?.label ?? dataType;
 
+  // Resolve the actual window so the summary shows exactly what will be exported.
+  const resolved = showRange ? resolveRange(dateRange) : { from: undefined, to: undefined };
+  const resolvedRangeText = resolved.from && resolved.to
+    ? `${resolved.from} → ${resolved.to}`
+    : "Toàn bộ lịch sử";
+
   return (
     <div className="p-4 sm:p-8 max-w-5xl mx-auto">
       <div className="mb-6 sm:mb-8">
@@ -206,9 +212,12 @@ export function ExportData() {
                 <span className="font-semibold">{summaryDataLabel}</span>
               </div>
               {showRange && (
-                <div className="flex justify-between text-sm border-b border-white/10 pb-4">
-                  <span className="text-indigo-200">Thời gian:</span>
-                  <span className="font-semibold">{RANGE_LABEL[dateRange]}</span>
+                <div className="flex flex-col gap-1 text-sm border-b border-white/10 pb-4">
+                  <div className="flex justify-between">
+                    <span className="text-indigo-200">Thời gian:</span>
+                    <span className="font-semibold">{RANGE_LABEL[dateRange]}</span>
+                  </div>
+                  <span className="text-xs text-indigo-300 text-right">{resolvedRangeText}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm pb-2">
