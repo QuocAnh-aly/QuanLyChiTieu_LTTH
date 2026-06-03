@@ -46,6 +46,7 @@ BudgetManagement/BudgetManagement.AuthService/appsettings.json
 *.sh
 !run.sh
 !kill.sh
+chrome/
 
 # Thư mục logs do run.sh tạo ra
 logs/

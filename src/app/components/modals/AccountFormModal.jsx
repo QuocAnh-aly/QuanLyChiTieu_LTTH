@@ -26,13 +26,11 @@ const ASSET_SUBTYPES = [
   { key: 'savings',    label: 'Tiết kiệm',     iconName: 'PiggyBank',   color: 'green',   from: '#22c55e', to: '#15803d'  },
   { key: 'investment', label: 'Đầu tư',        iconName: 'TrendingUp',  color: 'purple',  from: '#a855f7', to: '#7e22ce'  },
   { key: 'property',   label: 'Bất động sản',  iconName: 'Home',        color: 'orange',  from: '#f97316', to: '#c2410c'  },
-  { key: 'receivable', label: 'Vay mượn',      iconName: 'HandCoins',   color: 'amber',   from: '#f59e0b', to: '#d97706'  },
-  { key: 'credit',     label: 'Thẻ tín dụng',  iconName: 'CreditCard',  color: 'red',     from: '#ef4444', to: '#b91c1c'  },
   { key: 'other',      label: 'Khác',          iconName: 'Package',     color: 'slate',   from: '#64748b', to: '#475569'  },
 ];
 
 const ASSET_SUBTYPE_MAP = Object.fromEntries(ASSET_SUBTYPES.map(s => [s.key, s]));
-const SUBTYPE_ICONS = { Landmark, Wallet, PiggyBank, TrendingUp, Home, CreditCard, Package, HandCoins };
+const SUBTYPE_ICONS = { Landmark, Wallet, PiggyBank, TrendingUp, Home, Package };
 
 // Account types for the selector bar
 const ACCOUNT_TYPES = [
@@ -179,7 +177,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
   useEffect(() => {
     if (!isOpen) return;
     if (account) {
-      const iconToKey = { Landmark: 'bank', Wallet: 'cash', WalletIcon: 'cash', PiggyBank: 'savings', TrendingUp: 'investment', Home: 'property', CreditCard: 'credit', Package: 'other', HandCoins: 'receivable' };
+      const iconToKey = { Landmark: 'bank', Wallet: 'cash', WalletIcon: 'cash', PiggyBank: 'savings', TrendingUp: 'investment', Home: 'property', Package: 'other' };
       setForm({
         name:           account.name        || '',
         assetSubtype:   iconToKey[account.iconName] || '',
@@ -519,7 +517,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: i
                   <label className="block text-sm font-semibold text-foreground mb-2">
                     Loại tài sản <span className="text-red-500">*</span>
                   </label>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     {ASSET_SUBTYPES.map(st => {
                       const isActive = form.assetSubtype === st.key;
                       const SubIcon = SUBTYPE_ICONS[st.iconName] || Landmark;
