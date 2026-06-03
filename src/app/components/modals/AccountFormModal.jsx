@@ -19,12 +19,7 @@ const COLOR_OPTIONS = [
 const COLOR_MAP = Object.fromEntries(COLOR_OPTIONS.map(c => [c.value, c]));
 const DEFAULT_COLORS = { 1: 'blue', 2: 'slate', 4: 'emerald', 5: 'orange' };
 
-const TYPE_ICONS = {
-  1: { icon: Landmark,  gradient: 'from-purple-500 to-purple-700', label: 'Tài sản' },
-  2: { icon: HandCoins, gradient: 'from-red-500 to-red-700',     label: 'Nợ' },
-  4: { icon: TrendingUp, gradient: 'from-emerald-500 to-emerald-700', label: 'Thu nhập' },
-  5: { icon: CreditCard, gradient: 'from-orange-500 to-orange-700', label: 'Chi tiêu' },
-};
+
 
 // Sub-types for Assets (typeId=1)
 const ASSET_SUBTYPES = [
@@ -42,13 +37,27 @@ const ASSET_SUBTYPE_MAP = Object.fromEntries(ASSET_SUBTYPES.map(s => [s.key, s])
 const SUBTYPE_ICONS = { Landmark, Wallet, PiggyBank, TrendingUp, Home, CreditCard, Package, HandCoins };
 
 // typeId: 1 = Asset, 2 = Liabilities, 4 = Revenue, 5 = Expense
-export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId }) {
+const ACCOUNT_TYPES = [
+  { typeId: 1, icon: Landmark,  label: 'Tài sản',    gradient: 'from-purple-500 to-purple-700', color: '#7c3aed' },
+  { typeId: 2, icon: HandCoins, label: 'Nợ',         gradient: 'from-red-500 to-red-700',     color: '#dc2626' },
+  { typeId: 4, icon: TrendingUp, label: 'Thu nhập',  gradient: 'from-emerald-500 to-emerald-700', color: '#059669' },
+  { typeId: 5, icon: CreditCard, label: 'Chi tiêu',  gradient: 'from-orange-500 to-orange-700', color: '#ea580c' },
+];
+
+const ACCOUNT_TYPE_MAP = Object.fromEntries(ACCOUNT_TYPES.map(t => [t.typeId, t]));
+
+// typeId: 1 = Asset, 2 = Liabilities, 4 = Revenue, 5 = Expense
+export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: initialTypeId }) {
   const { currencySymbol } = useSettings();
-  const isEdit      = !!account;
-  const isLiability = typeId === 2;
-  const isExpense   = typeId === 5;
-  const isAsset     = typeId === 1;
-  const isRevenue   = typeId === 4;
+  const isEdit = !!account;
+
+  // Internal type state — user can switch between types
+  const [activeTypeId, setActiveTypeId] = useState(initialTypeId);
+
+  const isLiability = activeTypeId === 2;
+  const isExpense   = activeTypeId === 5;
+  const isAsset     = activeTypeId === 1;
+  const isRevenue   = activeTypeId === 4;
 
   const TITLES = {
     create: { 1: 'Thêm tài sản', 2: 'Thêm khoản nợ', 4: 'Thêm nguồn thu', 5: 'Thêm tài khoản chi' },
@@ -67,8 +76,8 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
 
   const blankForm = () => ({
     name: '',
-    assetSubtype: isAsset ? 'bank' : '',
-    color: DEFAULT_COLORS[typeId] || 'blue',
+    assetSubtype: activeTypeId === 1 ? 'bank' : '',
+    color: DEFAULT_COLORS[activeTypeId] || 'blue',
     cardNumber: '',
     balance: '',
     initialBalance: '',
@@ -83,6 +92,23 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
 
   const selectedSubtype = isAsset ? ASSET_SUBTYPE_MAP[form.assetSubtype] : null;
   const hasSource = form.sourceAccountId && !isEdit;
+
+  // Reset form khi chuyển loại tài khoản
+  const handleTypeChange = (newTypeId) => {
+    if (isEdit || newTypeId === activeTypeId) return;
+    setActiveTypeId(newTypeId);
+    setForm({
+      name: '',
+      assetSubtype: newTypeId === 1 ? 'bank' : '',
+      color: DEFAULT_COLORS[newTypeId] || 'blue',
+      cardNumber: '',
+      balance: '',
+      initialBalance: '',
+      notes: '',
+      sourceAccountId: '',
+    });
+    setError('');
+  };
 
   // Computed preview values
   const preview = useMemo(() => {
@@ -134,7 +160,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
       }
     };
     fetchSources();
-  }, [isOpen]);
+  }, [isOpen, activeTypeId]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -143,7 +169,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
       setForm({
         name:           account.name        || '',
         assetSubtype:   iconToKey[account.iconName] || '',
-        color:          account.color       || DEFAULT_COLORS[typeId] || 'blue',
+        color:          account.color       || DEFAULT_COLORS[activeTypeId] || 'blue',
         cardNumber:     account.cardNumber  || '',
         balance:        account.balance        != null ? String(Math.abs(account.balance))        : '',
         initialBalance: account.initialBalance != null ? String(Math.abs(account.initialBalance)) : '',
@@ -158,7 +184,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
 
   if (!isOpen) return null;
 
-  const set = (key) => async (e) => {
+  const set = (key) => (e) => {
     setForm(f => ({ ...f, [key]: e.target.value }));
     setError('');
   };
@@ -194,7 +220,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
       color:        col.value,
       gradientFrom: col.from,
       gradientTo:   col.to,
-      typeId,
+      typeId: activeTypeId,
       notes:        form.notes.trim() || null,
     };
 
@@ -234,7 +260,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
   };
 
   const selectedColor = COLOR_MAP[form.color] || COLOR_MAP.blue;
-  const HeadingIcon = TYPE_ICONS[typeId]?.icon || Landmark;
+  const ActiveType = ACCOUNT_TYPE_MAP[activeTypeId] || ACCOUNT_TYPE_MAP[1];
 
   return (
     <div
@@ -245,20 +271,42 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
         className="bg-card rounded-2xl shadow-2xl w-full max-w-lg mx-auto max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Type selector */}
+        <div className="px-4 pt-4">
+          <div className="flex gap-1 bg-muted rounded-xl p-1">
+            {ACCOUNT_TYPES.map(({ typeId, icon: Icon, label, gradient, color }) => (
+              <button
+                key={typeId}
+                type="button"
+                disabled={isEdit}
+                onClick={() => handleTypeChange(typeId)}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                  activeTypeId === typeId
+                    ? `text-white shadow-sm bg-gradient-to-r ${gradient}`
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/80'
+                } ${isEdit ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+              >
+                <Icon size={13} />
+                <span className="hidden sm:inline">{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Header with gradient */}
-        <div className={`relative overflow-hidden bg-gradient-to-r ${TYPE_ICONS[typeId]?.gradient || 'from-purple-500 to-purple-700'} px-6 py-5`}>
+        <div className={`relative overflow-hidden bg-gradient-to-r ${ActiveType.gradient} mt-3 mx-4 rounded-xl px-5 py-4`}>
           <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -mr-16 -mt-16 pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-5 rounded-full -ml-12 -mb-12 pointer-events-none" />
           <div className="flex items-center justify-between relative z-10">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center backdrop-blur-sm">
-                <HeadingIcon size={20} className="text-white" />
+                <ActiveType.icon size={20} className="text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">
-                  {TITLES[isEdit ? 'edit' : 'create'][typeId]}
+                <h2 className="text-base font-bold text-white">
+                  {TITLES[isEdit ? 'edit' : 'create'][activeTypeId]}
                 </h2>
-                <p className="text-xs text-white/70 mt-0.5">
+                <p className="text-[11px] text-white/70 mt-0.5">
                   {isEdit ? 'Chỉnh sửa thông tin tài khoản' : 'Điền thông tin bên dưới để tạo mới'}
                 </p>
               </div>
@@ -293,7 +341,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
                   type="text"
                   value={form.name}
                   onChange={set('name')}
-                  placeholder={PLACEHOLDERS[typeId]}
+                  placeholder={PLACEHOLDERS[activeTypeId]}
                   className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
                 />
                 {error && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />{error}</p>}
@@ -547,9 +595,9 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] text-white/60 uppercase tracking-wider font-semibold">
-                      {TYPE_ICONS[typeId]?.label || 'Tài khoản'} {isEdit ? '(đã lưu)' : '(sẽ tạo)'}
+                      {ActiveType.label} {isEdit ? '(đã lưu)' : '(sẽ tạo)'}
                     </span>
-                    <HeadingIcon size={14} className="text-white/60" />
+                    <ActiveType.icon size={14} className="text-white/60" />
                   </div>
                   <p className="text-base font-bold truncate">
                     {form.name.trim() || 'Chưa nhập tên'}
@@ -608,7 +656,7 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
               }}
             >
               <Check size={16} />
-              {SUBMIT_LABELS[isEdit ? 'edit' : 'create'][typeId]}
+              {SUBMIT_LABELS[isEdit ? 'edit' : 'create'][activeTypeId]}
             </button>
           </div>
         </form>
