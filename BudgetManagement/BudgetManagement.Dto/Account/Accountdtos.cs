@@ -10,10 +10,11 @@ public class CreateAccountDto
     public string? Color        { get; set; }        // "blue" | "green" ...
     public string? GradientFrom { get; set; }        // "#3b82f6"
     public string? GradientTo   { get; set; }        // "#1d4ed8"
-    public decimal? Balance        { get; set; }
-    public string? CardNumber      { get; set; }        // "•••• 4892"
-    public string  CurrencyCode   { get; set; } = "VND";
-    public int?    SourceAccountId { get; set; }      // Optional: tạo transaction từ source account
+    public decimal? Balance          { get; set; }
+    public decimal? InitialBalance   { get; set; }     // Số tiền vay gốc (liability) / số dư ban đầu (asset)
+    public string? CardNumber        { get; set; }     // "•••• 4892"
+    public string  CurrencyCode     { get; set; } = "VND";
+    public int?    SourceAccountId   { get; set; }     // Optional: tạo transaction từ source account
 }
 
 public class UpdateAccountDto
