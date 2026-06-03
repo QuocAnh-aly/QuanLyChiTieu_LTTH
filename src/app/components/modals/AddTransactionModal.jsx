@@ -518,14 +518,25 @@ export function AddTransactionModal({
                     }`}
                     required
                   >
-                    <option value="">Chọn ví đích</option>
-                    {assetAccounts
-                      .filter((a) => String(a.accountId) !== walletId)
-                      .map((a) => (
-                        <option key={a.accountId} value={a.accountId}>
-                          {walletLabel(a)}
-                        </option>
-                      ))}
+                    <option value="">
+                      {isDebtPayment ? 'Chọn khoản nợ cần trả' : 'Chọn ví đích'}
+                    </option>
+                    {isDebtPayment
+                      ? liabilityAccounts
+                          .filter((a) => Math.abs(a.balance ?? 0) > 0)
+                          .map((a) => (
+                            <option key={a.accountId} value={a.accountId}>
+                              {debtWalletLabel(a)}
+                            </option>
+                          ))
+                      : assetAccounts
+                          .filter((a) => String(a.accountId) !== walletId)
+                          .map((a) => (
+                            <option key={a.accountId} value={a.accountId}>
+                              {walletLabel(a)}
+                            </option>
+                          ))
+                    }
                   </select>
                   {isDebtPayment && liabilityAccounts.filter(a => Math.abs(a.balance ?? 0) > 0).length === 0 && (
                     <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">

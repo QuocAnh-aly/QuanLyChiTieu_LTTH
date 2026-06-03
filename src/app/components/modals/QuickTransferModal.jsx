@@ -146,15 +146,26 @@ export function QuickTransferModal({ isOpen, onClose, onTransfer }) {
                 required
               >
                 <option value="">
-                  {fromId
-                    ? "Chọn tài khoản đích"
-                    : "Chọn tài khoản nguồn trước"}
+                  {!fromId
+                    ? "Chọn tài khoản nguồn trước"
+                    : isDebtPayment
+                      ? "Chọn khoản nợ cần trả"
+                      : "Chọn tài khoản đích"}
                 </option>
-                {availableTo.map((a) => (
-                  <option key={a.accountId} value={a.accountId}>
-                    {a.name} — {isDebtPayment ? `Nợ ${formatBalance(Math.abs(a.balance ?? 0))}` : formatBalance(a.balance)}
-                  </option>
-                ))}
+                {isDebtPayment
+                  ? liabilityAccounts
+                      .filter((a) => Math.abs(a.balance ?? 0) > 0)
+                      .map((a) => (
+                        <option key={a.accountId} value={a.accountId}>
+                          {a.name} — Nợ {formatBalance(Math.abs(a.balance ?? 0))}
+                        </option>
+                      ))
+                  : availableTo.map((a) => (
+                      <option key={a.accountId} value={a.accountId}>
+                        {a.name} — {formatBalance(a.balance)}
+                      </option>
+                    ))
+                }
               </select>
               {fromId && availableTo.length === 0 && (
                 <p className="text-xs text-amber-600 mt-1">
