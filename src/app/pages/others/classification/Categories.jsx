@@ -76,7 +76,7 @@ const COLOR_MAP = {
   },
   green: { bg: "bg-green-100", text: "text-green-600", swatch: "bg-green-500" },
   red: { bg: "bg-red-100", text: "text-red-600", swatch: "bg-red-500" },
-  slate: { bg: "bg-slate-100", text: "text-slate-600", swatch: "bg-slate-500" },
+  slate: { bg: "bg-slate-200", text: "text-slate-600", swatch: "bg-slate-500" },
   indigo: {
     bg: "bg-indigo-100",
     text: "text-indigo-600",
@@ -108,8 +108,7 @@ function ExpenseCategoryForm({ initial, onSave, onCancel }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-200"
-    >
+      className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-200">
       {/* Label */}
       <div>
         <label className="block text-xs font-semibold text-slate-600 mb-1">
@@ -141,8 +140,7 @@ function ExpenseCategoryForm({ initial, onSave, onCancel }) {
                 iconName === name
                   ? "bg-purple-600 text-white ring-2 ring-purple-400"
                   : "bg-white border border-slate-200 text-slate-500 hover:border-purple-300"
-              }`}
-            >
+              }`}>
               <Icon size={14} />
             </button>
           ))}
@@ -174,8 +172,7 @@ function ExpenseCategoryForm({ initial, onSave, onCancel }) {
       <div className="flex items-center gap-2 pt-1">
         <span className="text-xs text-slate-500">Xem trước:</span>
         <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${bg} ${text}`}
-        >
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${bg} ${text}`}>
           <IconPreview size={12} />
           {name || "Tên danh mục"}
         </span>
@@ -185,14 +182,12 @@ function ExpenseCategoryForm({ initial, onSave, onCancel }) {
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm hover:bg-slate-100 transition-colors"
-        >
+          className="flex-1 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm hover:bg-slate-100 transition-colors">
           Hủy
         </button>
         <button
           type="submit"
-          className="flex-1 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors font-semibold"
-        >
+          className="flex-1 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors font-semibold">
           {initial ? "Lưu" : "Thêm"}
         </button>
       </div>
@@ -219,8 +214,7 @@ function IncomeSourceForm({ initial, onSave, onCancel }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-200"
-    >
+      className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-200">
       <div>
         <label className="block text-xs font-semibold text-slate-600 mb-1">
           Tên nguồn thu
@@ -251,8 +245,7 @@ function IncomeSourceForm({ initial, onSave, onCancel }) {
                 iconName === name
                   ? "bg-purple-600 text-white ring-2 ring-purple-400"
                   : "bg-white border border-slate-200 text-slate-500 hover:border-purple-300"
-              }`}
-            >
+              }`}>
               <Icon size={14} />
             </button>
           ))}
@@ -284,8 +277,7 @@ function IncomeSourceForm({ initial, onSave, onCancel }) {
       <div className="flex items-center gap-2 pt-1">
         <span className="text-xs text-slate-500">Xem trước:</span>
         <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${bg} ${text}`}
-        >
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${bg} ${text}`}>
           <IconPreview size={12} />
           {name || "Tên danh mục"}
         </span>
@@ -294,14 +286,12 @@ function IncomeSourceForm({ initial, onSave, onCancel }) {
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm hover:bg-slate-100 transition-colors"
-        >
+          className="flex-1 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm hover:bg-slate-100 transition-colors">
           Hủy
         </button>
         <button
           type="submit"
-          className="flex-1 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors font-semibold"
-        >
+          className="flex-1 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors font-semibold">
           {initial ? "Lưu" : "Thêm"}
         </button>
       </div>
@@ -369,8 +359,7 @@ export function Categories() {
   return (
     <PageLayout
       title="Danh mục & Nguồn thu"
-      subtitle="Quản lý các danh mục chi tiêu và nguồn thu nhập của bạn"
-    >
+      subtitle="Quản lý các danh mục chi tiêu và nguồn thu nhập của bạn">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* ── Panel: Danh mục chi tiêu ─────────────────────────────────────── */}
         <div className="bg-card rounded-2xl border border-border overflow-hidden">
@@ -394,8 +383,7 @@ export function Categories() {
                   setShowAddExpense(true);
                   setEditExpenseId(null);
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors font-medium"
-              >
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors font-medium">
                 <Plus size={14} /> Thêm mới
               </button>
             )}
@@ -422,12 +410,12 @@ export function Categories() {
               const Icon = ICON_MAP[cat.iconName] || Coffee;
               const style = COLOR_MAP[cat.color] || COLOR_MAP.slate;
 
-              if (editExpenseId === cat.id) {
+              if (editExpenseId === cat.accountId) {
                 return (
                   <ExpenseCategoryForm
-                    key={cat.id}
+                    key={cat.accountId}
                     initial={cat}
-                    onSave={(data) => handleUpdateExpense(cat.id, data)}
+                    onSave={(data) => handleUpdateExpense(cat.accountId, data)}
                     onCancel={() => setEditExpenseId(null)}
                   />
                 );
@@ -436,11 +424,9 @@ export function Categories() {
               return (
                 <div
                   key={cat.accountId}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 group transition-colors"
-                >
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 group transition-colors">
                   <div
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${style.bg}`}
-                  >
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${style.bg}`}>
                     <Icon size={16} className={style.text} />
                   </div>
                   <span className="flex-1 text-sm font-medium text-slate-800">
@@ -452,14 +438,14 @@ export function Categories() {
                         setEditExpenseId(cat.accountId);
                         setShowAddExpense(false);
                       }}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
-                    >
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors">
                       <Pencil size={13} />
                     </button>
                     <button
-                      onClick={() => handleDeleteExpense(cat.id, cat.name)}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                    >
+                      onClick={() =>
+                        handleDeleteExpense(cat.accountId, cat.name)
+                      }
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -489,8 +475,7 @@ export function Categories() {
                   setShowAddIncome(true);
                   setEditIncomeId(null);
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors font-medium"
-              >
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors font-medium">
                 <Plus size={14} /> Thêm mới
               </button>
             )}
@@ -519,12 +504,12 @@ export function Categories() {
             {incomeSources.map((src) => {
               const Icon = ICON_MAP[src.iconName] || DollarSign;
               const style = COLOR_MAP[src.color] || COLOR_MAP.emerald;
-              if (editIncomeId === src.id) {
+              if (editIncomeId === src.accountId) {
                 return (
                   <IncomeSourceForm
                     key={src.accountId}
                     initial={src}
-                    onSave={(data) => handleUpdateIncome(src.accounId, data)}
+                    onSave={(data) => handleUpdateIncome(src.accountId, data)}
                     onCancel={() => setEditIncomeId(null)}
                   />
                 );
@@ -533,9 +518,9 @@ export function Categories() {
               return (
                 <div
                   key={src.accountId}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 group transition-colors"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 group transition-colors">
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${style.bg}`}>
                     <Icon size={16} className={style.text} />
                   </div>
                   <span className="flex-1 text-sm font-medium text-slate-800">
@@ -547,16 +532,14 @@ export function Categories() {
                         setEditIncomeId(src.accountId);
                         setShowAddIncome(false);
                       }}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-green-600 hover:bg-green-50 transition-colors"
-                    >
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-green-600 hover:bg-green-50 transition-colors">
                       <Pencil size={13} />
                     </button>
                     <button
                       onClick={() =>
                         handleDeleteIncome(src.accountId, src.name)
                       }
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                    >
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
                       <Trash2 size={13} />
                     </button>
                   </div>

@@ -156,7 +156,8 @@ public class AccountController : BaseController
         catch (KeyNotFoundException ex)
         {
             return NotFound(new { message = ex.Message });
-        }        catch (UnauthorizedAccessException ex)
+        }        
+        catch (UnauthorizedAccessException ex)
         {
             return StatusCode(403, new { message = ex.Message });
         }
