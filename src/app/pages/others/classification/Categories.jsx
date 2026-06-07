@@ -1,31 +1,12 @@
 import { useState } from "react";
 import {
   Coffee,
-  ShoppingBag,
-  Car,
-  Heart,
-  Zap,
-  Home,
-  Smartphone,
-  GraduationCap,
-  Plane,
-  TrendingUp,
-  Target,
-  Wallet,
-  Pizza,
-  Gift,
-  Music,
-  Dumbbell,
-  Briefcase,
-  Star,
-  Tag,
   DollarSign,
   Plus,
   Pencil,
   Trash2,
   LayoutList,
   BadgeDollarSign,
-  BriefcaseBusiness,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCategories } from "../../../context/CategoriesContext";

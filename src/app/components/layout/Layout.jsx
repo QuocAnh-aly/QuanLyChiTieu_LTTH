@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -400,8 +400,15 @@ function SidebarContent({ onNavClick }) {
 // Main Layout
 // ──────────────────────────────────────────────
 export function Layout() {
+  const location = useLocation();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
+
+  // Scroll to top on route change (pairs with page transition animation)
+  useEffect(() => {
+    const el = document.querySelector('main');
+    if (el) el.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [location.pathname]);
 
   const closeMobileSidebar = () => setMobileSidebarOpen(false);
 
@@ -442,7 +449,9 @@ export function Layout() {
           <NotificationBell />
         </div>
         <div className="flex-1">
-          <Outlet />
+          <div key={location.pathname} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <Outlet />
+          </div>
         </div>
       </main>
     </div>

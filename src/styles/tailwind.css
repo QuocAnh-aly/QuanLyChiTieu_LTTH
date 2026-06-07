@@ -11,3 +11,19 @@
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ───── Staggered list item entrance ───── */
+@utility animate-list-item {
+  animation: listItemFadeIn 0.35s ease-out both;
+}
+
+@keyframes listItemFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

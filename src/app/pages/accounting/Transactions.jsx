@@ -1,8 +1,8 @@
 import {
-  useState, useEffect, useCallback, useMemo, Fragment,
+  useState, useEffect, useCallback, useMemo, Fragment, useRef,
 } from "react";
 import {
-  ArrowUpRight, ArrowDownRight, ArrowLeftRight,
+  ArrowUpRight, ArrowDownRight, ArrowLeftRight, HandCoins,
   Search, Plus, Trash2, Pencil, RefreshCw, TrendingUp,
 } from "lucide-react";
 import {
@@ -19,7 +19,7 @@ import { EditTransactionModal } from "../../components/modals/EditTransactionMod
 import { useSettings } from "../../context/SettingsContext";
 import { useNotifications } from "../../context/NotificationContext";
 
-// typeId: 1=Assets, 4=Revenue, 5=Expense
+// typeId: 1=Assets, 2=Liabilities, 4=Revenue, 5=Expense
 // Source = credit side, Destination = debit side (Firefly III model)
 function mapTransaction(t) {
   const details       = t.details || [];
@@ -27,16 +27,20 @@ function mapTransaction(t) {
   const creditDetail  = details.find(d => d.credit > 0);
   const expenseDetail = details.find(d => d.typeId === 5 && d.debit  > 0);
   const revenueDetail = details.find(d => d.typeId === 4 && d.credit > 0);
-  const isTransfer    = !expenseDetail && !revenueDetail;
+  const repaymentDetail = details.find(d => d.typeId === 2 && d.debit > 0);
+  const isRepayment   = !!repaymentDetail && !expenseDetail && !revenueDetail;
+  const isTransfer    = !expenseDetail && !revenueDetail && !isRepayment;
   const isIncome      = !!revenueDetail;
   let categoryName    = "Chưa phân loại";
-  if (expenseDetail)      categoryName = expenseDetail.accountName || "Chi tiêu";
+  if (isRepayment)        categoryName = repaymentDetail?.accountName || "Trả nợ";
+  else if (expenseDetail) categoryName = expenseDetail.accountName || "Chi tiêu";
   else if (revenueDetail) categoryName = revenueDetail.accountName || "Thu nhập";
   else if (isTransfer)    categoryName = "Chuyển khoản";
   return {
     ...t,
     categoryName,
     isIncome,
+    isRepayment,
     isTransfer,
     sourceAccount: creditDetail?.accountName || "—",
     destAccount:   debitDetail?.accountName  || "—",
@@ -82,6 +86,10 @@ export function Transactions() {
   const [showCustom,      setShowCustom]      = useState(false);
   const [isAddModalOpen,  setIsAddModalOpen]  = useState(false);
   const [editTarget,      setEditTarget]      = useState(null);
+  const [isLoadingMore,   setIsLoadingMore]   = useState(false);
+  const [hasMore,         setHasMore]         = useState(true);
+  const [pageAccum,       setPageAccum]       = useState(1);
+  const sentinelRef = useRef(null);
   const PAGE_SIZE = 25;
 
   // Resolve active date range
@@ -96,6 +104,45 @@ export function Transactions() {
   }, [preset, customFrom, customTo]);
 
   const useRange = !!(rangeFrom && rangeTo);
+
+  // Load more pages (infinite scroll) — only in "all" mode
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore || !hasMore || useRange) return;
+    setIsLoadingMore(true);
+    try {
+      const nextPage = pageAccum + 1;
+      const data = await transactionApi.getAll({ page: nextPage, pageSize: PAGE_SIZE });
+      const newItems = (data.items || data || []).map(mapTransaction);
+      setTransactions(prev => {
+        const existingIds = new Set(prev.map(t => t.journalId));
+        const fresh = newItems.filter(t => !existingIds.has(t.journalId));
+        return [...prev, ...fresh];
+      });
+      setPageAccum(nextPage);
+      setHasMore(nextPage < (data.totalPages || 1));
+    } catch {
+      toast.error('Không thể tải thêm giao dịch');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, hasMore, useRange, pageAccum]);
+
+  // IntersectionObserver — auto-load when sentinel enters viewport
+  useEffect(() => {
+    if (useRange || !hasMore) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasMore && !isLoadingMore) {
+          loadMore();
+        }
+      },
+      { rootMargin: '300px' },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, useRange, loadMore]);
 
   const loadData = useCallback(async (silent = false) => {
     try {
@@ -115,14 +162,16 @@ export function Transactions() {
           netCashFlow:  cfData.netCashFlow  ?? 0,
         });
       } else {
-        const data = await transactionApi.getAll({ page, pageSize: PAGE_SIZE });
+        const data = await transactionApi.getAll({ page: 1, pageSize: PAGE_SIZE });
         const items = (data.items || data || []).map(mapTransaction);
         setTransactions(items);
         setTotalCount(data.totalCount ?? data.total ?? items.length);
+        setPageAccum(1);
+        setHasMore((data.totalPages || 1) > 1);
         // Estimate cash flow from loaded page
         setCashFlow({
           totalIncome:  items.filter(t => t.isIncome).reduce((s, t) => s + t.totalAmount, 0),
-          totalExpense: items.filter(t => !t.isIncome && !t.isTransfer).reduce((s, t) => s + t.totalAmount, 0),
+          totalExpense: items.filter(t => !t.isIncome && !t.isTransfer && !t.isRepayment).reduce((s, t) => s + t.totalAmount, 0),
           netCashFlow:  0,
         });
       }
@@ -132,7 +181,7 @@ export function Transactions() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [useRange, rangeFrom, rangeTo, page]);
+  }, [useRange, rangeFrom, rangeTo]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -143,7 +192,6 @@ export function Transactions() {
     } else {
       setShowCustom(false);
       setPreset(key);
-      setPage(1);
     }
   };
 
@@ -151,7 +199,6 @@ export function Transactions() {
     try {
       await transactionApi.create(data);
       await loadData(true);
-      setPage(1);
       toast.success("Đã thêm giao dịch!");
       addNotification({ type: 'success', title: 'Giao dịch mới', message: 'Đã thêm giao dịch thành công', link: '/transactions/all' });
     } catch {
@@ -193,10 +240,11 @@ export function Transactions() {
       (t.description ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.categoryName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchType =
-      filterType === "all"      ||
-      (filterType === "income"   && t.isIncome)              ||
-      (filterType === "transfer" && t.isTransfer)            ||
-      (filterType === "expense"  && !t.isIncome && !t.isTransfer);
+      filterType === "all"          ||
+      (filterType === "income"      && t.isIncome)                ||
+      (filterType === "transfer"    && t.isTransfer)              ||
+      (filterType === "expense"     && !t.isIncome && !t.isTransfer && !t.isRepayment) ||
+      (filterType === "repayment"   && t.isRepayment);
     return matchSearch && matchType;
   }), [transactions, searchTerm, filterType]);
 
@@ -213,17 +261,16 @@ export function Transactions() {
     return map;
   }, [filtered]);
 
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-
   const amountDisplay = (t) => {
-    if (t.isTransfer) return <span className="text-blue-600">{fmt(t.totalAmount)}</span>;
-    if (t.isIncome)   return <span className="text-green-600">+{fmt(t.totalAmount)}</span>;
-    return                   <span className="text-card-foreground">-{fmt(t.totalAmount)}</span>;
+    if (t.isRepayment) return <span className="text-red-600">-{fmt(t.totalAmount)}</span>;
+    if (t.isTransfer)  return <span className="text-blue-600">{fmt(t.totalAmount)}</span>;
+    if (t.isIncome)    return <span className="text-green-600">+{fmt(t.totalAmount)}</span>;
+    return                    <span className="text-card-foreground">-{fmt(t.totalAmount)}</span>;
   };
 
-  const txBg   = (t) => t.isTransfer ? "bg-blue-50" : t.isIncome ? "bg-green-100" : "bg-red-50";
-  const TxIcon = (t) => t.isTransfer ? ArrowLeftRight : t.isIncome ? ArrowUpRight : ArrowDownRight;
-  const txIconCls = (t) => t.isTransfer ? "text-blue-500" : t.isIncome ? "text-green-600" : "text-red-500";
+  const txBg   = (t) => t.isRepayment ? "bg-red-100" : t.isTransfer ? "bg-blue-50" : t.isIncome ? "bg-green-100" : "bg-red-50";
+  const TxIcon = (t) => t.isRepayment ? HandCoins : t.isTransfer ? ArrowLeftRight : t.isIncome ? ArrowUpRight : ArrowDownRight;
+  const txIconCls = (t) => t.isRepayment ? "text-red-600" : t.isTransfer ? "text-blue-500" : t.isIncome ? "text-green-600" : "text-red-500";
 
   const netPositive = cashFlow.netCashFlow >= 0;
 
@@ -361,6 +408,7 @@ export function Transactions() {
               { key: "all",      label: "Tất cả"       },
               { key: "income",   label: "Thu nhập"     },
               { key: "expense",  label: "Chi tiêu"     },
+              { key: "repayment", label: "Trả nợ"      },
               { key: "transfer", label: "Chuyển khoản" },
             ].map(({ key, label }) => (
               <button
@@ -405,7 +453,7 @@ export function Transactions() {
                 {[...grouped.entries()].map(([dateKey, txs]) => {
                   const dateLabel = format(new Date(dateKey), "EEEE, dd/MM/yyyy", { locale: vi });
                   const dayIncome  = txs.filter(t => t.isIncome).reduce((s, t) => s + t.totalAmount, 0);
-                  const dayExpense = txs.filter(t => !t.isIncome && !t.isTransfer).reduce((s, t) => s + t.totalAmount, 0);
+                  const dayExpense = txs.filter(t => !t.isIncome && !t.isTransfer && !t.isRepayment).reduce((s, t) => s + t.totalAmount, 0);
 
                   return (
                     <Fragment key={dateKey}>
@@ -424,10 +472,10 @@ export function Transactions() {
                       </tr>
 
                       {/* Transaction rows */}
-                      {txs.map(t => {
+                      {txs.map((t, txIndex) => {
                         const Icon = TxIcon(t);
                         return (
-                          <tr key={t.journalId} className="hover:bg-muted transition-colors group">
+                          <tr key={t.journalId} className="animate-list-item hover:bg-muted transition-colors group" style={{ animationDelay: `${txIndex * 50}ms` }}>
                             <td className="px-3 sm:px-6 py-3 sm:py-3.5">
                               <div className="flex items-center gap-2 sm:gap-3">
                                 <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center shrink-0 ${txBg(t)}`}>
@@ -446,7 +494,8 @@ export function Transactions() {
                                 <ArrowLeftRight size={10} className="text-muted-foreground shrink-0" />
                                 <span className={`font-semibold max-w-[70px] sm:max-w-[90px] truncate ${
                                   t.isTransfer ? "text-blue-600" :
-                                  t.isIncome   ? "text-green-600" : "text-red-600"
+                                  t.isIncome   ? "text-green-600" :
+                                  t.isRepayment ? "text-red-600" : "text-red-600"
                                 }`} title={t.destAccount}>
                                   {t.destAccount}
                                 </span>
@@ -496,63 +545,42 @@ export function Transactions() {
           )}
         </div>
 
-        {/* Pagination — only in "all" mode */}
-        {!useRange && totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-border flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Trang {page} / {totalPages} • {totalCount} giao dịch
-            </p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage(1)}
-                disabled={page === 1}
-                className="px-2.5 py-1.5 border border-border rounded-lg text-xs hover:bg-muted disabled:opacity-40"
-              >
-                «
-              </button>
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-3 py-1.5 border border-border rounded-lg text-sm hover:bg-muted disabled:opacity-40"
-              >
-                Trước
-              </button>
-
-              {/* Page numbers */}
-              {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                const start = Math.max(1, Math.min(page - 2, totalPages - 4));
-                const p = start + i;
-                if (p > totalPages) return null;
-                return (
+        {/* Infinite scroll footer — only in "all" mode */}
+        {!useRange && (
+          <div className="px-6 py-5 border-t border-border">
+            {isLoadingMore ? (
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  </svg>
+                  Đang tải thêm...
+                </div>
+              </div>
+            ) : hasMore ? (
+              <>
+                {/* Sentinel element for IntersectionObserver */}
+                <div ref={sentinelRef} className="h-1" />
+                <div className="flex flex-col items-center gap-2">
                   <button
-                    key={p}
-                    onClick={() => setPage(p)}
-                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
-                      p === page
-                        ? "bg-purple-600 text-white"
-                        : "border border-border hover:bg-muted text-muted-foreground"
-                    }`}
+                    onClick={loadMore}
+                    className="px-5 py-2 text-sm font-medium text-purple-600 border border-purple-200 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
                   >
-                    {p}
+                    Tải thêm giao dịch
                   </button>
-                );
-              })}
-
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-3 py-1.5 border border-border rounded-lg text-sm hover:bg-muted disabled:opacity-40"
-              >
-                Tiếp
-              </button>
-              <button
-                onClick={() => setPage(totalPages)}
-                disabled={page === totalPages}
-                className="px-2.5 py-1.5 border border-border rounded-lg text-xs hover:bg-muted disabled:opacity-40"
-              >
-                »
-              </button>
-            </div>
+                  <p className="text-xs text-muted-foreground">
+                    Đã hiển thị {transactions.length} / {totalCount} giao dịch
+                  </p>
+                </div>
+              </>
+            ) : transactions.length > 0 ? (
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">
+                  Đã hiển thị tất cả <span className="font-semibold text-foreground">{totalCount}</span> giao dịch
+                </p>
+              </div>
+            ) : null}
           </div>
         )}
       </div>

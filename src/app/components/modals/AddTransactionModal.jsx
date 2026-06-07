@@ -32,18 +32,26 @@ const TX_TYPES = [
     Icon: ArrowLeftRight,
     activeCls: "bg-blue-500 text-white",
   },
+  {
+    key: "repayment",
+    label: "Trả nợ",
+    Icon: HandCoins,
+    activeCls: "bg-red-600 text-white",
+  },
 ];
 
 const SUBMIT_CLS = {
   expense: "bg-red-500   hover:bg-red-600",
   income: "bg-green-500 hover:bg-green-600",
   transfer: "bg-blue-500  hover:bg-blue-600",
+  repayment: "bg-red-600  hover:bg-red-700",
 };
 
 const SUBMIT_LABEL = {
   expense: "Ghi chi tiêu",
   income: "Ghi thu nhập",
   transfer: "Chuyển tiền",
+  repayment: "Trả nợ",
 };
 
 const COLOR_MAP = {
@@ -78,8 +86,9 @@ export function AddTransactionModal({
   const [assetAccounts, setAssetAccounts] = useState([]);
   const [walletId, setWalletId] = useState("");
   const [toWalletId, setToWalletId] = useState("");
-  const [isDebtPayment, setIsDebtPayment] = useState(false);
   const [liabilityAccounts, setLiabilityAccounts] = useState([]);
+  const [liabilityId, setLiabilityId] = useState("");
+  const selectedLiability = liabilityAccounts.find(a => String(a.accountId) === liabilityId);
   const [expenseCategory, setExpenseCategory] = useState(DEFAULT_CATEGORY);
   const [incomeCategory, setIncomeCategory] = useState(DEFAULT_CATEGORY);
   const [showCustomCategory, setShowCustomCategory] = useState(false);
@@ -94,7 +103,6 @@ export function AddTransactionModal({
   useEffect(() => {
     if (!isOpen) return;
     setTxType(initialType);
-    setIsDebtPayment(false);
     setLiabilityAccounts([]);
     walletApi
       .getByType(1)
@@ -112,9 +120,9 @@ export function AddTransactionModal({
     setTxType(initialType);
     setWalletId("");
     setToWalletId("");
-    setIsDebtPayment(false);
     setExpenseCategory(DEFAULT_CATEGORY);
     setIncomeCategory(DEFAULT_CATEGORY);
+    setLiabilityId("");
     setAmount("");
     setDescription("");
     setNotes("");
@@ -126,9 +134,9 @@ export function AddTransactionModal({
     setTxType(key);
     setWalletId("");
     setToWalletId("");
-    setIsDebtPayment(false);
     setExpenseCategory(DEFAULT_CATEGORY);
     setIncomeCategory(DEFAULT_CATEGORY);
+    setLiabilityId("");
     setShowCustomCategory(false);
   };
 
@@ -148,6 +156,7 @@ export function AddTransactionModal({
         (showCustomCategory && incomeCategory.name.trim())
       );
     if (txType === "transfer") return !!toWalletId && !sameWalletError;
+    if (txType === "repayment") return !!liabilityId && !!selectedLiability && Math.abs(selectedLiability.balance ?? 0) > 0;
     return false;
   })();
 
@@ -159,19 +168,26 @@ export function AddTransactionModal({
       tags: selectedTags.length > 0 ? selectedTags.join(",") : null,
       transactionDate: new Date(date).toISOString(),
     };
-    if (txType === "expense")
+    if (txType === "expense") {
       return {
         ...base,
         debitAccountId: expenseCategory.accountId,
         creditAccountId: parseInt(walletId),
         expenseCategoryName: expenseCategory.name.trim() || "Chưa phân loại",
       };
+    }
     if (txType === "income")
       return {
         ...base,
         debitAccountId: parseInt(walletId),
         creditAccountId: incomeCategory.accountId,
         incomeCategoryName: incomeCategory.name.trim() || "Khác",
+      };
+    if (txType === "repayment")
+      return {
+        ...base,
+        debitAccountId: parseInt(liabilityId),
+        creditAccountId: parseInt(walletId),
       };
     return {
       ...base,
@@ -286,7 +302,9 @@ export function AddTransactionModal({
                     ? "VD: Mua đồ ăn tối, cà phê sáng..."
                     : txType === "income"
                       ? "VD: Lương tháng 5, tiền thưởng..."
-                      : "VD: Chuyển sang ví tiết kiệm..."
+                      : txType === "repayment"
+                        ? "VD: Trả nợ tháng này..."
+                        : "VD: Chuyển sang ví tiết kiệm..."
                 }
               />
             </div>
@@ -342,6 +360,7 @@ export function AddTransactionModal({
                         {cat.name}
                       </button>
                     ))}
+
                     <button
                       type="button"
                       onClick={() => {
@@ -524,19 +543,18 @@ export function AddTransactionModal({
                     className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 text-sm ${
                       sameWalletError
                         ? "border-red-500 bg-red-500/10"
-                        : isDebtPayment
-                          ? "border-red-300 focus:ring-red-500 bg-red-50/30"
-                          : "border-border focus:ring-purple-500"
+                        : "border-border focus:ring-purple-500"
                     }`}
                     required>
                     <option value="">Chọn ví đích</option>
                     {assetAccounts
-                      .filter((a) => String(a.accountId) !== walletId)
-                      .map((a) => (
-                        <option key={a.accountId} value={a.accountId}>
-                          {walletLabel(a)}
-                        </option>
-                      ))}
+                        .filter((a) => String(a.accountId) !== walletId)
+                        .map((a) => (
+                          <option key={a.accountId} value={a.accountId}>
+                            {walletLabel(a)}
+                          </option>
+                        ))
+                    }
                   </select>
                   {isDebtPayment &&
                     liabilityAccounts.filter(
@@ -552,7 +570,7 @@ export function AddTransactionModal({
                       <AlertCircle size={12} /> Chưa có ví. Hãy tạo ví trước.
                     </p>
                   )}
-                  {!isDebtPayment && assetAccounts.length === 1 && (
+                  {assetAccounts.length === 1 && (
                     <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
                       <AlertCircle size={12} /> Chỉ có 1 ví. Hãy tạo thêm ví
                       trước.
@@ -569,6 +587,116 @@ export function AddTransactionModal({
                       </p>
                     )}
                 </div>
+              </>
+            )}
+
+            {/* ── REPAYMENT ── */}
+            {txType === "repayment" && (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">
+                    Trả từ ví <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={walletId}
+                    onChange={(e) => setWalletId(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                    required
+                  >
+                    <option value="">Chọn ví thanh toán</option>
+                    {assetAccounts.map((a) => (
+                      <option key={a.accountId} value={a.accountId}>
+                        {walletLabel(a)}
+                      </option>
+                    ))}
+                  </select>
+                  {assetAccounts.length === 0 && (
+                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                      <AlertCircle size={12} /> Chưa có ví. Hãy tạo ví trước.
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">
+                    Khoản nợ <span className="text-red-500">*</span>
+                  </label>
+                  {liabilityAccounts.length === 0 ? (
+                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                      <AlertCircle size={12} /> Chưa có khoản nợ. Hãy tạo khoản nợ trước.
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
+                      {liabilityAccounts.map((a) => {
+                        const isActive = liabilityId === String(a.accountId);
+                        const remaining = Math.abs(a.balance ?? 0);
+                        const isPaidOff = remaining === 0;
+                        return (
+                          <button
+                            key={a.accountId}
+                            type="button"
+                            disabled={isPaidOff}
+                            onClick={() => setLiabilityId(String(a.accountId))}
+                            className={`w-full px-4 py-3 rounded-xl border-2 text-sm font-medium text-left transition-all flex items-center gap-3 ${
+                              isActive
+                                ? 'border-red-500 bg-red-50 text-red-700'
+                                : isPaidOff
+                                  ? 'border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed'
+                                  : 'border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50/50'
+                            }`}
+                          >
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                              isActive ? 'bg-red-500 text-white' : isPaidOff ? 'bg-slate-200 text-slate-400' : 'bg-red-100 text-red-600'
+                            }`}>
+                              <HandCoins size={14} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`font-semibold truncate ${isPaidOff ? 'line-through' : ''}`}>{a.name}</p>
+
+                            </div>
+                            <div className="text-right shrink-0">
+                              {isPaidOff ? (
+                                <span className="text-xs font-semibold text-green-500">✓ Đã tất toán</span>
+                              ) : (
+                                <p className="text-sm font-bold">{fmt(remaining)}</p>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Repayment summary when both selected */}
+                {walletId && liabilityId && selectedLiability && (
+                  <div className="p-3 rounded-xl bg-red-50 border border-red-200 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <div className="flex items-center gap-2 text-sm text-red-700">
+                      <HandCoins size={16} />
+                      <span className="font-semibold">Trả {selectedLiability.name}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-1.5 text-xs text-red-600">
+                      <span>
+                        Trả từ ví{' '}
+                        <strong>
+                          {assetAccounts.find(a => String(a.accountId) === walletId)?.name || ''}
+                        </strong>
+                      </span>
+                      <span className="font-bold text-sm">
+                        {amount ? fmt(parseFloat(amount)) : '-'} {currencySymbol}
+                      </span>
+                    </div>
+                    {parseFloat(amount || '0') > 0 && selectedLiability.balance && (
+                      <div className="mt-1.5 pt-1.5 border-t border-red-200/60 flex items-center justify-between text-[11px] text-red-500">
+                        <span>Dư nợ còn lại sau khi trả:</span>
+                        <span className="font-semibold">
+                          {fmt(Math.abs(selectedLiability.balance) - parseFloat(amount))}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
             )}
 

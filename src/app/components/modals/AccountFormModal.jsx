@@ -1,6 +1,8 @@
-import { X, Check, Landmark, Wallet, TrendingUp, CreditCard, PiggyBank, Home, Package, HandCoins } from "lucide-react";
-import { useState, useEffect } from "react";
+import { X, Check, Landmark, Wallet, TrendingUp, ShoppingCart, PiggyBank, Home, CreditCard, HandCoins, Tag, ArrowLeftRight, DollarSign, ChevronDown, Sparkles, Briefcase, Percent, Package, Coffee, ShoppingBag, Car, Heart, Zap, HeartPulse, GraduationCap } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 import { accountApi } from "../../api/accountApi";
+import { formatVND, parseVND } from "../../utils/formatMoney";
+import { useSettings } from "../../context/SettingsContext";
 
 const COLOR_OPTIONS = [
   { value: 'blue',    label: 'Xanh dương', from: '#3b82f6', to: '#1d4ed8'  },
@@ -14,50 +16,117 @@ const COLOR_OPTIONS = [
   { value: 'amber',   label: 'Hổ phách',  from: '#f59e0b', to: '#d97706'  },
 ];
 
-const COLOR_MAP = Object.fromEntries(COLOR_OPTIONS.map(c => [c.value, c]));  const DEFAULT_COLORS = { 1: 'blue', 2: 'slate', 4: 'emerald', 5: 'orange' };
+const COLOR_MAP = Object.fromEntries(COLOR_OPTIONS.map(c => [c.value, c]));
+const DEFAULT_COLORS = { 1: 'blue', 2: 'slate', 4: 'emerald', 5: 'orange' };
 
 // Sub-types for Assets (typeId=1)
 const ASSET_SUBTYPES = [
-  { key: 'bank',       label: 'Tài khoản ngân hàng',  iconName: 'Landmark',    color: 'blue',    from: '#3b82f6', to: '#1d4ed8'  },
-  { key: 'cash',       label: 'Tiền mặt',             iconName: 'Wallet',      color: 'emerald', from: '#10b981', to: '#047857'  },
-  { key: 'savings',    label: 'Tiết kiệm',            iconName: 'PiggyBank',   color: 'green',   from: '#22c55e', to: '#15803d'  },
-  { key: 'investment', label: 'Đầu tư',               iconName: 'TrendingUp',  color: 'purple',  from: '#a855f7', to: '#7e22ce'  },
-  { key: 'property',   label: 'Bất động sản',         iconName: 'Home',        color: 'orange',  from: '#f97316', to: '#c2410c'  },
-  { key: 'receivable', label: 'Vay mượn',   iconName: 'HandCoins',   color: 'amber',   from: '#f59e0b', to: '#d97706'  },
-  { key: 'credit',     label: 'Thẻ tín dụng / Trả góp', iconName: 'CreditCard', color: 'red',    from: '#ef4444', to: '#b91c1c'  },
-  { key: 'other',      label: 'Tài sản khác',         iconName: 'Package',     color: 'slate',   from: '#64748b', to: '#475569'  },
+  { key: 'bank',       label: 'Ngân hàng',     iconName: 'Landmark',    color: 'blue',    from: '#3b82f6', to: '#1d4ed8'  },
+  { key: 'cash',       label: 'Tiền mặt',      iconName: 'Wallet',      color: 'emerald', from: '#10b981', to: '#047857'  },
+  { key: 'savings',    label: 'Tiết kiệm',     iconName: 'PiggyBank',   color: 'green',   from: '#22c55e', to: '#15803d'  },
+  { key: 'investment', label: 'Đầu tư',        iconName: 'TrendingUp',  color: 'purple',  from: '#a855f7', to: '#7e22ce'  },
+  { key: 'property',   label: 'Bất động sản',  iconName: 'Home',        color: 'orange',  from: '#f97316', to: '#c2410c'  },
 ];
 
 const ASSET_SUBTYPE_MAP = Object.fromEntries(ASSET_SUBTYPES.map(s => [s.key, s]));
+const SUBTYPE_ICONS = { Landmark, Wallet, PiggyBank, TrendingUp, Home };
 
-const SUBTYPE_ICONS = { Landmark, Wallet, PiggyBank, TrendingUp, Home, CreditCard, Package, HandCoins };
+// Sub-types for Liabilities (typeId=2)
+const LIABILITY_SUBTYPES = [
+  { key: 'bank-loan',   label: 'Vay ngân hàng',   iconName: 'Landmark',      color: 'blue',    from: '#3b82f6', to: '#1d4ed8'  },
+  { key: 'credit-card', label: 'Nợ thẻ tín dụng',  iconName: 'CreditCard',    color: 'red',     from: '#ef4444', to: '#b91c1c'  },
+  { key: 'personal',    label: 'Vay mượn',         iconName: 'HandCoins',     color: 'amber',   from: '#f59e0b', to: '#d97706'  },
+  { key: 'other-debt',  label: 'Nợ khác',          iconName: 'ArrowLeftRight', color: 'slate',  from: '#64748b', to: '#475569'  },
+];
 
-// typeId: 1 = Asset, 2 = Liabilities, 4 = Revenue, 5 = Expense
-export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId }) {
-  const isEdit      = !!account;
-  const isLiability = typeId === 2;
-  const isExpense   = typeId === 5;
-  const isAsset     = typeId === 1;
+const LIABILITY_SUBTYPE_MAP = Object.fromEntries(LIABILITY_SUBTYPES.map(s => [s.key, s]));
+const LIABILITY_SUBTYPE_ICONS = { Landmark, CreditCard, HandCoins, ArrowLeftRight };
 
-  const TITLES = {
-    create: { 1: 'Thêm tài sản', 2: 'Thêm khoản nợ', 4: 'Thêm nguồn thu', 5: 'Thêm tài khoản chi' },
-    edit:   { 1: 'Sửa tài sản',  2: 'Sửa khoản nợ',  4: 'Sửa nguồn thu',  5: 'Sửa tài khoản chi'  },
-  };
-  const SUBMIT_LABELS = {
-    create: { 1: 'Thêm tài sản', 2: 'Thêm khoản nợ', 4: 'Thêm nguồn thu', 5: 'Thêm tài khoản' },
-    edit:   { 1: 'Lưu thay đổi', 2: 'Lưu thay đổi',  4: 'Lưu thay đổi',   5: 'Lưu thay đổi'   },
-  };
-  const PLACEHOLDERS = {
-    1: 'VD: MB Bank, Tiền mặt trong nhà...',
-    2: 'VD: Vay mua xe, Nợ thẻ tín dụng...',
-    4: 'VD: Lương công ty ABC, Cho thuê nhà...',
-    5: 'VD: Thẻ Visa VIB, Ví MoMo...',
-  };
+// Sub-types for Revenue (typeId=4)
+const REVENUE_SUBTYPES = [
+  { key: 'salary',      label: 'Lương',         iconName: 'DollarSign',    color: 'green',   from: '#22c55e', to: '#15803d'  },
+  { key: 'freelance',   label: 'Freelance',     iconName: 'Briefcase',     color: 'purple',  from: '#a855f7', to: '#7e22ce'  },
+  { key: 'investment',  label: 'Đầu tư',        iconName: 'TrendingUp',    color: 'emerald', from: '#10b981', to: '#047857'  },
+  { key: 'rental',      label: 'Cho thuê',      iconName: 'Home',          color: 'orange',  from: '#f97316', to: '#c2410c'  },
+  { key: 'interest',    label: 'Lãi suất',      iconName: 'Percent',       color: 'amber',   from: '#f59e0b', to: '#d97706'  },
+  { key: 'other-rev',   label: 'Khác',          iconName: 'Package',       color: 'slate',   from: '#64748b', to: '#475569'  },
+];
+
+const REVENUE_SUBTYPE_MAP = Object.fromEntries(REVENUE_SUBTYPES.map(s => [s.key, s]));
+const REVENUE_SUBTYPE_ICONS = { DollarSign, Briefcase, TrendingUp, Home, Percent, Package };
+
+// Sub-types for Expense (typeId=5)
+const EXPENSE_SUBTYPES = [
+  { key: 'food',        label: 'Ăn uống',       iconName: 'Coffee',        color: 'orange',  from: '#f97316', to: '#c2410c'  },
+  { key: 'shopping',    label: 'Mua sắm',       iconName: 'ShoppingBag',   color: 'pink',    from: '#ec4899', to: '#be185d'  },
+  { key: 'transport',   label: 'Di chuyển',     iconName: 'Car',           color: 'blue',    from: '#3b82f6', to: '#1d4ed8'  },
+  { key: 'entertain',   label: 'Giải trí',      iconName: 'Heart',         color: 'purple',  from: '#a855f7', to: '#7e22ce'  },
+  { key: 'bills',       label: 'Hóa đơn',       iconName: 'Zap',           color: 'amber',   from: '#f59e0b', to: '#d97706'  },
+  { key: 'housing',     label: 'Nhà ở',         iconName: 'Home',          color: 'green',   from: '#22c55e', to: '#15803d'  },
+  { key: 'health',      label: 'Sức khỏe',      iconName: 'HeartPulse',    color: 'red',     from: '#ef4444', to: '#b91c1c'  },
+  { key: 'education',   label: 'Giáo dục',      iconName: 'GraduationCap', color: 'sky',     from: '#0ea5e9', to: '#0369a1'  },
+];
+
+const EXPENSE_SUBTYPE_MAP = Object.fromEntries(EXPENSE_SUBTYPES.map(s => [s.key, s]));
+const EXPENSE_SUBTYPE_ICONS = { Coffee, ShoppingBag, Car, Heart, Zap, Home, HeartPulse, GraduationCap };
+
+// Account types for the selector bar
+const ACCOUNT_TYPES = [
+  { typeId: 1, icon: Landmark,  label: 'Tài sản',    gradient: 'from-purple-500 to-purple-700', color: '#7c3aed' },
+  { typeId: 2, icon: HandCoins, label: 'Nợ',         gradient: 'from-red-500 to-red-700',     color: '#dc2626' },
+  { typeId: 4, icon: TrendingUp, label: 'Thu nhập',  gradient: 'from-emerald-500 to-emerald-700', color: '#059669' },
+  { typeId: 5, icon: ShoppingCart, label: 'Chi tiêu',  gradient: 'from-orange-500 to-orange-700', color: '#ea580c' },
+];
+
+const ACCOUNT_TYPE_MAP = Object.fromEntries(ACCOUNT_TYPES.map(t => [t.typeId, t]));
+
+// Quick balance presets (in VND)
+const QUICK_PRESETS = [
+  { label: '10tr',  value: 10_000_000 },
+  { label: '50tr',  value: 50_000_000 },
+  { label: '100tr', value: 100_000_000 },
+  { label: '500tr', value: 500_000_000 },
+  { label: '1tỷ',   value: 1_000_000_000 },
+];
+
+// Title / submit / placeholder config per type
+const TITLES = {
+  create: { 1: 'Thêm tài sản', 2: 'Thêm khoản nợ', 4: 'Thêm nguồn thu', 5: 'Thêm tài khoản chi' },
+  edit:   { 1: 'Sửa tài sản',  2: 'Sửa khoản nợ',  4: 'Sửa nguồn thu',  5: 'Sửa tài khoản chi'  },
+};
+const SUBMIT_LABELS = {
+  create: { 1: 'Thêm tài sản', 2: 'Thêm khoản nợ', 4: 'Thêm nguồn thu', 5: 'Thêm tài khoản' },
+  edit:   { 1: 'Lưu thay đổi', 2: 'Lưu thay đổi',  4: 'Lưu thay đổi',   5: 'Lưu thay đổi'   },
+};
+const PLACEHOLDERS = {
+  1: 'VD: MB Bank, Tiền mặt...',
+  2: 'VD: Vay mua xe, Nợ thẻ tín dụng...',
+  4: 'VD: Lương công ty ABC, Cho thuê nhà...',
+  5: 'VD: Thẻ Visa VIB, Ví MoMo...',
+};
+const BALANCE_LABELS = {
+  1: 'Số dư hiện tại',
+  2: 'Dư nợ còn lại',
+  4: 'Tổng đã nhận',
+  5: 'Dư nợ hiện tại',
+};
+
+export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId: initialTypeId }) {
+  const { currencySymbol } = useSettings();
+  const isEdit = !!account;
+
+  const [activeTypeId, setActiveTypeId] = useState(initialTypeId);
+  const [showNotes, setShowNotes] = useState(false);
+
+  const isLiability = activeTypeId === 2;
+  const isExpense   = activeTypeId === 5;
+  const isAsset     = activeTypeId === 1;
+  const isRevenue   = activeTypeId === 4;
 
   const blankForm = () => ({
     name: '',
-    assetSubtype: isAsset ? 'bank' : '',
-    color: DEFAULT_COLORS[typeId] || 'blue',
+    assetSubtype: activeTypeId === 1 ? 'bank' : activeTypeId === 2 ? 'bank-loan' : activeTypeId === 4 ? 'salary' : activeTypeId === 5 ? 'food' : '',
+    color: DEFAULT_COLORS[activeTypeId] || 'blue',
     cardNumber: '',
     balance: '',
     initialBalance: '',
@@ -70,9 +139,70 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
   const [sourceAccounts, setSourceAccounts] = useState([]);
   const [loadingSources, setLoadingSources] = useState(false);
 
-  const selectedSubtype = isAsset ? ASSET_SUBTYPE_MAP[form.assetSubtype] : null;
+  const selectedSubtype = isAsset
+    ? ASSET_SUBTYPE_MAP[form.assetSubtype]
+    : isLiability
+      ? LIABILITY_SUBTYPE_MAP[form.assetSubtype]
+      : isRevenue
+        ? REVENUE_SUBTYPE_MAP[form.assetSubtype]
+        : isExpense
+          ? EXPENSE_SUBTYPE_MAP[form.assetSubtype]
+          : null;
+  const hasSource = form.sourceAccountId && !isEdit;
 
-  // Fetch asset accounts for source selection (chỉ khi tạo mới và là Liability)
+  // Reset form khi chuyển loại
+  const handleTypeChange = (newTypeId) => {
+    if (isEdit || newTypeId === activeTypeId) return;
+    setActiveTypeId(newTypeId);
+    setForm({
+      name: '',
+      assetSubtype: newTypeId === 1 ? 'bank' : newTypeId === 2 ? 'bank-loan' : newTypeId === 4 ? 'salary' : newTypeId === 5 ? 'food' : '',
+      color: DEFAULT_COLORS[newTypeId] || 'blue',
+      cardNumber: '',
+      balance: '',
+      initialBalance: '',
+      notes: '',
+      sourceAccountId: '',
+    });
+    setError('');
+    setShowNotes(false);
+  };
+
+  // Computed preview
+  const preview = useMemo(() => {
+    const amount = parseFloat(form.balance) || 0;
+    if (isLiability && hasSource) {
+      const sourceAcc = sourceAccounts.find(a => String(a.accountId) === form.sourceAccountId);
+      return {
+        balanceAfter: -amount,
+        initialBalanceAfter: -amount,
+        description: `Vay ${formatVND(amount)}${sourceAcc ? ` → ${sourceAcc.name}` : ''}`,
+      };
+    }
+    if (isLiability) {
+      const initBal = parseFloat(form.initialBalance) || amount;
+      return {
+        balanceAfter: -amount,
+        initialBalanceAfter: -initBal,
+        description: `Nợ ${formatVND(amount)}${initBal !== amount ? ` (gốc ${formatVND(initBal)})` : ''}`,
+      };
+    }
+    if (isAsset) {
+      const initBal = parseFloat(form.initialBalance) || 0;
+      return {
+        balanceAfter: amount,
+        initialBalanceAfter: initBal,
+        description: amount > 0 ? `Số dư ${formatVND(amount)}` : 'Chưa nhập số dư',
+      };
+    }
+    return {
+      balanceAfter: amount,
+      initialBalanceAfter: 0,
+      description: amount > 0 ? formatVND(amount) : '',
+    };
+  }, [form.balance, form.initialBalance, form.sourceAccountId, isLiability, hasSource, sourceAccounts]);
+
+  // Fetch asset accounts for liability source selection
   useEffect(() => {
     if (!isOpen || isEdit || !isLiability) return;
     const fetchSources = async () => {
@@ -87,28 +217,37 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
       }
     };
     fetchSources();
-  }, [isOpen]);
+  }, [isOpen, activeTypeId, isEdit, isLiability]);
 
+  // Load account data for editing
   useEffect(() => {
     if (!isOpen) return;
     if (account) {
-      // Determine asset sub-type from existing iconName
-      const iconToKey = { Landmark: 'bank', Wallet: 'cash', WalletIcon: 'cash', PiggyBank: 'savings', TrendingUp: 'investment', Home: 'property', CreditCard: 'credit', Package: 'other', HandCoins: 'receivable' };
-      const detectedSubtype = iconToKey[account.iconName] || '';
+      const assetIconToKey = { Landmark: 'bank', Wallet: 'cash', WalletIcon: 'cash', PiggyBank: 'savings', TrendingUp: 'investment', Home: 'property' };
+      const liabilityIconToKey = { Landmark: 'bank-loan', CreditCard: 'credit-card', HandCoins: 'personal', ArrowLeftRight: 'other-debt' };
+      const revenueIconToKey = { DollarSign: 'salary', Briefcase: 'freelance', TrendingUp: 'investment', Home: 'rental', Percent: 'interest', Package: 'other-rev' };
+      const expenseIconToKey = { Coffee: 'food', ShoppingBag: 'shopping', Car: 'transport', Heart: 'entertain', Zap: 'bills', Home: 'housing', HeartPulse: 'health', GraduationCap: 'education' };
+      const iconToKey = account.typeId === 2
+        ? liabilityIconToKey
+        : account.typeId === 4
+          ? revenueIconToKey
+          : account.typeId === 5
+            ? expenseIconToKey
+            : assetIconToKey;
       setForm({
         name:           account.name        || '',
-        assetSubtype:   detectedSubtype,
-        color:          account.color       || DEFAULT_COLORS[typeId] || 'blue',
+        assetSubtype:   iconToKey[account.iconName] || '',
+        color:          account.color       || DEFAULT_COLORS[activeTypeId] || 'blue',
         cardNumber:     account.cardNumber  || '',
         balance:        account.balance        != null ? String(Math.abs(account.balance))        : '',
-        initialBalance: account.initialBalance != null ? String(Math.abs(account.initialBalance)) : '',
-        notes:          account.notes || '',
-        sourceAccountId: '',
-      });
+        initialBalance: account.initialBalance != null ? String(Math.abs(account.initialBalance)) : '',      notes:          account.notes || '',
+    sourceAccountId: '',
+  });
     } else {
       setForm(blankForm());
     }
     setError('');
+    setShowNotes(false);
   }, [isOpen, account]);
 
   if (!isOpen) return null;
@@ -119,54 +258,79 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
   };
 
   const handleSubtypeSelect = (key) => {
-    const st = ASSET_SUBTYPE_MAP[key];
+    const st = isAsset
+      ? ASSET_SUBTYPE_MAP[key]
+      : isLiability
+        ? LIABILITY_SUBTYPE_MAP[key]
+        : isRevenue
+          ? REVENUE_SUBTYPE_MAP[key]
+          : isExpense
+            ? EXPENSE_SUBTYPE_MAP[key]
+            : null;
     if (!st) return;
-    setForm(f => ({
-      ...f,
-      assetSubtype: key,
-      color:    st.color,
-    }));
+    setForm(f => ({ ...f, assetSubtype: key, color: st.color }));
+  };
+
+  // Quick preset handler: adds preset to current balance
+  const applyPreset = (val) => {
+    setForm(f => ({ ...f, balance: String(val) }));
+    setError('');
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const name = form.name.trim();
     if (!name) { setError('Tên không được để trống'); return; }
+    if (isAsset && !selectedSubtype && !isEdit) {
+      setError('Vui lòng chọn loại tài sản');
+      return;
+    }
+    if (isLiability && !selectedSubtype && !isEdit) {
+      setError('Vui lòng chọn loại nợ');
+      return;
+    }
+    if (isRevenue && !selectedSubtype && !isEdit) {
+      setError('Vui lòng chọn loại thu nhập');
+      return;
+    }
+    if (isExpense && !selectedSubtype && !isEdit) {
+      setError('Vui lòng chọn loại chi tiêu');
+      return;
+    }
 
     let col;
     let iconName;
-
-    if (isAsset && selectedSubtype) {
-      col = COLOR_MAP[form.color] || COLOR_MAP.blue;  // form.color is set by sub-type selection, but can be overridden manually
+    if (selectedSubtype) {
+      col = COLOR_MAP[form.color] || COLOR_MAP.blue;
       iconName = selectedSubtype.iconName;
     } else {
       col = COLOR_MAP[form.color] || COLOR_MAP.blue;
       iconName = null;
     }
 
-    const hasSource = form.sourceAccountId && !isEdit;
     const data = {
       name,
       iconName,
       color:        col.value,
       gradientFrom: col.from,
       gradientTo:   col.to,
-      typeId,
+      typeId: activeTypeId,
       notes:        form.notes.trim() || null,
     };
 
     if (isLiability) {
       const amount = parseFloat(form.balance) || 0;
       if (hasSource) {
-        // Gán nợ vào tài khoản bank: gửi balance dương, controller tạo transaction
         data.sourceAccountId = parseInt(form.sourceAccountId);
-        data.balance = amount; // Positive amount, controller xử lý
-        data.initialBalance = 0;
+        data.balance = amount;
+        data.initialBalance = -amount;
       } else {
         data.balance        = -amount;
         data.initialBalance = -(parseFloat(form.initialBalance) || amount);
       }
+
     } else {
+      // Asset/Revenue/Expense
       const amount = parseFloat(form.balance) || 0;
       if (hasSource && amount > 0) {
         data.balance = amount;
@@ -182,7 +346,6 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
     if (isExpense) {
       data.cardNumber = form.cardNumber.trim() || null;
     } else if (isAsset && !isEdit) {
-      // Auto-generate a random card number on create (timestamp-based to minimize duplicates)
       const now = Date.now();
       const rand = Math.floor(100 + Math.random() * 900);
       data.cardNumber = `•••• ${String(now % 10000).padStart(4, '0')}${rand}`;
@@ -191,291 +354,583 @@ export function AccountFormModal({ isOpen, onClose, onSubmit, account, typeId })
     onSubmit(data);
   };
 
+  const selectedColor = COLOR_MAP[form.color] || COLOR_MAP.blue;
+  const ActiveType = ACCOUNT_TYPE_MAP[activeTypeId] || ACCOUNT_TYPE_MAP[1];
+  const hasPreview = form.name.trim() || form.balance;
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       <div
-        className="bg-card rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto"
+        className="bg-card rounded-2xl shadow-2xl w-full max-w-lg mx-auto max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-card rounded-t-2xl z-10">
-          <h2 className="text-lg font-bold text-card-foreground">
-            {TITLES[isEdit ? 'edit' : 'create'][typeId]}
-          </h2>
-          <button type="button" onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">
-            <X size={18} />
-          </button>
+        {/* ─────── Type Selector ─────── */}
+        <div className="px-4 pt-4 shrink-0">
+          <div className="flex gap-1 bg-muted rounded-xl p-1">
+            {ACCOUNT_TYPES.map(({ typeId, icon: Icon, label, gradient, color }) => (
+              <button
+                key={typeId}
+                type="button"
+                disabled={isEdit}
+                onClick={() => handleTypeChange(typeId)}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                  activeTypeId === typeId
+                    ? `text-white shadow-sm bg-gradient-to-r ${gradient}`
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/80'
+                } ${isEdit ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+              >
+                <Icon size={13} />
+                <span className="hidden sm:inline">{label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="px-6 py-5 space-y-4">
-            {/* Name */}
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-1.5">
-                Tên <span className="text-red-500">*</span>
-              </label>
-              <input
-                autoFocus
-                type="text"
-                value={form.name}
-                onChange={set('name')}
-                placeholder={PLACEHOLDERS[typeId]}
-                className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-              {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+        {/* ─────── Content (scrollable) ─────── */}
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
+          <form onSubmit={handleSubmit} id="account-form">
+            <div key={activeTypeId} className="animate-in fade-in slide-in-from-bottom-1 duration-300">
+            {/* ═══════════════ SECTION: SỐ TIỀN ═══════════════ */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <DollarSign size={16} className="text-muted-foreground" />
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Số tiền</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+
+              {/* Liability: source account selector */}
+              {isLiability && !isEdit && (
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">
+                    Gán nợ vào tài khoản <span className="text-muted-foreground font-normal">(tùy chọn)</span>
+                  </label>
+                  <select
+                    value={form.sourceAccountId}
+                    onChange={e => setForm(f => ({ ...f, sourceAccountId: e.target.value, balance: '', initialBalance: '' }))}
+                    className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
+                  >
+                    <option value="">— Tạo nợ thông thường —</option>
+                    {loadingSources ? (
+                      <option disabled>Đang tải...</option>
+                    ) : sourceAccounts.length === 0 ? (
+                      <option disabled>Không có tài khoản ngân hàng</option>
+                    ) : (
+                      sourceAccounts.map(acc => (
+                        <option key={acc.accountId} value={acc.accountId}>
+                          {acc.name} — {new Intl.NumberFormat('vi-VN').format(acc.balance ?? 0)}đ
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  {hasSource && (
+                    <div className="mt-2 p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                        <ArrowLeftRight size={12} />
+                        Số tiền vay sẽ được chuyển vào <strong>{sourceAccounts.find(a => String(a.accountId) === form.sourceAccountId)?.name || 'tài khoản đã chọn'}</strong> và ghi nhận là khoản nợ
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Liability with source: single amount */}
+              {isLiability && hasSource && (
+                <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">
+                    Số tiền vay <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold text-base">{currencySymbol}</span>
+                    <input
+                      type="text"
+                      value={formatVND(form.balance)}
+                      onChange={(e) => setForm(f => ({ ...f, balance: parseVND(e.target.value) }))}
+                      placeholder="100.000.000"
+                      className="w-full pl-10 pr-4 py-3 border border-border rounded-xl text-base font-semibold tracking-tight focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Liability without source: 2 fields */}
+              {isLiability && !hasSource && (
+                <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">Gốc</label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold text-sm">{currencySymbol}</span>
+                      <input
+                        type="text"
+                        value={formatVND(form.initialBalance)}
+                        onChange={(e) => setForm(f => ({ ...f, initialBalance: parseVND(e.target.value) }))}
+                        placeholder="300.000.000"
+                        className="w-full pl-9 pr-4 py-3 border border-border rounded-xl text-sm font-semibold tracking-tight focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">Còn nợ <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold text-sm">{currencySymbol}</span>
+                      <input
+                        type="text"
+                        value={formatVND(form.balance)}
+                        onChange={(e) => setForm(f => ({ ...f, balance: parseVND(e.target.value) }))}
+                        placeholder="250.000.000"
+                        className="w-full pl-9 pr-4 py-3 border border-border rounded-xl text-sm font-semibold tracking-tight focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Asset / Revenue / Expense */}
+              {!isLiability && (
+                <div className="space-y-3">
+                  {/* Quick presets (only for Asset when no edit) */}
+                  {isAsset && !isEdit && (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {QUICK_PRESETS.map(p => (
+                        <button
+                          key={p.value}
+                          type="button"
+                          onClick={() => applyPreset(p.value)}
+                          className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all duration-200 ${
+                            parseFloat(form.balance) === p.value
+                              ? 'bg-purple-500 text-white border-purple-500 shadow-sm'
+                              : 'border-border text-muted-foreground hover:border-purple-300 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20'
+                          }`}
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Main balance input */}
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">
+                      {BALANCE_LABELS[activeTypeId]} {!isRevenue && <span className="text-red-500">*</span>}
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold text-lg">{currencySymbol}</span>
+                      <input
+                        type="text"
+                        value={formatVND(form.balance)}
+                        onChange={(e) => setForm(f => ({ ...f, balance: parseVND(e.target.value) }))}
+                        placeholder="0"
+                        className="w-full pl-12 pr-4 py-3.5 border-2 border-border focus:border-purple-400 rounded-xl text-lg font-bold tracking-tight focus:outline-none focus:ring-2 focus:ring-purple-500/20 bg-card transition-all duration-200"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+
+                  {/* Initial balance (asset only) */}
+                  {isAsset && (
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-1.5">
+                        Số dư ban đầu <span className="text-muted-foreground font-normal">(tùy chọn)</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold text-sm">{currencySymbol}</span>
+                        <input
+                          type="text"
+                          value={formatVND(form.initialBalance)}
+                          onChange={(e) => setForm(f => ({ ...f, initialBalance: parseVND(e.target.value) }))}
+                          placeholder="0"
+                          className="w-full pl-9 pr-4 py-2.5 border border-border rounded-xl text-sm font-semibold tracking-tight focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Card number (expense only) */}
+                  {isExpense && (
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-1.5">Số thẻ / Số tài khoản</label>
+                      <input
+                        type="text"
+                        value={form.cardNumber}
+                        onChange={set('cardNumber')}
+                        placeholder="VD: **** 1234"
+                        maxLength={9}
+                        className="w-full px-4 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* Color picker */}
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">Màu sắc</label>
-              <div className="grid grid-cols-4 gap-2">
+            {/* ═══════════════ SECTION: THÔNG TIN ═══════════════ */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Tag size={14} className="text-muted-foreground" />
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Thông tin</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+
+              {/* Name */}
+              <div className="mb-3">
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
+                  Tên tài khoản <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={set('name')}
+                  placeholder={PLACEHOLDERS[activeTypeId]}
+                  className="w-full px-4 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
+                />
+                {error && <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block shrink-0" />{error}</p>}
+              </div>
+
+              {/* Asset sub-type */}
+              {isAsset && !isEdit && (
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-2">
+                    Loại tài sản <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {ASSET_SUBTYPES.map(st => {
+                      const isActive = form.assetSubtype === st.key;
+                      const SubIcon = SUBTYPE_ICONS[st.iconName] || Landmark;
+                      return (
+                        <button
+                          key={st.key}
+                          type="button"
+                          onClick={() => handleSubtypeSelect(st.key)}
+                          className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 transition-all duration-200 ${
+                            isActive
+                              ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 shadow-sm'
+                              : 'border-border hover:border-muted-foreground/30 hover:bg-muted'
+                          }`}
+                        >
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 transition-all duration-200"
+                            style={{
+                              background: isActive
+                                ? `linear-gradient(135deg, ${st.from}, ${st.to})`
+                                : 'var(--color-muted)',
+                              transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                            }}
+                          >
+                            <SubIcon size={14} />
+                          </div>
+                          <span className={`text-[10px] font-semibold text-center leading-tight ${isActive ? 'text-purple-700 dark:text-purple-300' : 'text-muted-foreground'}`}>
+                            {st.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedSubtype && (
+                    <div
+                      className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl text-white text-xs font-semibold animate-in fade-in slide-in-from-top-1 duration-200"
+                      style={{ background: `linear-gradient(90deg, ${selectedSubtype.from}, ${selectedSubtype.to})` }}
+                    >
+                      {(() => {
+                        const PreviewIcon = SUBTYPE_ICONS[selectedSubtype.iconName] || Landmark;
+                        return <PreviewIcon size={14} />;
+                      })()}
+                      {selectedSubtype.label}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Liability sub-type */}
+              {isLiability && !isEdit && (
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-2">
+                    Loại nợ <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {LIABILITY_SUBTYPES.map(st => {
+                      const isActive = form.assetSubtype === st.key;
+                      const SubIcon = LIABILITY_SUBTYPE_ICONS[st.iconName] || HandCoins;
+                      return (
+                        <button
+                          key={st.key}
+                          type="button"
+                          onClick={() => handleSubtypeSelect(st.key)}
+                          className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 transition-all duration-200 ${
+                            isActive
+                              ? 'border-red-500 bg-red-50 dark:bg-red-900/30 shadow-sm'
+                              : 'border-border hover:border-muted-foreground/30 hover:bg-muted'
+                          }`}
+                        >
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 transition-all duration-200"
+                            style={{
+                              background: isActive
+                                ? `linear-gradient(135deg, ${st.from}, ${st.to})`
+                                : 'var(--color-muted)',
+                              transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                            }}
+                          >
+                            <SubIcon size={14} />
+                          </div>
+                          <span className={`text-[10px] font-semibold text-center leading-tight ${isActive ? 'text-red-700 dark:text-red-300' : 'text-muted-foreground'}`}>
+                            {st.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedSubtype && (
+                    <div
+                      className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl text-white text-xs font-semibold animate-in fade-in slide-in-from-top-1 duration-200"
+                      style={{ background: `linear-gradient(90deg, ${selectedSubtype.from}, ${selectedSubtype.to})` }}
+                    >
+                      {(() => {
+                        const PreviewIcon = LIABILITY_SUBTYPE_ICONS[selectedSubtype.iconName] || HandCoins;
+                        return <PreviewIcon size={14} />;
+                      })()}
+                      {selectedSubtype.label}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Revenue sub-type */}
+              {isRevenue && !isEdit && (
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-2">
+                    Loại thu nhập <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {REVENUE_SUBTYPES.map(st => {
+                      const isActive = form.assetSubtype === st.key;
+                      const SubIcon = REVENUE_SUBTYPE_ICONS[st.iconName] || DollarSign;
+                      return (
+                        <button
+                          key={st.key}
+                          type="button"
+                          onClick={() => handleSubtypeSelect(st.key)}
+                          className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 transition-all duration-200 ${
+                            isActive
+                              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 shadow-sm'
+                              : 'border-border hover:border-muted-foreground/30 hover:bg-muted'
+                          }`}
+                        >
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 transition-all duration-200"
+                            style={{
+                              background: isActive
+                                ? `linear-gradient(135deg, ${st.from}, ${st.to})`
+                                : 'var(--color-muted)',
+                              transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                            }}
+                          >
+                            <SubIcon size={14} />
+                          </div>
+                          <span className={`text-[10px] font-semibold text-center leading-tight ${isActive ? 'text-emerald-700 dark:text-emerald-300' : 'text-muted-foreground'}`}>
+                            {st.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedSubtype && (
+                    <div
+                      className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl text-white text-xs font-semibold animate-in fade-in slide-in-from-top-1 duration-200"
+                      style={{ background: `linear-gradient(90deg, ${selectedSubtype.from}, ${selectedSubtype.to})` }}
+                    >
+                      {(() => {
+                        const PreviewIcon = REVENUE_SUBTYPE_ICONS[selectedSubtype.iconName] || DollarSign;
+                        return <PreviewIcon size={14} />;
+                      })()}
+                      {selectedSubtype.label}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Expense sub-type */}
+              {isExpense && !isEdit && (
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-2">
+                    Loại chi tiêu <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {EXPENSE_SUBTYPES.map(st => {
+                      const isActive = form.assetSubtype === st.key;
+                      const SubIcon = EXPENSE_SUBTYPE_ICONS[st.iconName] || ShoppingCart;
+                      return (
+                        <button
+                          key={st.key}
+                          type="button"
+                          onClick={() => handleSubtypeSelect(st.key)}
+                          className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 transition-all duration-200 ${
+                            isActive
+                              ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/30 shadow-sm'
+                              : 'border-border hover:border-muted-foreground/30 hover:bg-muted'
+                          }`}
+                        >
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 transition-all duration-200"
+                            style={{
+                              background: isActive
+                                ? `linear-gradient(135deg, ${st.from}, ${st.to})`
+                                : 'var(--color-muted)',
+                              transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                            }}
+                          >
+                            <SubIcon size={14} />
+                          </div>
+                          <span className={`text-[10px] font-semibold text-center leading-tight ${isActive ? 'text-orange-700 dark:text-orange-300' : 'text-muted-foreground'}`}>
+                            {st.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedSubtype && (
+                    <div
+                      className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl text-white text-xs font-semibold animate-in fade-in slide-in-from-top-1 duration-200"
+                      style={{ background: `linear-gradient(90deg, ${selectedSubtype.from}, ${selectedSubtype.to})` }}
+                    >
+                      {(() => {
+                        const PreviewIcon = EXPENSE_SUBTYPE_ICONS[selectedSubtype.iconName] || ShoppingCart;
+                        return <PreviewIcon size={14} />;
+                      })()}
+                      {selectedSubtype.label}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* ═══════════════ SECTION: MÀU SẮC ═══════════════ */}
+            <div className="mb-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles size={13} className="text-muted-foreground" />
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Màu sắc</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+              <div className="flex flex-wrap gap-2 mb-2">
                 {COLOR_OPTIONS.map(opt => (
                   <button
                     key={opt.value}
                     type="button"
                     onClick={() => setForm(f => ({ ...f, color: opt.value }))}
-                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border-2 transition-all ${
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 transition-all duration-200 ${
                       form.color === opt.value
-                        ? 'border-purple-500 bg-purple-50'
-                        : 'border-border hover:border-border'
+                        ? 'border-purple-500 ring-2 ring-purple-200 dark:ring-purple-700 scale-110'
+                        : 'border-border hover:border-muted-foreground/40'
                     }`}
-                  >
-                    <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: opt.from }} />
-                    <span className="text-xs text-foreground">{opt.label}</span>
-                  </button>
+                    style={{ background: `linear-gradient(135deg, ${opt.from}, ${opt.to})` }}
+                    title={opt.label}
+                  />
                 ))}
               </div>
-
-              {/* Preview gradient strip */}
               <div
-                className="mt-2 h-2 rounded-full"
-                style={{ background: `linear-gradient(90deg, ${(COLOR_MAP[form.color] || COLOR_MAP.blue).from}, ${(COLOR_MAP[form.color] || COLOR_MAP.blue).to})` }}
+                className="h-1.5 rounded-full transition-all duration-300"
+                style={{ background: `linear-gradient(90deg, ${selectedColor.from}, ${selectedColor.to})` }}
               />
             </div>
 
-            {/* Asset sub-type selector */}
-            {isAsset && !isEdit && (
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Loại tài sản <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {ASSET_SUBTYPES.map(st => {
-                    const isActive = form.assetSubtype === st.key;
-                    const SubIcon = SUBTYPE_ICONS[st.iconName] || Landmark;
-                    return (
-                      <button
-                        key={st.key}
-                        type="button"
-                        onClick={() => handleSubtypeSelect(st.key)}
-                        className={`flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl border-2 transition-all ${
-                          isActive
-                            ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30'
-                            : 'border-border hover:border-border hover:bg-muted'
-                        }`}
-                      >
-                        <div
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0"
-                          style={{ background: isActive ? `linear-gradient(135deg, ${st.from}, ${st.to})` : 'var(--color-muted)' }}
-                        >
-                          <SubIcon size={14} />
-                        </div>
-                        <span className={`text-[10px] font-semibold text-center leading-tight ${isActive ? 'text-purple-700 dark:text-purple-300' : 'text-muted-foreground'}`}>
-                          {st.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-                {selectedSubtype && (
-                  <div
-                    className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg text-white text-xs font-semibold"
-                    style={{ background: `linear-gradient(90deg, ${selectedSubtype.from}, ${selectedSubtype.to})` }}
-                  >
-                    {(() => {
-                      const PreviewIcon = SUBTYPE_ICONS[selectedSubtype.iconName] || Landmark;
-                      return <PreviewIcon size={14} />;
-                    })()}
-                    {selectedSubtype.label}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Card number — Expense only (Assets get auto-generated) */}
-            {isExpense && (
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-1.5">
-                  Số thẻ / Số tài khoản
-                </label>
-                <input
-                  type="text"
-                  value={form.cardNumber}
-                  onChange={set('cardNumber')}
-                  placeholder="VD: **** 1234"
-                  maxLength={9}
-                  className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-            )}
-
-            {/* Liability: source account (gán nợ vào tài khoản bank) */}
-            {isLiability && !isEdit && (
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-1.5">
-                  Gán nợ vào tài khoản <span className="text-muted-foreground font-normal">(tùy chọn)</span>
-                </label>
-                <select
-                  value={form.sourceAccountId}
-                  onChange={e => setForm(f => ({ ...f, sourceAccountId: e.target.value }))}
-                  className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card"
-                >
-                  <option value="">Không gán vào tài khoản</option>
-                  {loadingSources ? (
-                    <option disabled>Đang tải...</option>
-                  ) : sourceAccounts.length === 0 ? (
-                    <option disabled>Không có tài khoản ngân hàng</option>
-                  ) : (
-                    sourceAccounts.map(acc => (
-                      <option key={acc.accountId} value={acc.accountId}>
-                        {acc.name} — {Intl.NumberFormat('vi-VN').format(acc.balance ?? 0)}đ
-                      </option>
-                    ))
-                  )}
-                </select>
-                {form.sourceAccountId && (
-                  <p className="text-xs text-blue-600 mt-1">
-                    <Landmark size={12} className="inline mr-0.5" />
-                    Số tiền vay sẽ được chuyển vào tài khoản này
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Liability: amount fields */}
-            {isLiability && (
-              <>
-                {form.sourceAccountId ? (
-                  /* Gán nợ vào tài khoản: chỉ cần 1 số tiền */
-                  <div>
-                    <label className="block text-sm font-semibold text-foreground mb-1.5">
-                      Số tiền vay / Dư nợ
-                    </label>
-                    <input
-                      type="number"
-                      value={form.balance}
-                      onChange={set('balance')}
-                      placeholder="100000000"
-                      min={0}
-                      className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
-                    <p className="text-xs text-blue-600 mt-1">
-                      <Landmark size={12} className="inline mr-0.5" />
-                      Số tiền này sẽ được chuyển vào tài khoản đã chọn và ghi nhận là khoản nợ
-                    </p>
-                  </div>
-                ) : (
-                  /* Tạo nợ thông thường: số tiền ban đầu và dư nợ còn lại */
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-semibold text-foreground mb-1.5">
-                        Số tiền ban đầu
-                      </label>
-                      <input
-                        type="number"
-                        value={form.initialBalance}
-                        onChange={set('initialBalance')}
-                        placeholder="300000000"
-                        min={0}
-                        className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-foreground mb-1.5">
-                        Dư nợ còn lại
-                      </label>
-                      <input
-                        type="number"
-                        value={form.balance}
-                        onChange={set('balance')}
-                        placeholder="250000000"
-                        min={0}
-                        className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Revenue / Expense / Asset: balance fields */}
-            {!isLiability && (
-              <>
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-1.5">
-                    {isAsset ? 'Số dư hiện tại' : isExpense ? 'Dư nợ hiện tại' : 'Tổng đã nhận'}
-                  </label>
-                  <input
-                    type="number"
-                    value={form.balance}
-                    onChange={set('balance')}
-                    placeholder="0"
-                    min={0}
-                    className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            {/* ═══════════════ NOTES (collapsible) ═══════════════ */}
+            <div className="mb-5">
+              <button
+                type="button"
+                onClick={() => setShowNotes(!showNotes)}
+                className="flex items-center gap-2 w-full text-left"
+              >
+                <Tag size={13} className="text-muted-foreground" />
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Ghi chú</span>
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-muted-foreground transition-transform duration-200" style={{ transform: showNotes ? 'rotate(180deg)' : '' }}>
+                  <ChevronDown size={14} />
+                </span>
+              </button>
+              {showNotes && (
+                <div className="mt-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <textarea
+                    value={form.notes}
+                    onChange={set('notes')}
+                    placeholder="Thêm ghi chú tùy chọn..."
+                    rows={2}
+                    className="w-full px-4 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card resize-none transition-shadow"
                   />
                 </div>
-                {isAsset && (
-                  <div>
-                    <label className="block text-sm font-semibold text-foreground mb-1.5">
-                      Số dư ban đầu <span className="text-muted-foreground font-normal">(tùy chọn)</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={form.initialBalance}
-                      onChange={set('initialBalance')}
-                      placeholder="0"
-                      min={0}
-                      className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
+              )}
+            </div>
+            </div>
+          </form>
+        </div>
+
+        {/* ─────── Preview Card ─────── */}
+        {hasPreview && (
+          <div className="px-4 sm:px-6 shrink-0 animate-in fade-in slide-in-from-bottom-1 duration-200">
+            <div
+              className="relative overflow-hidden rounded-xl p-4 text-white transition-all duration-300 mb-0"
+              style={{ background: `linear-gradient(135deg, ${selectedColor.from}, ${selectedColor.to})` }}
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -mr-16 -mt-16 pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-20 h-20 bg-white opacity-5 rounded-full -ml-10 -mb-10 pointer-events-none" />
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] text-white/60 uppercase tracking-wider font-semibold">
+                    {ActiveType.label} {isEdit ? '(đã lưu)' : '(sẽ tạo)'}
+                  </span>
+                  <ActiveType.icon size={14} className="text-white/60" />
+                </div>
+                <p className="text-base font-bold truncate">
+                  {form.name.trim() || 'Chưa nhập tên'}
+                </p>
+                <div className="flex items-baseline gap-1.5 mt-1">
+                  <span className="text-2xl font-bold tracking-tight">
+                    {formatVND(preview.balanceAfter)}
+                  </span>
+                  <span className="text-xs font-semibold text-white/70">{currencySymbol}</span>
+                </div>
+                {(isAsset || (isLiability && !hasSource)) && preview.initialBalanceAfter !== 0 && (
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className="text-[11px] text-white/70">
+                      Gốc: {formatVND(Math.abs(preview.initialBalanceAfter))} {currencySymbol}
+                    </span>
+                    {preview.initialBalanceAfter !== preview.balanceAfter && (
+                      <span className={`text-[11px] font-semibold ${
+                        Math.abs(preview.balanceAfter) < Math.abs(preview.initialBalanceAfter)
+                          ? 'text-green-300' : 'text-red-300'
+                      }`}>
+                        {Math.abs(preview.balanceAfter) < Math.abs(preview.initialBalanceAfter) ? '✓' : '✗'} 
+                        {formatVND(Math.abs(Math.abs(preview.initialBalanceAfter) - Math.abs(preview.balanceAfter)))}
+                      </span>
+                    )}
                   </div>
                 )}
-              </>
-            )}
-
-            {/* Notes (optional for all) */}
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-1.5">Ghi chú</label>
-              <textarea
-                value={form.notes}
-                onChange={set('notes')}
-                placeholder="Thêm ghi chú tùy chọn..."
-                rows={2}
-                className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-              />
+              </div>
             </div>
           </div>
+        )}
 
-          {/* Footer */}
-          <div className="flex justify-end gap-3 px-6 py-4 border-t border-border">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              <Check size={16} />
-              {SUBMIT_LABELS[isEdit ? 'edit' : 'create'][typeId]}
-            </button>
-          </div>
-        </form>
+        {/* ─────── Footer ─────── */}
+        <div className="flex justify-end gap-3 px-4 sm:px-6 py-4 border-t border-border bg-muted/30 rounded-b-2xl shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted transition-colors"
+          >
+            Hủy
+          </button>
+          <button
+            type="submit"
+            form="account-form"
+            className="flex items-center gap-2 px-5 py-2.5 text-white text-sm font-semibold rounded-xl transition-all duration-200 shadow-sm hover:shadow-md active:scale-[0.98]"
+            style={{
+              background: `linear-gradient(135deg, ${selectedColor.from}, ${selectedColor.to})`,
+            }}
+          >
+            <Check size={16} />
+            {SUBMIT_LABELS[isEdit ? 'edit' : 'create'][activeTypeId]}
+          </button>
+        </div>
       </div>
     </div>
   );

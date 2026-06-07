@@ -10,13 +10,19 @@ namespace BudgetManagement.Tests;
 public class AccountServiceTests
 {
     private readonly Mock<IAccountRepository> _repoMock;
+    private readonly Mock<IBudgetRepository> _budgetRepoMock;
+    private readonly Mock<IJournalRepository> _journalRepoMock;
+    private readonly Mock<IRecurringRepository> _recurringRepoMock;
     private readonly AccountService _service;
     private readonly int _userId = 1;
 
     public AccountServiceTests()
     {
         _repoMock = new Mock<IAccountRepository>();
-        _service = new AccountService(_repoMock.Object);
+        _budgetRepoMock = new Mock<IBudgetRepository>();
+        _journalRepoMock = new Mock<IJournalRepository>();
+        _recurringRepoMock = new Mock<IRecurringRepository>();
+        _service = new AccountService(_repoMock.Object, _budgetRepoMock.Object, _journalRepoMock.Object, _recurringRepoMock.Object);
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────
@@ -373,11 +379,15 @@ public class AccountServiceTests
     {
         var existing = MakeAccount();
         _repoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(existing);
+        _journalRepoMock.Setup(r => r.HasDetailsForAccountAsync(1)).ReturnsAsync(false);
+        _recurringRepoMock.Setup(r => r.HasJournalsForAccountAsync(1)).ReturnsAsync(false);
+        _budgetRepoMock.Setup(r => r.DeleteByAccountIdAsync(1)).Returns(Task.CompletedTask);
         _repoMock.Setup(r => r.DeleteAsync(1)).ReturnsAsync(true);
 
         var result = await _service.DeleteAsync(_userId, 1);
 
         result.Should().BeTrue();
+        _budgetRepoMock.Verify(r => r.DeleteByAccountIdAsync(1), Times.Once);
         _repoMock.Verify(r => r.DeleteAsync(1), Times.Once);
     }
 

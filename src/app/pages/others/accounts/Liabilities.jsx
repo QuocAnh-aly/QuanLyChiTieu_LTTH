@@ -13,6 +13,8 @@ import {
   PieChart,
   Landmark,
   ArrowUpRight,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
@@ -22,6 +24,8 @@ import { walletApi } from "../../../api/walletApi";
 import { transactionApi } from "../../../api/transactionApi";
 import { useSettings } from "../../../context/SettingsContext";
 import { PageLayout } from "../../../components/layout/PageLayout";
+import { AccountFormModal } from "../../../components/modals/AccountFormModal";
+import { toast } from "sonner";
 
 const PIE_COLORS = ["#ef4444", "#f97316", "#eab308", "#ec4899", "#a855f7", "#f43f5e", "#fb923c", "#fdba74"];
 
@@ -71,6 +75,7 @@ export function Liabilities() {
   const [txCache, setTxCache] = useState({});
   const [loadingTx, setLoadingTx] = useState({});
   const [expandedCard, setExpandedCard] = useState(null);
+  const [editingAccount, setEditingAccount] = useState(null);
 
   const fetchAccounts = useCallback(async () => {
     setIsLoading(true);
@@ -84,6 +89,29 @@ export function Liabilities() {
     }
   }, []);
 
+  const handleEditLiability = useCallback(async (id, data) => {
+    try {
+      await walletApi.update(id, data);
+      toast.success("Đã cập nhật khoản nợ");
+      setEditingAccount(null);
+      fetchAccounts();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Không thể cập nhật khoản nợ");
+    }
+  }, [fetchAccounts]);
+
+  const handleDeleteLiability = useCallback(async (id, name) => {
+    if (!window.confirm(`Xóa khoản nợ "${name}"?\nHành động này không thể hoàn tác.`)) return;
+    try {
+      await walletApi.delete(id);
+      toast.success(`Đã xóa "${name}".`);
+      fetchAccounts();
+    } catch (error) {
+      const msg = error?.response?.data?.message;
+      toast.error(msg || `Không thể xóa "${name}". Khoản nợ có thể đang được sử dụng trong giao dịch.`);
+    }
+  }, [fetchAccounts]);
+
   useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
 
   const filtered = useMemo(() => {
@@ -95,8 +123,8 @@ export function Liabilities() {
       case "amount-desc": list.sort((a, b) => Math.abs(b.balance || 0) - Math.abs(a.balance || 0)); break;
       case "amount-asc": list.sort((a, b) => Math.abs(a.balance || 0) - Math.abs(b.balance || 0)); break;
       case "progress": list.sort((a, b) => {
-        const pA = a.initialBalance ? (1 - Math.abs(a.balance) / Math.abs(a.initialBalance)) * 100 : 0;
-        const pB = b.initialBalance ? (1 - Math.abs(b.balance) / Math.abs(b.initialBalance)) * 100 : 0;
+        const pA = a.initialBalance ? (1 - Math.abs(a.balance) / Math.abs(a.initialBalance)) * 100 : -1;
+        const pB = b.initialBalance ? (1 - Math.abs(b.balance) / Math.abs(b.initialBalance)) * 100 : -1;
         return pA - pB;
       }); break;
       case "name": list.sort((a, b) => a.name.localeCompare(b.name)); break;
@@ -106,14 +134,18 @@ export function Liabilities() {
 
   const totalDebt = accounts.reduce((s, a) => s + Math.abs(a.balance || 0), 0);
   const totalOriginal = accounts.reduce((s, a) => s + Math.abs(a.initialBalance || 0), 0);
-  const totalPaid = Math.max(0, totalOriginal - totalDebt);
-  const overallProgress = totalOriginal > 0 ? (totalPaid / totalOriginal) * 100 : 0;
+  // Fallback: nếu không có initialBalance, dùng balance để overall vẫn hiển thị 0%
+  const totalBase = totalOriginal > 0 ? totalOriginal : totalDebt;
+  const totalPaid = Math.max(0, totalBase - totalDebt);
+  const overallProgress = totalBase > 0 ? (totalPaid / totalBase) * 100 : 0;
   const activeCount = accounts.filter(a => Math.abs(a.balance || 0) > 0).length;
   const paidOffCount = accounts.filter(a => Math.abs(a.balance || 0) === 0).length;
 
   const repayProgress = (acc) => {
-    if (!acc.initialBalance || acc.initialBalance === 0) return 0;
-    return Math.min(100, Math.max(0, (1 - acc.balance / acc.initialBalance) * 100));
+    // Khi không có initialBalance, dùng balance làm gốc → progress = 0% (trung thực)
+    const initBal = acc.initialBalance || acc.balance;
+    if (!initBal || initBal === 0) return 0;
+    return Math.min(100, Math.max(0, (1 - acc.balance / initBal) * 100));
   };
 
   const pieData = useMemo(() => {
@@ -174,7 +206,6 @@ export function Liabilities() {
             label="Đã trả được"
             value={fmt(totalPaid)}
             sublabel={`${overallProgress.toFixed(1)}% tổng nợ gốc`}
-            sublabelColor="text-green-600"
           />
           <StatCard
             icon={DollarSign}
@@ -191,7 +222,7 @@ export function Liabilities() {
       )}
 
       {/* ════════════════════ OVERALL PROGRESS ════════════════════ */}
-      {accounts.length > 0 && totalOriginal > 0 && (
+      {accounts.length > 0 && (
         <div className="bg-card rounded-2xl p-5 border border-border shadow-sm mb-6 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
@@ -200,25 +231,29 @@ export function Liabilities() {
             </h2>
             <span className="text-xl font-bold text-card-foreground">{overallProgress.toFixed(1)}%</span>
           </div>
-          <div className="w-full bg-muted rounded-full h-3.5 mb-2 overflow-hidden shadow-inner">
-            <div
-              className="h-full rounded-full transition-all duration-700 ease-out"
-              style={{
-                width: `${overallProgress}%`,
-                background: `linear-gradient(90deg, #ef4444 ${Math.min(overallProgress, 50)}%, #f97316 ${Math.min(Math.max(overallProgress - 50, 0), 50)}%, #22c55e 100%)`,
-              }}
-            />
-          </div>
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span className="font-medium flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
-              Còn nợ: <span className="text-red-500 font-bold">{fmt(totalDebt)}</span>
-            </span>
-            <span className="font-medium flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-              Đã trả: <span className="text-green-600 font-bold">{fmt(totalPaid)}</span>
-            </span>
-          </div>
+          <>
+            <div className="w-full bg-muted rounded-full h-3.5 mb-2 overflow-hidden shadow-inner">
+              <div
+                className="h-full rounded-full transition-all duration-700 ease-out"
+                style={{
+                  width: `${overallProgress}%`,
+                  background: `linear-gradient(90deg, #ef4444 ${Math.min(overallProgress, 50)}%, #f97316 ${Math.min(Math.max(overallProgress - 50, 0), 50)}%, #22c55e 100%)`,
+                }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span className="font-medium flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
+                Còn nợ: <span className="text-red-500 font-bold">{fmt(totalDebt)}</span>
+              </span>
+              {totalOriginal > 0 && (
+                <span className="font-medium flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
+                  Đã trả: <span className="text-green-600 font-bold">{fmt(totalPaid)}</span>
+                </span>
+              )}
+            </div>
+          </>
         </div>
       )}
 
@@ -313,7 +348,7 @@ export function Liabilities() {
                       </div>
                       <div className="flex justify-between text-[10px] text-muted-foreground mt-0.5">
                         <span>{progress.toFixed(0)}%</span>
-                        <span>{acc.initialBalance ? fmt(Math.abs(acc.initialBalance)) : ""}</span>
+                        {acc.initialBalance ? <span>{fmt(Math.abs(acc.initialBalance))}</span> : <span className="italic">Không rõ gốc</span>}
                       </div>
                     </div>
                   );
@@ -426,7 +461,7 @@ export function Liabilities() {
 
           {/* Rows */}
           <div className="divide-y divide-border">
-            {filtered.map((acc) => {
+            {filtered.map((acc, index) => {
               const progress = repayProgress(acc);
               const remaining = Math.abs(acc.balance);
               const original = Math.abs(acc.initialBalance);
@@ -437,7 +472,8 @@ export function Liabilities() {
               return (
                 <div
                   key={acc.accountId}
-                  className={`transition-colors ${isPaidOff ? "bg-muted/30" : "hover:bg-muted/30"}`}
+                  className={`animate-list-item transition-colors ${isPaidOff ? "bg-muted/30" : "hover:bg-muted/30"}`}
+                  style={{ animationDelay: `${index * 40}ms` }}
                 >
                   <div className="px-4 sm:px-6 py-4">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
@@ -464,6 +500,26 @@ export function Liabilities() {
                         <h3 className={`font-bold ${isPaidOff ? "text-muted-foreground line-through" : "text-card-foreground"}`}>
                           {acc.name}
                         </h3>
+                        {/* Due Date & Interest Rate */}
+                        <div className="flex items-center gap-3 mt-0.5">
+                          {acc.dueDate && (
+                            <span className={`text-[11px] flex items-center gap-1 ${
+                              new Date(acc.dueDate) < new Date() && !isPaidOff
+                                ? 'text-red-500 font-semibold'
+                                : 'text-muted-foreground'
+                            }`}>
+                              <span>📅</span>
+                              Hạn: {format(new Date(acc.dueDate), "dd/MM/yyyy", { locale: vi })}
+                              {new Date(acc.dueDate) < new Date() && !isPaidOff && ' ⚠️ Quá hạn'}
+                            </span>
+                          )}
+                          {acc.interestRate != null && acc.interestRate > 0 && (
+                            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                              <span>📊</span>
+                              LS: {acc.interestRate}%/năm
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Amounts */}
@@ -511,23 +567,39 @@ export function Liabilities() {
                         )}
                       </div>
 
-                      {/* Expand button */}
-                      <button
-                        onClick={() => toggleExpand(acc.accountId)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${
-                          isPaidOff
-                            ? "border-border text-muted-foreground hover:bg-muted"
-                            : "border-border text-card-foreground hover:bg-muted"
-                        }`}
-                      >
-                        {loadingTx[acc.accountId] ? (
-                          <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                          </svg>
-                        ) : isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                        {loadingTx[acc.accountId] ? "Đang tải..." : "Giao dịch"}
-                      </button>
+                      {/* Actions */}
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setEditingAccount(acc)}
+                          className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border border-border"
+                          title="Sửa"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteLiability(acc.accountId, acc.name)}
+                          className="p-2 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors border border-border"
+                          title="Xóa"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                        <button
+                          onClick={() => toggleExpand(acc.accountId)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${
+                            isPaidOff
+                              ? "border-border text-muted-foreground hover:bg-muted"
+                              : "border-border text-card-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {loadingTx[acc.accountId] ? (
+                            <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                            </svg>
+                          ) : isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                          {loadingTx[acc.accountId] ? "Đang tải..." : "Giao dịch"}
+                        </button>
+                      </div>
                     </div>
 
                     {/* Expanded transaction history */}
@@ -592,6 +664,20 @@ export function Liabilities() {
             </p>
           </div>
         </div>
+      )}
+      {/* ════════════════════ EDIT LIABILITY MODAL ════════════════════ */}
+      {editingAccount && (
+        <AccountFormModal
+          isOpen={!!editingAccount}
+          onClose={() => setEditingAccount(null)}
+          onSubmit={(data) => handleEditLiability(editingAccount.accountId, data)}
+          account={{
+            ...editingAccount,
+            id: editingAccount.accountId,
+            typeId: 2,
+          }}
+          typeId={2}
+        />
       )}
     </PageLayout>
   );

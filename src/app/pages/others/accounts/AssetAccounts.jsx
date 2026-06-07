@@ -20,6 +20,8 @@ import {
   DollarSign,
   Percent,
   Plus,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   AreaChart,
@@ -186,6 +188,7 @@ export function AssetAccounts() {
   const [selectedRange, setSelectedRange] = useState(null);
   const [hoveredMonth, setHoveredMonth] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingAccount, setEditingAccount] = useState(null);
 
   const fetchWallets = useCallback(async (silent = false) => {
     try {
@@ -239,6 +242,29 @@ export function AssetAccounts() {
       fetchWallets();
     } catch (error) {
       toast.error(error?.response?.data?.message || "Không thể tạo tài sản");
+    }
+  }, [fetchWallets]);
+
+  const handleEditAsset = useCallback(async (id, data) => {
+    try {
+      await walletApi.update(id, data);
+      toast.success("Đã cập nhật tài sản");
+      setEditingAccount(null);
+      fetchWallets();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Không thể cập nhật tài sản");
+    }
+  }, [fetchWallets]);
+
+  const handleDeleteAsset = useCallback(async (id, name) => {
+    if (!window.confirm(`Xóa tài sản "${name}"?\nHành động này không thể hoàn tác.`)) return;
+    try {
+      await walletApi.delete(id);
+      toast.success(`Đã xóa "${name}".`);
+      fetchWallets();
+    } catch (error) {
+      const msg = error?.response?.data?.message;
+      toast.error(msg || `Không thể xóa "${name}". Tài khoản có thể đang được sử dụng trong giao dịch hoặc ngân sách.`);
     }
   }, [fetchWallets]);
 
@@ -763,13 +789,35 @@ export function AssetAccounts() {
                         </span>
                         {account.cardNumber && <CopyButton text={account.cardNumber} />}
                       </div>
-                      <div
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm ${
-                          isPositive ? "bg-white/20 text-white" : "bg-black/20 text-white/80"
-                        }`}
-                      >
-                        {isPositive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                        {isPositive ? "Tài sản" : "Nợ"}
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingAccount(account);
+                          }}
+                          className="p-1.5 rounded-lg bg-white/10 hover:bg-white/25 text-white/70 hover:text-white transition-all backdrop-blur-sm"
+                          title="Sửa"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteAsset(account.id, account.name);
+                          }}
+                          className="p-1.5 rounded-lg bg-white/10 hover:bg-red-400/40 text-white/70 hover:text-red-200 transition-all backdrop-blur-sm"
+                          title="Xóa"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                        <div
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm ${
+                            isPositive ? "bg-white/20 text-white" : "bg-black/20 text-white/80"
+                          }`}
+                        >
+                          {isPositive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                          {isPositive ? "Tài sản" : "Nợ"}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -818,7 +866,7 @@ export function AssetAccounts() {
                   const diff = acc.balance - acc.initialBalance;
                   const diffPct = acc.initialBalance !== 0 ? ((diff / acc.initialBalance) * 100).toFixed(1) : null;
                   return (
-                    <tr key={acc.id} className="hover:bg-muted/50 transition-colors">
+                    <tr key={acc.id} className="hover:bg-muted/50 transition-colors group">
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <div
@@ -839,12 +887,30 @@ export function AssetAccounts() {
                       <td className="px-4 sm:px-6 py-4 text-right text-muted-foreground font-medium whitespace-nowrap">{fmt(acc.initialBalance)}</td>
                       <td className="px-4 sm:px-6 py-4 text-right font-bold text-card-foreground whitespace-nowrap">{fmt(acc.balance)}</td>
                       <td className="px-4 sm:px-6 py-4 text-right whitespace-nowrap">
-                        <span className={`font-semibold text-sm ${diff >= 0 ? "text-green-600" : "text-red-500"}`}>
-                          {diff >= 0 ? "+" : "-"}{fmt(Math.abs(diff))}
-                          {diffPct !== null && (
-                            <span className="text-xs font-normal ml-1 opacity-60">({diffPct}%)</span>
-                          )}
-                        </span>
+                        <div className="flex items-center justify-end gap-2">
+                          <span className={`font-semibold text-sm ${diff >= 0 ? "text-green-600" : "text-red-500"}`}>
+                            {diff >= 0 ? "+" : "-"}{fmt(Math.abs(diff))}
+                            {diffPct !== null && (
+                              <span className="text-xs font-normal ml-1 opacity-60">({diffPct}%)</span>
+                            )}
+                          </span>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => setEditingAccount(acc)}
+                              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                              title="Sửa"
+                            >
+                              <Pencil size={13} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAsset(acc.id, acc.name)}
+                              className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors"
+                              title="Xóa"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1044,6 +1110,17 @@ export function AssetAccounts() {
         account={null}
         typeId={1}
       />
+
+      {/* ════════════════════ EDIT ASSET MODAL ════════════════════ */}
+      {editingAccount && (
+        <AccountFormModal
+          isOpen={!!editingAccount}
+          onClose={() => setEditingAccount(null)}
+          onSubmit={(data) => handleEditAsset(editingAccount.id, data)}
+          account={editingAccount}
+          typeId={editingAccount.typeId}
+        />
+      )}
     </PageLayout>
     </>
   );

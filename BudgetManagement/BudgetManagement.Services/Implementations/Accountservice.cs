@@ -8,8 +8,9 @@ namespace BudgetManagement.Services.Implementations;
 public class AccountService : IAccountService
 {
     private readonly IAccountRepository _accountRepo;
+    private readonly IBudgetRepository _budgetRepo;
     private readonly IJournalRepository _journalRepo;
-    
+    private readonly IRecurringRepository _recurringRepo;
     private const int DefaultPageSize = 20;
 
     // Account_Types IDs (khớp với INSERT trong SQL schema)
@@ -19,10 +20,12 @@ public class AccountService : IAccountService
     private const int TypeRevenue     = 4;
     private const int TypeExpense     = 5;
 
-    public AccountService(IAccountRepository accountRepo, IJournalRepository journalRepo)
+    public AccountService(IAccountRepository accountRepo, IBudgetRepository budgetRepo, IJournalRepository journalRepo, IRecurringRepository recurringRepo)
     {
         _accountRepo = accountRepo;
+        _budgetRepo = budgetRepo;
         _journalRepo = journalRepo;
+        _recurringRepo = recurringRepo;
     }
 
     public async Task<IEnumerable<AccountDto>> GetAllAsync(int userId)
