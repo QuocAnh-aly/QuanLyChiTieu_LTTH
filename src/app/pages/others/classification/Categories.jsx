@@ -31,63 +31,7 @@ import { toast } from "sonner";
 import { useCategories } from "../../../context/CategoriesContext";
 
 // ── Icon & Color config ────────────────────────────────────────────────────────
-
-const ICON_MAP = {
-  Coffee,
-  ShoppingBag,
-  Car,
-  Heart,
-  Zap,
-  Home,
-  Smartphone,
-  GraduationCap,
-  Plane,
-  TrendingUp,
-  Target,
-  Wallet,
-  Pizza,
-  Gift,
-  Music,
-  Dumbbell,
-  Briefcase,
-  Star,
-  Tag,
-  DollarSign,
-  BriefcaseBusiness,
-};
-
-const COLOR_MAP = {
-  orange: {
-    bg: "bg-orange-100",
-    text: "text-orange-600",
-    swatch: "bg-orange-500",
-  },
-  pink: { bg: "bg-pink-100", text: "text-pink-600", swatch: "bg-pink-500" },
-  blue: { bg: "bg-blue-100", text: "text-blue-600", swatch: "bg-blue-500" },
-  purple: {
-    bg: "bg-purple-100",
-    text: "text-purple-600",
-    swatch: "bg-purple-500",
-  },
-  yellow: {
-    bg: "bg-yellow-100",
-    text: "text-yellow-600",
-    swatch: "bg-yellow-500",
-  },
-  green: { bg: "bg-green-100", text: "text-green-600", swatch: "bg-green-500" },
-  red: { bg: "bg-red-100", text: "text-red-600", swatch: "bg-red-500" },
-  slate: { bg: "bg-slate-200", text: "text-slate-600", swatch: "bg-slate-500" },
-  indigo: {
-    bg: "bg-indigo-100",
-    text: "text-indigo-600",
-    swatch: "bg-indigo-500",
-  },
-  emerald: {
-    bg: "bg-emerald-100",
-    text: "text-emerald-600",
-    swatch: "bg-emerald-500",
-  },
-};
+import { ICON_MAP, COLOR_MAP } from "../../../utils/icons";
 
 // ── Expense Category Form ──────────────────────────────────────────────────────
 

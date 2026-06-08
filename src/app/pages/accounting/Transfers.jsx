@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, Fragment } from "react";
 import {
   ArrowLeftRight, Plus, RefreshCw, Search, Pencil, Trash2, ArrowRight,
 } from "lucide-react";
@@ -236,8 +236,8 @@ export function Transfers() {
               {[...grouped.entries()].map(([dateKey, txs]) => {
                 const dayTotal = txs.reduce((s, t) => s + t.totalAmount, 0);
                 return (
-                  <>
-                    <tr key={`hdr-${dateKey}`} className="bg-muted/80">
+                  <Fragment key={dateKey}>
+                    <tr className="bg-muted/80">
                       <td colSpan={4} className="px-3 sm:px-6 py-2">
                         <span className="text-xs font-bold text-muted-foreground capitalize">
                           {format(new Date(dateKey), "EEEE, dd/MM/yyyy", { locale: vi })}
@@ -296,7 +296,7 @@ export function Transfers() {
                         </td>
                       </tr>
                     ))}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>
