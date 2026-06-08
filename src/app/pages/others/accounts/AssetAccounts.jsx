@@ -473,6 +473,7 @@ export function AssetAccounts() {
                   const isEnd   = selectedRange && idx === endIdx;
                   return (
                     <circle
+                      key={`dot-${payload.year}-${payload.monthIndex}`}
                       cx={cx}
                       cy={cy}
                       r={isStart || isEnd ? 9 : inRange ? 7 : 4}
