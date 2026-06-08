@@ -11,6 +11,10 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user_id');
+    localStorage.removeItem('expense_categories');
+    localStorage.removeItem('income_sources');
+    localStorage.removeItem('app_tags');
+    localStorage.removeItem('app_object_groups');
     setUser(null);
   }, []);
 

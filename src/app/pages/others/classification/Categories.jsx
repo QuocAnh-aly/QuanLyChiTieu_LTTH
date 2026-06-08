@@ -17,6 +17,7 @@ import {
   Music,
   Dumbbell,
   Briefcase,
+  BriefcaseBusiness,
   Star,
   Tag,
   DollarSign,
@@ -25,7 +26,6 @@ import {
   Trash2,
   LayoutList,
   BadgeDollarSign,
-  BriefcaseBusiness,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCategories } from "../../../context/CategoriesContext";
@@ -76,7 +76,7 @@ const COLOR_MAP = {
   },
   green: { bg: "bg-green-100", text: "text-green-600", swatch: "bg-green-500" },
   red: { bg: "bg-red-100", text: "text-red-600", swatch: "bg-red-500" },
-  slate: { bg: "bg-slate-100", text: "text-slate-600", swatch: "bg-slate-500" },
+  slate: { bg: "bg-slate-200", text: "text-slate-600", swatch: "bg-slate-500" },
   indigo: {
     bg: "bg-indigo-100",
     text: "text-indigo-600",
@@ -118,7 +118,7 @@ function ExpenseCategoryForm({ initial, onSave, onCancel }) {
           autoFocus
           type="text"
           value={name}
-          onChange={(e) => setLabel(e.target.value)}
+          onChange={(e) => setName(e.target.value)}
           className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           placeholder="Ví dụ: Ăn uống"
           required
@@ -223,7 +223,7 @@ function IncomeSourceForm({ initial, onSave, onCancel }) {
           autoFocus
           type="text"
           value={name}
-          onChange={(e) => setLabel(e.target.value)}
+          onChange={(e) => setName(e.target.value)}
           className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           placeholder="Ví dụ: Lương, Thưởng..."
           required
@@ -410,12 +410,12 @@ export function Categories() {
               const Icon = ICON_MAP[cat.iconName] || Coffee;
               const style = COLOR_MAP[cat.color] || COLOR_MAP.slate;
 
-              if (editExpenseId === cat.id) {
+              if (editExpenseId === cat.accountId) {
                 return (
                   <ExpenseCategoryForm
-                    key={cat.id}
+                    key={cat.accountId}
                     initial={cat}
-                    onSave={(data) => handleUpdateExpense(cat.id, data)}
+                    onSave={(data) => handleUpdateExpense(cat.accountId, data)}
                     onCancel={() => setEditExpenseId(null)}
                   />
                 );
@@ -442,7 +442,9 @@ export function Categories() {
                       <Pencil size={13} />
                     </button>
                     <button
-                      onClick={() => handleDeleteExpense(cat.id, cat.name)}
+                      onClick={() =>
+                        handleDeleteExpense(cat.accountId, cat.name)
+                      }
                       className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
                       <Trash2 size={13} />
                     </button>
@@ -502,12 +504,12 @@ export function Categories() {
             {incomeSources.map((src) => {
               const Icon = ICON_MAP[src.iconName] || DollarSign;
               const style = COLOR_MAP[src.color] || COLOR_MAP.emerald;
-              if (editIncomeId === src.id) {
+              if (editIncomeId === src.accountId) {
                 return (
                   <IncomeSourceForm
                     key={src.accountId}
                     initial={src}
-                    onSave={(data) => handleUpdateIncome(src.accounId, data)}
+                    onSave={(data) => handleUpdateIncome(src.accountId, data)}
                     onCancel={() => setEditIncomeId(null)}
                   />
                 );
@@ -517,7 +519,8 @@ export function Categories() {
                 <div
                   key={src.accountId}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 group transition-colors">
-                  <div className="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${style.bg}`}>
                     <Icon size={16} className={style.text} />
                   </div>
                   <span className="flex-1 text-sm font-medium text-slate-800">

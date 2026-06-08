@@ -12,9 +12,11 @@ public interface IBudgetRepository : IBaseRepository<Budget>
     Task<PaginatedResult<Budget>> GetSavingsGoalsPagedAsync(int userId, int page, int pageSize);
     Task<Budget?> GetActiveByAccountIdAsync(int accountId);
     Task UpdateCurrentAmountAsync(int budgetId, decimal amount);
+    Task<IEnumerable<Budget>> GetExpenseBudgetsNeedingResetAsync();
 
     // Piggy bank events
     Task AddEventAsync(int budgetId, decimal amount, string? notes);
     Task<IEnumerable<PiggyBankEvent>> GetEventsByBudgetIdAsync(int budgetId);
     Task DeleteEventsByBudgetIdAsync(int budgetId);
+    Task DeleteByAccountIdAsync(int accountId);
 }

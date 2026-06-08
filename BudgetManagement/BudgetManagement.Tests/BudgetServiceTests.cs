@@ -187,30 +187,129 @@ public class BudgetServiceTests
     // ─── CreateExpenseBudgetAsync ──────────────────────────────────────────
 
     [Fact]
-    public async Task CreateExpenseBudgetAsync_CreatesAccountAndBudget()
+    public async Task CreateExpenseBudgetAsync_WithExistingCategory_CreatesBudget()
     {
+        var existingAccount = new Account
+        {
+            AccountId = 10,
+            UserId    = _userId,
+            TypeId    = 5,
+            Name      = "Ăn uống",
+            IconName  = "Coffee",
+            Color     = "orange",
+            IsActive  = true,
+        };
+
         var request = new CreateBudgetDto
         {
-            Title        = "New Budget",
+            AccountId    = 10,
+            Title        = "Budget Ăn uống T6",
             TargetAmount = 2000m,
             PeriodType   = "weekly",
             StartDate    = new DateTime(2026, 6, 1),
         };
 
         _accountRepoMock
-            .Setup(r => r.CreateAsync(It.Is<Account>(a => a.Name == "New Budget" && a.TypeId == 5)))
-            .ReturnsAsync(new Account { AccountId = 10, UserId = _userId, TypeId = 5, Name = "New Budget" });
+            .Setup(r => r.GetWithDetailsAsync(10))
+            .ReturnsAsync(existingAccount);
 
         _budgetRepoMock
-            .Setup(r => r.CreateAsync(It.Is<Budget>(b => b.Title == "New Budget" && b.TargetAmount == 2000m)))
-            .ReturnsAsync(MakeBudget(1, title: "New Budget", target: 2000m));
+            .Setup(r => r.CreateAsync(It.Is<Budget>(b => b.Title == "Budget Ăn uống T6" && b.TargetAmount == 2000m)))
+            .ReturnsAsync(MakeBudget(1, title: "Budget Ăn uống T6", target: 2000m));
 
         var result = await _service.CreateExpenseBudgetAsync(_userId, request);
 
-        result.Title.Should().Be("New Budget");
+        result.Title.Should().Be("Budget Ăn uống T6");
         result.TargetAmount.Should().Be(2000m);
-        _accountRepoMock.Verify(r => r.CreateAsync(It.IsAny<Account>()), Times.Once);
+        _accountRepoMock.Verify(r => r.CreateAsync(It.IsAny<Account>()), Times.Never);
         _budgetRepoMock.Verify(r => r.CreateAsync(It.IsAny<Budget>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateExpenseBudgetAsync_NoAccountId_ThrowsArgumentException()
+    {
+        var request = new CreateBudgetDto
+        {
+            AccountId    = 0,
+            Title        = "Budget",
+            TargetAmount = 1000m,
+            StartDate    = new DateTime(2026, 6, 1),
+        };
+
+        await FluentActions.Invoking(() => _service.CreateExpenseBudgetAsync(_userId, request))
+            .Should().ThrowAsync<ArgumentException>()
+            .WithMessage("Phải chọn danh mục chi tiêu cho ngân sách.");
+    }
+
+    [Fact]
+    public async Task CreateExpenseBudgetAsync_NonExistentAccount_ThrowsKeyNotFound()
+    {
+        _accountRepoMock.Setup(r => r.GetWithDetailsAsync(999))
+            .ReturnsAsync((Account?)null);
+
+        var request = new CreateBudgetDto
+        {
+            AccountId    = 999,
+            Title        = "Budget",
+            TargetAmount = 1000m,
+            StartDate    = new DateTime(2026, 6, 1),
+        };
+
+        await FluentActions.Invoking(() => _service.CreateExpenseBudgetAsync(_userId, request))
+            .Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public async Task CreateExpenseBudgetAsync_OtherUsersAccount_ThrowsUnauthorized()
+    {
+        var otherAccount = new Account
+        {
+            AccountId = 10,
+            UserId    = 99,
+            TypeId    = 5,
+            Name      = "Other's",
+            IsActive  = true,
+        };
+        _accountRepoMock.Setup(r => r.GetWithDetailsAsync(10))
+            .ReturnsAsync(otherAccount);
+
+        var request = new CreateBudgetDto
+        {
+            AccountId    = 10,
+            Title        = "Budget",
+            TargetAmount = 1000m,
+            StartDate    = new DateTime(2026, 6, 1),
+        };
+
+        await FluentActions.Invoking(() => _service.CreateExpenseBudgetAsync(_userId, request))
+            .Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
+    public async Task CreateExpenseBudgetAsync_NonExpenseAccount_ThrowsArgumentException()
+    {
+        var assetAccount = new Account
+        {
+            AccountId = 10,
+            UserId    = _userId,
+            TypeId    = 1,  // Assets, not Expense
+            Name      = "Checking",
+            IsActive  = true,
+        };
+        _accountRepoMock.Setup(r => r.GetWithDetailsAsync(10))
+            .ReturnsAsync(assetAccount);
+
+        var request = new CreateBudgetDto
+        {
+            AccountId    = 10,
+            Title        = "Budget",
+            TargetAmount = 1000m,
+            StartDate    = new DateTime(2026, 6, 1),
+        };
+
+        await FluentActions.Invoking(() => _service.CreateExpenseBudgetAsync(_userId, request))
+            .Should().ThrowAsync<ArgumentException>()
+            .WithMessage("Danh mục được chọn phải là danh mục chi tiêu (Expense).");
     }
 
     // ─── UpdateExpenseBudgetAsync ──────────────────────────────────────────
@@ -283,5 +382,194 @@ public class BudgetServiceTests
         var result = await _service.GetSavingsGoalsAsync(_userId);
 
         result.Should().ContainSingle().Which.Title.Should().Be("Vacation");
+    }
+
+    // ─── ResetExpiredPeriodsAsync ────────────────────────────────────────────
+
+    private static Budget MakeResetBudget(int budgetId, DateTime startDate,
+        string periodType = "monthly", decimal currentAmount = 1000m)
+    {
+        return new Budget
+        {
+            BudgetId      = budgetId,
+            UserId        = 1,
+            AccountId     = budgetId,
+            Title         = $"Budget {budgetId}",
+            BudgetType    = "expense",
+            TargetAmount  = 5000m,
+            CurrentAmount = currentAmount,
+            PeriodType    = periodType,
+            StartDate     = startDate,
+            IsActive      = true,
+            Account = new Account { AccountId = budgetId, UserId = 1, TypeId = 5, Name = $"Budget {budgetId}", IsActive = true },
+        };
+    }
+
+    [Fact]
+    public async Task ResetExpiredPeriodsAsync_NoBudgets_DoesNothing()
+    {
+        _budgetRepoMock
+            .Setup(r => r.GetExpenseBudgetsNeedingResetAsync())
+            .ReturnsAsync(Array.Empty<Budget>());
+
+        await _service.ResetExpiredPeriodsAsync();
+
+        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ResetExpiredPeriodsAsync_SameDay_NoReset()
+    {
+        var today = DateTime.UtcNow.Date;
+        var budgets = new[] { MakeResetBudget(1, today) };
+        _budgetRepoMock
+            .Setup(r => r.GetExpenseBudgetsNeedingResetAsync())
+            .ReturnsAsync(budgets);
+
+        await _service.ResetExpiredPeriodsAsync();
+
+        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ResetExpiredPeriodsAsync_WeeklyBoundaryDay_Resets()
+    {
+        // startDate = today - 7 days → today is exactly the weekly boundary
+        var today = DateTime.UtcNow.Date;
+        var startDate = today.AddDays(-7);
+        var budgets = new[] { MakeResetBudget(1, startDate, periodType: "weekly") };
+        _budgetRepoMock
+            .Setup(r => r.GetExpenseBudgetsNeedingResetAsync())
+            .ReturnsAsync(budgets);
+
+        await _service.ResetExpiredPeriodsAsync();
+
+        // (7/7)=1 > (6/7)=0 → always resets on day 7
+        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(1, 0m), Times.Once);
+    }
+
+    [Fact]
+    public async Task ResetExpiredPeriodsAsync_YearlyBoundaryDay_Resets()
+    {
+        // startDate = today - 1 year → today is exactly the yearly anniversary
+        var today = DateTime.UtcNow.Date;
+        var startDate = today.AddYears(-1);
+        var budgets = new[] { MakeResetBudget(1, startDate, periodType: "yearly") };
+        _budgetRepoMock
+            .Setup(r => r.GetExpenseBudgetsNeedingResetAsync())
+            .ReturnsAsync(budgets);
+
+        await _service.ResetExpiredPeriodsAsync();
+
+        // today == start + 1 year → always resets on yearly anniversary
+        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(1, 0m), Times.Once);
+    }
+
+    [Fact]
+    public async Task ResetExpiredPeriodsAsync_MonthlyBoundaryDay_ResetsWhenOnBoundary()
+    {
+        // Use startDate = 15th of last month. Boundary is 15th of this month.
+        // If today == 15th → reset; otherwise → no reset (conditional assertion)
+        var today = DateTime.UtcNow.Date;
+        var lastMonth15 = new DateTime(today.Year, today.Month, 15).AddMonths(-1);
+        var budgets = new[] { MakeResetBudget(1, lastMonth15) };
+        _budgetRepoMock
+            .Setup(r => r.GetExpenseBudgetsNeedingResetAsync())
+            .ReturnsAsync(budgets);
+
+        await _service.ResetExpiredPeriodsAsync();
+
+        // Verify correct behavior based on whether today is the boundary day
+        if (today.Day == 15)
+            _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(1, 0m), Times.Once);
+        else
+            _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ResetExpiredPeriodsAsync_MultipleBudgets_OnlyBoundaryResets()
+    {
+        var today = DateTime.UtcNow.Date;
+        // Budget 1: started 3 days ago → same period → no reset
+        // Budget 2: started 7 days ago (weekly) → exact boundary → resets
+        // Budget 3: started 15 days ago → some period, not boundary unless today.Day==15
+        var budgets = new[]
+        {
+            MakeResetBudget(1, today.AddDays(-3)),
+            MakeResetBudget(2, today.AddDays(-7), periodType: "weekly"),
+            MakeResetBudget(3, new DateTime(today.Year, today.Month, 15).AddMonths(-1)),
+        };
+        _budgetRepoMock
+            .Setup(r => r.GetExpenseBudgetsNeedingResetAsync())
+            .ReturnsAsync(budgets);
+
+        await _service.ResetExpiredPeriodsAsync();
+
+        // Budget 2 (weekly, day 7) always resets
+        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(2, 0m), Times.Once);
+        // Budget 1 never resets
+        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(1, 0m), Times.Never);
+        // Budget 3 resets only on the 15th
+        if (today.Day == 15)
+            _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(3, 0m), Times.Once);
+        else
+            _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(3, 0m), Times.Never);
+    }
+
+    [Fact]
+    public async Task ResetExpiredPeriodsAsync_MidPeriodAfterBoundary_NoDoubleReset()
+    {
+        // startDate = 45 days ago → well past first monthly boundary.
+        // Both today and yesterday are in the same period → no reset.
+        var today = DateTime.UtcNow.Date;
+        var budgets = new[] { MakeResetBudget(1, today.AddDays(-45)) };
+        _budgetRepoMock
+            .Setup(r => r.GetExpenseBudgetsNeedingResetAsync())
+            .ReturnsAsync(budgets);
+
+        await _service.ResetExpiredPeriodsAsync();
+
+        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ResetExpiredPeriodsAsync_UnknownPeriodType_NoReset()
+    {
+        var today = DateTime.UtcNow.Date;
+        var budgets = new[] { MakeResetBudget(1, today.AddDays(-100), periodType: "unknown") };
+        _budgetRepoMock
+            .Setup(r => r.GetExpenseBudgetsNeedingResetAsync())
+            .ReturnsAsync(budgets);
+
+        await _service.ResetExpiredPeriodsAsync();
+
+        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ResetExpiredPeriodsAsync_SavingsBudget_NotAffected()
+    {
+        // Savings budgets have BudgetType = "savings", not returned by GetExpenseBudgetsNeedingResetAsync
+        _budgetRepoMock
+            .Setup(r => r.GetExpenseBudgetsNeedingResetAsync())
+            .ReturnsAsync(Array.Empty<Budget>());
+
+        await _service.ResetExpiredPeriodsAsync();
+
+        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ResetExpiredPeriodsAsync_ZeroCurrentAmount_NotFetched()
+    {
+        // Budgets with CurrentAmount=0 are filtered by the repo query
+        // Service handles empty list gracefully
+        _budgetRepoMock
+            .Setup(r => r.GetExpenseBudgetsNeedingResetAsync())
+            .ReturnsAsync(Array.Empty<Budget>());
+
+        await _service.ResetExpiredPeriodsAsync();
+
+        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
     }
 }

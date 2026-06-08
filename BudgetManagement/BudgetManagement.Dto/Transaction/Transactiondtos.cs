@@ -11,8 +11,8 @@ public class CreateTransactionDto
     public string?  Notes               { get; set; }
     public string?  Tags                { get; set; }   // comma-separated tag names
     public DateTime? TransactionDate    { get; set; }
-    public string?  IncomeCategoryName  { get; set; }   // Thu nhập: backend tự tạo Revenue account
-    public string?  ExpenseCategoryName { get; set; }   // Chi tiêu: backend tự tạo Expense account
+    public string?  IncomeCategoryName  { get; set; }   // Thu nhập: backend tìm Revenue account có sẵn, không tự tạo
+    public string?  ExpenseCategoryName { get; set; }   // Chi tiêu: backend tìm Expense account có sẵn, không tự tạo
 }
 
 // ─── Response ────────────────────────────────────────────────────────────────
@@ -50,6 +50,7 @@ public class UpdateTransactionDto
     public string?   Notes           { get; set; }
     public string?   Tags            { get; set; }
     public DateTime? TransactionDate { get; set; }
+    public decimal?  Amount          { get; set; }   // null = không đổi, có giá trị = cập nhật số tiền
 }
 
 public class CashFlowSummaryDto

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, TrendingUp, Wallet, Target,
@@ -19,8 +19,9 @@ import { budgetApi } from "../../api/budgetApi";
 import { transactionApi } from "../../api/transactionApi";
 import { useSettings } from "../../context/SettingsContext";
 import { PageLayout } from "../../components/layout/PageLayout";
+import { shouldShowToast } from "../../utils/toastOnce";
 import { EditBudgetModal } from "../../components/modals/EditBudgetModal";
-import { iconMap, colorMap } from "./Budgets";
+import { ICON_MAP as iconMap, COLOR_MAP as colorMap } from "../../utils/icons";
 
 const PERIOD_LABELS = {
   monthly: "Hàng tháng",
@@ -198,42 +199,49 @@ export function BudgetDetail() {
       const data = await budgetApi.getExpenseBudgetById(id);
       setBudget(data);
 
-      // Show warning toast if budget is over or near limit (once per visit)
-      if (data && !warnedRef.current) {
-        warnedRef.current = true;
+      // Show warning toast if budget is over or near limit (session-deduplicated)
+      if (data) {
         const pct = data.percentage ?? (data.targetAmount > 0 ? (data.currentAmount / data.targetAmount) * 100 : 0);
         if (pct > 100) {
-          toast.error(`"${data.title}" đã vượt hạn mức!`, {
-            description: `Đã chi ${fmt(data.currentAmount)} trên ${fmt(data.targetAmount)}`,
-            duration: 6000,
-          });
-          addNotification({
-            type: 'error',
-            title: '⚠️ Vượt hạn mức ngân sách',
-            message: `"${data.title}" đã chi ${fmt(data.currentAmount)}/${fmt(data.targetAmount)}`,
-            link: `/budgets/${id}`,
-          });
+          const toastKey = `budget-over:${id}`;
+          if (shouldShowToast(toastKey)) {
+            toast.error(`"${data.title}" đã vượt hạn mức!`, {
+              description: `Đã chi ${fmt(data.currentAmount)} trên ${fmt(data.targetAmount)}`,
+              duration: 6000,
+            });
+            addNotification({
+              type: 'error',
+              title: '⚠️ Vượt hạn mức ngân sách',
+              message: `"${data.title}" đã chi ${fmt(data.currentAmount)}/${fmt(data.targetAmount)}`,
+              link: `/budgets/${id}`,
+            });
+          }
         } else if (pct >= 80) {
-          toast.warning(`"${data.title}" sắp đạt hạn mức`, {
-            description: `Đã dùng ${pct.toFixed(1)}% (${fmt(data.currentAmount)}/${fmt(data.targetAmount)})`,
-            duration: 5000,
-          });
-          addNotification({
-            type: 'warning',
-            title: '⚠️ Ngân sách sắp hết',
-            message: `"${data.title}" đã dùng ${pct.toFixed(1)}% (${fmt(data.currentAmount)}/${fmt(data.targetAmount)})`,
-            link: `/budgets/${id}`,
-          });
+          const toastKey = `budget-warn:${id}`;
+          if (shouldShowToast(toastKey)) {
+            toast.warning(`"${data.title}" sắp đạt hạn mức`, {
+              description: `Đã dùng ${pct.toFixed(1)}% (${fmt(data.currentAmount)}/${fmt(data.targetAmount)})`,
+              duration: 5000,
+            });
+            addNotification({
+              type: 'warning',
+              title: '⚠️ Ngân sách sắp hết',
+              message: `"${data.title}" đã dùng ${pct.toFixed(1)}% (${fmt(data.currentAmount)}/${fmt(data.targetAmount)})`,
+              link: `/budgets/${id}`,
+            });
+          }
         }
       }
 
       if (data?.accountId) {
         try {
-          const from = data.startDate ? startOfDay(parseISO(data.startDate)) : null;
-          const to   = data.endDate   ? endOfDay(parseISO(data.endDate))     : endOfDay(new Date());
+          // Use budget date range, or fall back to a wide window
+          const from = data.startDate ? startOfDay(parseISO(data.startDate)) : startOfDay(new Date(2026, 0, 1));
+          const to   = data.endDate   ? endOfDay(parseISO(data.endDate))     : endOfDay(new Date(2099, 11, 31));
           let txs = [];
           if (from && to) {
-            txs = await transactionApi.getByRange(from.toISOString(), to.toISOString());
+            // Dùng API filter theo accountId để query đúng ngay từ database
+            txs = await transactionApi.getByRangeAndAccount(data.accountId, from.toISOString(), to.toISOString());
           } else {
             const res = await transactionApi.getAll({ page: 1, pageSize: 200 });
             txs = res.items || res || [];
@@ -256,7 +264,6 @@ export function BudgetDetail() {
   useEffect(() => { load(); }, [load]);
 
   const { addNotification } = useNotifications();
-  const warnedRef = useRef(false);
 
   const handleUpdate = async (budgetId, payload) => {
     try {

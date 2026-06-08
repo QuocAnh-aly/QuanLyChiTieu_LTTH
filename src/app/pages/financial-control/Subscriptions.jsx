@@ -12,6 +12,7 @@ import { billApi } from "../../api/billApi";
 import { SubscriptionFormModal } from "../../components/modals/SubscriptionFormModal";
 import { useSettings } from "../../context/SettingsContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { shouldShowToast } from "../../utils/toastOnce";
 
 const FREQ_LABELS = {
   daily:      "Hàng ngày",
@@ -73,7 +74,9 @@ export function Subscriptions() {
       setTotalCount(data.totalCount ?? (data.items || data || []).length);
       setTotalPages(data.totalPages ?? 1);
     } catch {
-      toast.error("Không thể tải danh sách hóa đơn");
+      if (shouldShowToast('subscriptions-load-error')) {
+        toast.error("Không thể tải danh sách hóa đơn");
+      }
     } finally {
       setIsLoading(false);
     }

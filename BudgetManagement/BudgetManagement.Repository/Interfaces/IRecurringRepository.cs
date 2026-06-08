@@ -10,4 +10,5 @@ public interface IRecurringRepository : IBaseRepository<RecurringJournal>
     Task<IEnumerable<RecurringJournal>> GetDueAsync(DateTime asOf);  // NextRunDate <= asOf
     Task<IEnumerable<RecurringInstance>> GetInstancesByRecurringIdAsync(int recurringId);
     Task<RecurringInstance> AddInstanceAsync(RecurringInstance instance);
+    Task<bool> HasJournalsForAccountAsync(int accountId);
 }

@@ -57,41 +57,21 @@ public class TransactionService : ITransactionService
 
     public async Task<TransactionDto> CreateAsync(int userId, CreateTransactionDto request)
     {
-        // Chi tiêu theo danh mục: tự tìm hoặc tạo Expense account
-        if (!string.IsNullOrWhiteSpace(request.ExpenseCategoryName))
+        // Chi tiêu: tìm Expense account có sẵn — KHÔNG tự động tạo mới
+        if (request.DebitAccountId <= 0 && !string.IsNullOrWhiteSpace(request.ExpenseCategoryName))
         {
-            var expenseAcct =
-                await _accountRepo.GetByIdAsync(request.DebitAccountId)
-                ?? await _accountRepo.CreateAsync(new Account
-                {
-                    UserId    = userId,
-                    TypeId    = TypeExpense,
-                    Name      = request.ExpenseCategoryName,
-                    IconName  = "ShoppingBag",
-                    Color     = "red",
-                    Balance   = 0,
-                    IsActive  = true,
-                    CreatedAt = DateTime.UtcNow,
-                });
+            var expenseAcct = await _accountRepo.FindByUserAndNameAsync(userId, TypeExpense, request.ExpenseCategoryName);
+            if (expenseAcct is null)
+                throw new ArgumentException($"Danh mục chi tiêu '{request.ExpenseCategoryName}' chưa tồn tại. Hãy tạo danh mục trước khi ghi giao dịch.");
             request.DebitAccountId = expenseAcct.AccountId;
         }
 
-        // Thu nhập: tự tìm hoặc tạo Revenue account
-        if (!string.IsNullOrWhiteSpace(request.IncomeCategoryName))
+        // Thu nhập: tìm Revenue account có sẵn — KHÔNG tự động tạo mới
+        if (request.CreditAccountId <= 0 && !string.IsNullOrWhiteSpace(request.IncomeCategoryName))
         {
-            var revenueAcct =
-                await _accountRepo.GetByIdAsync(request.CreditAccountId)
-                ?? await _accountRepo.CreateAsync(new Account
-                {
-                    UserId    = userId,
-                    TypeId    = TypeRevenue,
-                    Name      = request.IncomeCategoryName,
-                    IconName  = "DollarSign",
-                    Color     = "green",
-                    Balance   = 0,
-                    IsActive  = true,
-                    CreatedAt = DateTime.UtcNow,
-                });
+            var revenueAcct = await _accountRepo.FindByUserAndNameAsync(userId, TypeRevenue, request.IncomeCategoryName);
+            if (revenueAcct is null)
+                throw new ArgumentException($"Nguồn thu '{request.IncomeCategoryName}' chưa tồn tại. Hãy tạo nguồn thu trước khi ghi giao dịch.");
             request.CreditAccountId = revenueAcct.AccountId;
         }
 
@@ -144,7 +124,40 @@ public class TransactionService : ITransactionService
         if (entry.UserId != userId)
             throw new UnauthorizedAccessException("Access denied.");
 
+        // Cập nhật metadata trước
         await _journalRepo.UpdateEntryAsync(journalId, request.Description, request.Notes, request.Tags, request.TransactionDate);
+
+        // Nếu có thay đổi số tiền → cập nhật cả details, balance và budget
+        if (request.Amount.HasValue)
+        {
+            var oldAmount = entry.JournalDetails
+                .Where(d => d.Debit > 0)
+                .Sum(d => d.Debit ?? 0);
+
+            if (Math.Abs(request.Amount.Value - oldAmount) > 0.01m)
+            {
+                var delta = request.Amount.Value - oldAmount;
+
+                // Cập nhật số tiền trong JournalDetails
+                await _journalRepo.UpdateEntryAmountAsync(journalId, request.Amount.Value);
+
+                // Điều chỉnh balance 2 tài khoản
+                foreach (var detail in entry.JournalDetails)
+                {
+                    var account = await _accountRepo.GetByIdAsync(detail.AccountId);
+                    if (account is null) continue;
+
+                    if (detail.Debit > 0)
+                        await UpdateAccountBalanceAsync(account, delta);
+                    else if (detail.Credit > 0)
+                        await UpdateAccountBalanceAsync(account, -delta);
+
+                    // Điều chỉnh budget nếu là Expense
+                    if (detail.Account?.TypeId == TypeExpense && detail.Debit > 0)
+                        await _budgetService.UpdateSpentAmountAsync(detail.AccountId, delta);
+                }
+            }
+        }
 
         var updated = await _journalRepo.GetWithDetailsAsync(journalId);
         return MapToDto(updated!);
@@ -157,6 +170,15 @@ public class TransactionService : ITransactionService
 
         if (entry.UserId != userId)
             throw new UnauthorizedAccessException("Access denied.");
+
+        // Điều chỉnh budget: trừ số tiền chi khỏi budget (theo chiều ngược lại)
+        foreach (var detail in entry.JournalDetails)
+        {
+            if (detail.Account?.TypeId == TypeExpense && (detail.Debit ?? 0) > 0)
+            {
+                await _budgetService.UpdateSpentAmountAsync(detail.AccountId, -(detail.Debit ?? 0));
+            }
+        }
 
         // Reverse balance trước khi xoá
         foreach (var detail in entry.JournalDetails)

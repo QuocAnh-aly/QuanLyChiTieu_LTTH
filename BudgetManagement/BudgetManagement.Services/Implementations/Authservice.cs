@@ -11,6 +11,12 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace BudgetManagement.Services.Implementations;
 
+internal static class AccountConstants
+{
+    /// <summary>Equity account created at registration — hidden from normal UI.</summary>
+    public const string InitialEquity = "Initial";
+}
+
 public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepo;
@@ -55,7 +61,7 @@ public class AuthService : IAuthService
         // Account_Types: 3: Equity, 4: Revenue (Income), 5: Expense
         await _accountRepo.CreateAsync(new Account { UserId = created.UserId, TypeId = 4, Name = "Thu nhập chính", IconName = "TrendingUp", Color = "green", IsActive = true, CreatedAt = DateTime.UtcNow });
         await _accountRepo.CreateAsync(new Account { UserId = created.UserId, TypeId = 5, Name = "Ăn uống", IconName = "Pizza", Color = "red", IsActive = true, CreatedAt = DateTime.UtcNow });
-        await _accountRepo.CreateAsync(new Account { UserId = created.UserId, TypeId = 3, Name = "Initial", IconName = "Scale", Color = "blue", IsActive = true, CreatedAt = DateTime.UtcNow });
+        await _accountRepo.CreateAsync(new Account { UserId = created.UserId, TypeId = 3, Name = AccountConstants.InitialEquity, IconName = "Scale", Color = "blue", IsActive = true, CreatedAt = DateTime.UtcNow });
 
         var (accessToken, refreshToken) = GenerateTokens(created);
 

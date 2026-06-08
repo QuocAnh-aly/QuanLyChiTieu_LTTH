@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { accountApi } from "../api/accountApi";
+import { useAuth } from "./AuthContext";
 
 const DEFAULT_EXPENSE_CATEGORIES = [
   { accountId: "", name: "Ăn uống", iconName: "Pizza", color: "red" },
@@ -45,47 +46,44 @@ export function CategoriesProvider({ children }) {
   const [incomeSources, setIncomeSources] = useState(() =>
     load("income_sources", []),
   );
+  const fetchCategories = async () => {
+    try {
+      const [expenseRes, incomeRes, liabilityRes] = await Promise.all([
+        accountApi.getByType(5),
+        accountApi.getByType(4),
+        accountApi.getByType(2),
+      ]);
+      const allExpenseCategories = [
+        ...(expenseRes.items ?? []),
+        ...(liabilityRes.items ?? []),
+      ];
+
+      const allIncomeCategories = [...(incomeRes.items ?? [])];
+      setExpenseCategories(
+        allExpenseCategories.length > 0
+          ? allExpenseCategories
+          : [DEFAULT_EXPENSE_CATEGORIES],
+      );
+      setIncomeSources(
+        allIncomeCategories.length > 0
+          ? allIncomeCategories
+          : [DEFAULT_INCOME_SOURCES],
+      );
+    } catch (err) {
+      setExpenseCategories(
+        load("expense_categories", DEFAULT_EXPENSE_CATEGORIES),
+      );
+      setIncomeSources(load("income_sources", DEFAULT_INCOME_SOURCES));
+    }
+  };
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const [expenseRes, incomeRes, liabilityRes] = await Promise.all([
-          accountApi.getByType(5),
-          accountApi.getByType(4),
-          accountApi.getByType(2),
-        ]);
-        const allExpenseCategories = [
-          ...(expenseRes ?? []),
-          ...(liabilityRes ?? []),
-        ];
-
-        const allIncomeCategories = [...(incomeRes ?? [])];
-        setExpenseCategories(
-          allExpenseCategories.length > 0
-            ? allExpenseCategories
-            : [DEFAULT_EXPENSE_CATEGORIES],
-        );
-        setIncomeSources(
-          allIncomeCategories.length > 0
-            ? allIncomeCategories
-            : [DEFAULT_INCOME_SOURCES],
-        );
-
-        localStorage.setItem(
-          "expense_categories",
-          JSON.stringify(expenseCategories),
-        );
-        localStorage.setItem("income_sources", JSON.stringify(incomeSources));
-      } catch (err) {
-        setExpenseCategories(
-          load("expense_categories", DEFAULT_EXPENSE_CATEGORIES),
-        );
-        setIncomeSources(load("income_sources", DEFAULT_INCOME_SOURCES));
-      }
-    };
-
+    //if (loading) return;
+    //if (user) return;
+    //T: Who added those things? what's the point?
     fetchCategories();
-  }, []);
+  }, [user, loading]);
 
   const [tags, setTags] = useState(() => load("app_tags", DEFAULT_TAGS));
   const [objectGroups, setObjectGroups] = useState(() =>
@@ -93,35 +91,85 @@ export function CategoriesProvider({ children }) {
   );
 
   useEffect(() => {
+    localStorage.setItem(
+      "expense_categories",
+      JSON.stringify(expenseCategories),
+    );
+  }, [expenseCategories]);
+  useEffect(() => {
+    localStorage.setItem("income_sources", JSON.stringify(incomeSources));
+  }, [incomeSources]);
+  useEffect(() => {
     localStorage.setItem("app_tags", JSON.stringify(tags));
   }, [tags]);
   useEffect(() => {
     localStorage.setItem("app_object_groups", JSON.stringify(objectGroups));
   }, [objectGroups]);
 
-  const addExpenseCategory = (cat) =>
-    setExpenseCategories((prev) => [
-      ...prev,
-      { ...cat, id: Date.now().toString() },
-    ]);
-  const updateExpenseCategory = (id, upd) =>
-    setExpenseCategories((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, ...upd } : c)),
-    );
-  const deleteExpenseCategory = (id) =>
-    setExpenseCategories((prev) => prev.filter((c) => c.id !== id));
+  const addExpenseCategory = async (cat) => {
+    try {
+      const result = await accountApi.create({
+        ...cat,
+        typeId: 5,
+      });
+      setExpenseCategories((prev) => [...prev, result]);
+    } catch (err) {
+      console.error("Lỗi khi tạo danh mục", err);
+    }
+  };
+  const updateExpenseCategory = async (id, upd) => {
+    try {
+      const result = await accountApi.update(id, upd);
+      setExpenseCategories((prev) =>
+        prev.map((c) => (c.accountId === id ? { ...c, ...result } : c)),
+      );
+    } catch (err) {
+      console.error("Lỗi khi sửa danh mục", err);
+    }
+  };
+  const deleteExpenseCategory = async (id) => {
+    try {
+      await accountApi.delete(id);
 
-  const addIncomeSource = (src) =>
-    setIncomeSources((prev) => [
-      ...prev,
-      { ...src, id: Date.now().toString() },
-    ]);
-  const updateIncomeSource = (id, upd) =>
-    setIncomeSources((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, ...upd } : s)),
-    );
-  const deleteIncomeSource = (id) =>
-    setIncomeSources((prev) => prev.filter((s) => s.id !== id));
+      setExpenseCategories((prev) =>
+        prev.filter((item) => item.accountId !== id),
+      );
+    } catch (err) {
+      console.error("Lỗi khi xoá danh mục", err);
+    }
+  };
+
+  const addIncomeSource = async (src) => {
+    try {
+      const result = await accountApi.create({
+        ...src,
+        typeId: 4,
+      });
+      setIncomeSources((prev) => [...prev, result]);
+    } catch (err) {
+      console.error("Lỗi khi tạo nguồn thu", err);
+    }
+  };
+  const updateIncomeSource = async (id, upd) => {
+    try {
+      const result = await accountApi.update(id, upd);
+      setIncomeSources((prev) =>
+        prev.map((s) => (s.accountId === id ? { ...s, ...result } : s)),
+      );
+    } catch (err) {
+      console.error("Lỗi khi sửa nguồn thu: ", err);
+    }
+  };
+  const deleteIncomeSource = async (id) => {
+    try {
+      await accountApi.delete(id);
+
+      setIncomeSources((prev) => prev.filter((item) => item.accountId !== id));
+      alert("Xoá danh mục thành công");
+    } catch (err) {
+      console.error("Lỗi khi xoá nguồn thu", err);
+    }
+  };
 
   const addTag = (tag) =>
     setTags((prev) => [...prev, { ...tag, id: Date.now().toString() }]);
@@ -141,6 +189,7 @@ export function CategoriesProvider({ children }) {
   return (
     <CategoriesContext.Provider
       value={{
+        fetchCategories,
         expenseCategories,
         addExpenseCategory,
         updateExpenseCategory,

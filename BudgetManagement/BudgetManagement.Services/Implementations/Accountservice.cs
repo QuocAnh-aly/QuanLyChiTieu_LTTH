@@ -8,6 +8,9 @@ namespace BudgetManagement.Services.Implementations;
 public class AccountService : IAccountService
 {
     private readonly IAccountRepository _accountRepo;
+    private readonly IBudgetRepository _budgetRepo;
+    private readonly IJournalRepository _journalRepo;
+    private readonly IRecurringRepository _recurringRepo;
     private const int DefaultPageSize = 20;
 
     // Account_Types IDs (khớp với INSERT trong SQL schema)
@@ -17,9 +20,12 @@ public class AccountService : IAccountService
     private const int TypeRevenue     = 4;
     private const int TypeExpense     = 5;
 
-    public AccountService(IAccountRepository accountRepo)
+    public AccountService(IAccountRepository accountRepo, IBudgetRepository budgetRepo, IJournalRepository journalRepo, IRecurringRepository recurringRepo)
     {
         _accountRepo = accountRepo;
+        _budgetRepo = budgetRepo;
+        _journalRepo = journalRepo;
+        _recurringRepo = recurringRepo;
     }
 
     public async Task<IEnumerable<AccountDto>> GetAllAsync(int userId)
@@ -78,11 +84,11 @@ public class AccountService : IAccountService
             Name         = request.Name,
             IconName     = request.IconName     ?? "Landmark",
             Color        = request.Color        ?? "blue",
-            GradientFrom = request.GradientFrom ?? "#3b82f6",
-            GradientTo   = request.GradientTo   ?? "#1d4ed8",
+            GradientFrom = request.GradientFrom,
+            GradientTo   = request.GradientTo,
             Balance        = request.Balance      ?? 0,
             InitialBalance = request.Balance      ?? 0,
-            CardNumber     = request.CardNumber   ?? "•••• ••••",
+            CardNumber     = request.CardNumber,
             CurrencyCode = request.CurrencyCode,
             IsActive     = true,
             CreatedAt    = DateTime.UtcNow
@@ -120,8 +126,16 @@ public class AccountService : IAccountService
 
         if (account.UserId != userId)
             throw new UnauthorizedAccessException("Access denied.");
+        
+        bool hasTransaction = await _journalRepo.HasTransaction(accountId);
+        if (!hasTransaction)
+        {
+            return await _accountRepo.DeleteAsync(accountId);
+        }
 
-        return await _accountRepo.DeleteAsync(accountId);
+        account.IsActive = false;
+        var res = await _accountRepo.UpdateAsync(account);
+        return res != null;
     }
 
     public async Task<WalletSummaryDto> GetWalletSummaryAsync(int userId, int page = 1, int pageSize = 50, string? search = null, string? sortBy = null)

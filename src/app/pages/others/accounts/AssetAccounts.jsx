@@ -1,13 +1,10 @@
 import {
-  Plus,
-  CreditCard,
   Landmark,
   Wallet as WalletIcon,
+  CreditCard,
   TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
-  Pencil,
-  Trash2,
   ArrowLeftRight,
   Copy,
   Check,
@@ -16,6 +13,15 @@ import {
   RefreshCw,
   Users,
   PiggyBank,
+  Eye,
+  BarChart3,
+  PieChart,
+  Activity,
+  DollarSign,
+  Percent,
+  Plus,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   AreaChart,
@@ -25,20 +31,20 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
+  PieChart as RePieChart,
   Pie,
   Cell,
 } from "recharts";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { AddWalletModal } from "../../../components/modals/AddWalletModal";
-import { EditWalletModal } from "../../../components/modals/EditWalletModal";
-import { QuickTransferModal } from "../../../components/modals/QuickTransferModal";
 import { toast } from "sonner";
 import { walletApi } from "../../../api/walletApi";
 import { transactionApi } from "../../../api/transactionApi";
 import { useSettings } from "../../../context/SettingsContext";
+import PaginationBar from "../../../components/ui/navigation/PaginationBar";
+import { PageLayout } from "../../../components/layout/PageLayout";
+import { AccountFormModal } from "../../../components/modals/AccountFormModal";
 
 function mapTransaction(t) {
   const details = t.details || [];
@@ -48,8 +54,7 @@ function mapTransaction(t) {
   const isIncome = !!revenueDetail;
   let categoryName = "Chưa phân loại";
   if (expenseDetail) categoryName = expenseDetail.accountName || "Chi tiêu";
-  else if (revenueDetail)
-    categoryName = revenueDetail.accountName || "Thu nhập";
+  else if (revenueDetail) categoryName = revenueDetail.accountName || "Thu nhập";
   else if (isTransfer) categoryName = "Chuyển khoản";
   return { ...t, categoryName, isIncome, isTransfer };
 }
@@ -64,28 +69,19 @@ const iconMap = {
   Wallet: WalletIcon,
 };
 
-const colorGradients = {
-  blue: { from: "#3b82f6", to: "#1d4ed8" },
-  green: { from: "#22c55e", to: "#15803d" },
-  purple: { from: "#a855f7", to: "#7e22ce" },
-  orange: { from: "#f97316", to: "#c2410c" },
-  emerald: { from: "#10b981", to: "#047857" },
-  slate: { from: "#64748b", to: "#475569" },
-};
-
 const PIE_COLORS = [
-  "#3b82f6",
-  "#22c55e",
-  "#a855f7",
-  "#f97316",
-  "#ec4899",
-  "#10b981",
-  "#f59e0b",
-  "#6366f1",
-  "#ef4444",
-  "#14b8a6",
+  "#3b82f6", "#22c55e", "#a855f7", "#f97316",
+  "#ec4899", "#10b981", "#f59e0b", "#6366f1",
+  "#ef4444", "#14b8a6",
 ];
-const fallbackGradients = Object.values(colorGradients);
+const fallbackGradients = [
+  { from: "#3b82f6", to: "#1d4ed8" },
+  { from: "#22c55e", to: "#15803d" },
+  { from: "#a855f7", to: "#7e22ce" },
+  { from: "#f97316", to: "#c2410c" },
+  { from: "#10b981", to: "#047857" },
+  { from: "#64748b", to: "#475569" },
+];
 
 function mapAccount(acc, index) {
   const grad =
@@ -132,29 +128,52 @@ function CopyButton({ text }) {
   );
 }
 
-import PaginationBar from "../../../components/ui/navigation/PaginationBar";
-import { PageLayout } from "../../../components/layout/PageLayout";
+function StatCard({ icon: Icon, label, value, sublabel, sublabelColor = "text-muted-foreground", gradient, onClick }) {
+  const Comp = onClick ? "button" : "div";
+  return (
+    <Comp
+      onClick={onClick}
+      className={`relative overflow-hidden rounded-2xl p-6 ${gradient ? gradient : "bg-card border border-border"} ${onClick ? "cursor-pointer hover:shadow-lg transition-all" : ""}`}
+    >
+      {gradient && (
+        <>
+          <div className="absolute top-0 right-0 w-48 h-48 bg-white opacity-5 rounded-full -mr-24 -mt-24 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-white opacity-5 rounded-full -ml-16 -mb-16 pointer-events-none" />
+        </>
+      )}
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-3">
+          <span className={`text-xs font-semibold uppercase tracking-wider ${gradient ? "text-white/70" : "text-muted-foreground"}`}>
+            {label}
+          </span>
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${gradient ? "bg-white/15" : "bg-muted"}`}>
+            <Icon size={20} className={gradient ? "text-white" : "text-primary"} />
+          </div>
+        </div>
+        <p className={`text-3xl font-bold tracking-tight ${gradient ? "text-white" : "text-card-foreground"}`}>
+          {value}
+        </p>
+        <p className={`text-sm mt-1 ${sublabelColor} ${gradient ? "text-white/70" : ""}`}>
+          {sublabel}
+        </p>
+      </div>
+    </Comp>
+  );
+}
 
 export function AssetAccounts() {
   const navigate = useNavigate();
   const { fmt, fmtShort } = useSettings();
   const [accounts, setAccounts] = useState([]);
-  const [summary, setSummary] = useState({
-    totalAssets: 0,
-    totalLiabilities: 0,
-    totalSavings: 0,
-    netWorth: 0,
-  });
+  const [summary, setSummary] = useState({ totalAssets: 0, totalLiabilities: 0, totalSavings: 0, netWorth: 0 });
   const [balanceHistory, setBalanceHistory] = useState([]);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editingWallet, setEditingWallet] = useState(null);
-  const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState("default"); // default | balance-desc | balance-asc | name
-    const [recentTxs, setRecentTxs] = useState([]);
+  const [sortBy, setSortBy] = useState("default");
+  const [recentTxs, setRecentTxs] = useState([]);
   const [txWalletFilter, setTxWalletFilter] = useState("all");
+  const [selectedAccountName, setSelectedAccountName] = useState(null);
   const [accountPage, setAccountPage] = useState(1);
   const [accountPageSize, setAccountPageSize] = useState(10);
   const [displayAccounts, setDisplayAccounts] = useState([]);
@@ -163,14 +182,20 @@ export function AssetAccounts() {
   const [txPage, setTxPage] = useState(1);
   const [txPageSize, setTxPageSize] = useState(10);
   const [txTotalCount, setTxTotalCount] = useState(0);
-  const [txTotalPages, setTxTotalPages] = useState(1); // "all" | accountId string
+  const [txTotalPages, setTxTotalPages] = useState(1);
+  // Range selection: { start: { monthIndex, year, label }, end: { ... } } | null
+  // Click = set single month; Shift+click = extend range
+  const [selectedRange, setSelectedRange] = useState(null);
+  const [hoveredMonth, setHoveredMonth] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingAccount, setEditingAccount] = useState(null);
 
   const fetchWallets = useCallback(async (silent = false) => {
     try {
       if (!silent) setIsLoading(true);
       else setIsRefreshing(true);
-      const data = await walletApi.getSummary({ 
-        page: accountPage, 
+      const data = await walletApi.getSummary({
+        page: accountPage,
         pageSize: accountPageSize,
         search: search || undefined,
         sortBy: sortBy !== 'default' ? sortBy : undefined
@@ -181,15 +206,12 @@ export function AssetAccounts() {
         totalSavings: data.totalSavings ?? 0,
         netWorth: data.netWorth ?? 0,
       });
-      // AllAccounts (full list) — for pie chart, balance distribution, details table
       const allMapped = (data.allAccounts || []).map(mapAccount);
       setAccounts(allMapped);
-      // Accounts (paginated) — for card grid
       const paginatedMapped = (data.accounts || []).map(mapAccount);
       setDisplayAccounts(paginatedMapped);
       setAccountTotalCount(data.totalCount ?? 0);
       setAccountTotalPages(data.totalPages ?? 1);
-      // Cập nhật lại isLoading nếu search/sort thay đổi mà fetchWallets chưa chạy
       setBalanceHistory(buildBalanceHistory(allMapped));
     } catch (error) {
       console.error("Lỗi khi tải dữ liệu ví:", error);
@@ -200,10 +222,7 @@ export function AssetAccounts() {
     }
   }, [accountPage, accountPageSize, search, sortBy]);
 
-  // Reset về trang 1 khi search/sort thay đổi
-  useEffect(() => {
-    setAccountPage(1);
-  }, [search, sortBy]);
+  useEffect(() => { setAccountPage(1); }, [search, sortBy]);
 
   const fetchTransactions = useCallback(async () => {
     try {
@@ -212,34 +231,48 @@ export function AssetAccounts() {
       setRecentTxs(txItems);
       setTxTotalCount(txData.totalCount ?? txItems.length);
       setTxTotalPages(txData.totalPages ?? 1);
-    } catch {
-      // silent
-    }
+    } catch { /* silent */ }
   }, [txPage, txPageSize]);
 
-  useEffect(() => {
-    fetchWallets();
+  const handleCreateAsset = useCallback(async (data) => {
+    try {
+      await walletApi.create(data);
+      toast.success("Đã thêm tài sản mới");
+      setShowCreateModal(false);
+      fetchWallets();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Không thể tạo tài sản");
+    }
   }, [fetchWallets]);
 
-  useEffect(() => {
-    fetchTransactions();
-  }, [fetchTransactions]);
+  const handleEditAsset = useCallback(async (id, data) => {
+    try {
+      await walletApi.update(id, data);
+      toast.success("Đã cập nhật tài sản");
+      setEditingAccount(null);
+      fetchWallets();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Không thể cập nhật tài sản");
+    }
+  }, [fetchWallets]);
+
+  const handleDeleteAsset = useCallback(async (id, name) => {
+    if (!window.confirm(`Xóa tài sản "${name}"?\nHành động này không thể hoàn tác.`)) return;
+    try {
+      await walletApi.delete(id);
+      toast.success(`Đã xóa "${name}".`);
+      fetchWallets();
+    } catch (error) {
+      const msg = error?.response?.data?.message;
+      toast.error(msg || `Không thể xóa "${name}". Tài khoản có thể đang được sử dụng trong giao dịch hoặc ngân sách.`);
+    }
+  }, [fetchWallets]);
+
+  useEffect(() => { fetchWallets(); }, [fetchWallets]);
+  useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
 
   function buildBalanceHistory(accs) {
-    const months = [
-      "Th1",
-      "Th2",
-      "Th3",
-      "Th4",
-      "Th5",
-      "Th6",
-      "Th7",
-      "Th8",
-      "Th9",
-      "Th10",
-      "Th11",
-      "Th12",
-    ];
+    const months = ["Th1", "Th2", "Th3", "Th4", "Th5", "Th6", "Th7", "Th8", "Th9", "Th10", "Th11", "Th12"];
     const now = new Date();
     const total = accs.reduce((s, a) => s + Math.max(0, a.balance), 0);
     return Array.from({ length: 6 }, (_, i) => {
@@ -247,352 +280,420 @@ export function AssetAccounts() {
       const ratio = (i + 1) / 6;
       return {
         month: months[d.getMonth()],
+        monthIndex: d.getMonth(),
+        year: d.getFullYear(),
         balance: Math.round(total * ratio),
       };
     });
   }
 
-  const handleAddWallet = async (wallet) => {
-    try {
-      const grad = colorGradients[wallet.color] || colorGradients.blue;
-      const payload = {
-        typeId: 1,
-        name: wallet.name,
-        iconName: wallet.iconName,
-        color: wallet.color,
-        gradientFrom: grad.from,
-        gradientTo: grad.to,
-        balance: wallet.balance,
-        cardNumber: wallet.cardNumber || null,
-        currencyCode: wallet.currencyCode || "VND",
-      };
-      if (wallet.sourceAccountId) {
-        payload.sourceAccountId = wallet.sourceAccountId;
-      }
-      await walletApi.create(payload);
-      await fetchWallets();
-      toast.success(`Đã thêm tài khoản "${wallet.name}"!`);
-    } catch {
-      toast.error("Không thể thêm tài khoản");
-    }
-  };
-
-  const handleEditWallet = async (id, data) => {
-    try {
-      if (data.color) {
-        const grad = colorGradients[data.color] || colorGradients.blue;
-        data.gradientFrom = grad.from;
-        data.gradientTo = grad.to;
-      }
-      await walletApi.update(id, data);
-      await fetchWallets();
-      toast.success("Đã cập nhật tài khoản!");
-      setEditingWallet(null);
-    } catch {
-      toast.error("Không thể cập nhật tài khoản");
-    }
-  };
-
-  const handleDeleteWallet = async (id, name) => {
-    if (
-      !window.confirm(
-        `Xóa tài khoản "${name}"? Hành động này không thể hoàn tác.`,
-      )
-    )
-      return;
-    try {
-      await walletApi.delete(id);
-      await fetchWallets();
-      toast.success(`Đã xóa tài khoản "${name}".`);
-    } catch {
-      toast.error("Không thể xóa tài khoản");
-    }
-  };
-
-  const handleTransfer = async (data) => {
-    try {
-      await transactionApi.create(data);
-      await fetchWallets();
-      toast.success("Chuyển khoản thành công!");
-      setIsTransferOpen(false);
-    } catch {
-      toast.error("Chuyển khoản thất bại");
-    }
-  };
-
   const totalAssets = summary.totalAssets + summary.totalSavings;
 
-  // Pie data: only Asset type (typeId=1), positive balances only
-  const pieData = accounts
-    .filter((a) => a.typeId === 1 && a.balance > 0)
-    .map((a) => ({ name: a.name, value: a.balance }));
+  const pieData = useMemo(() =>
+    accounts.filter((a) => a.typeId === 1 && a.balance > 0).map((a) => ({ id: a.id, name: a.name, value: a.balance })),
+    [accounts]
+  );
   const pieTotal = pieData.reduce((s, d) => s + d.value, 0);
 
+  const chartData = useMemo(() => {
+    return balanceHistory.map((point) => ({
+      ...point,
+      txCount: recentTxs.filter((t) => {
+        const d = new Date(t.transactionDate);
+        return d.getMonth() === point.monthIndex && d.getFullYear() === point.year;
+      }).length,
+    }));
+  }, [balanceHistory, recentTxs]);
+
+  const assetCount = accounts.filter(a => a.typeId === 1 && a.balance > 0).length;
+  const positiveAccounts = accounts.filter((a) => a.balance > 0);
+
+  // Which asset accounts have transactions in the selected range?
+  const activeInRange = useMemo(() => {
+    if (!selectedRange) return null; // null = don't dim anything
+    const sIdx = selectedRange.start.monthIndex + selectedRange.start.year * 12;
+    const eIdx = selectedRange.end.monthIndex + selectedRange.end.year * 12;
+    const min = Math.min(sIdx, eIdx);
+    const max = Math.max(sIdx, eIdx);
+    const activeSet = new Set();
+    for (const tx of recentTxs) {
+      const d = new Date(tx.transactionDate);
+      const txIdx = d.getMonth() + d.getFullYear() * 12;
+      if (txIdx >= min && txIdx <= max) {
+        for (const detail of (tx.details || [])) {
+          activeSet.add(String(detail.accountId));
+        }
+      }
+    }
+    return activeSet;
+  }, [selectedRange, recentTxs]);
+
   return (
-    <PageLayout
-      title="Ví"
-      subtitle="Quản lý tài khoản và thẻ của bạn"
+    <>
+      <style>{`
+        @keyframes fadeSlideIn {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .tx-row-enter {
+          animation: fadeSlideIn 0.35s ease-out both;
+        }
+        .tx-row-enter:nth-child(1) { animation-delay: 0ms; }
+        .tx-row-enter:nth-child(2) { animation-delay: 30ms; }
+        .tx-row-enter:nth-child(3) { animation-delay: 60ms; }
+        .tx-row-enter:nth-child(4) { animation-delay: 90ms; }
+        .tx-row-enter:nth-child(5) { animation-delay: 120ms; }
+        .tx-row-enter:nth-child(6) { animation-delay: 150ms; }
+        .tx-row-enter:nth-child(7) { animation-delay: 180ms; }
+        .tx-row-enter:nth-child(8) { animation-delay: 210ms; }
+        .tx-row-enter:nth-child(9) { animation-delay: 240ms; }
+        .tx-row-enter:nth-child(10) { animation-delay: 270ms; }
+        .tx-filter-badge {
+          transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+      `}</style>
+      <PageLayout
+      title={
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center shadow-md">
+            <WalletIcon size={20} className="text-white" />
+          </div>
+          <span>Quản lý ví & Tài sản</span>
+        </div>
+      }
+      subtitle={
+        <span className="ml-[52px]">Tổng quan tài chính cá nhân — theo dõi tài sản, số dư và biến động</span>
+      }
       actions={
-        <>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium shadow-sm"
+          >
+            <Plus size={17} />
+            <span className="hidden sm:inline">Thêm tài sản</span>
+          </button>
           <button
             onClick={() => fetchWallets(true)}
             disabled={isRefreshing}
             className="p-2.5 border border-border bg-card rounded-lg hover:bg-muted text-muted-foreground transition-colors"
             title="Làm mới"
           >
-            <RefreshCw
-              size={18}
-              className={isRefreshing ? "animate-spin" : ""}
-            />
+            <RefreshCw size={18} className={isRefreshing ? "animate-spin" : ""} />
           </button>
-          {accounts.length >= 2 && (
-            <button
-              onClick={() => setIsTransferOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors"
-            >
-              <ArrowLeftRight size={16} />
-              <span>Chuyển khoản</span>
-            </button>
-          )}
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-          >
-            <Plus size={18} />
-            <span>Thêm tài khoản</span>
-          </button>
-        </>
+        </div>
       }
     >
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl p-6 text-white">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-purple-100 text-sm font-medium">
-              Giá trị ròng
-            </span>
-            <TrendingUp size={20} className="text-purple-200" />
-          </div>
-          <p className="text-4xl font-bold mb-1">{fmt(summary.netWorth)}</p>
-          <p className="text-purple-100 text-sm">{accounts.length} tài khoản</p>
-        </div>
-
-        <div className="bg-card rounded-2xl p-6 border border-border">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-muted-foreground text-sm font-medium">
-              Tổng tài sản
-            </span>
-            <div className="w-10 h-10 rounded-full bg-green-500/15 flex items-center justify-center">
-              <ArrowUpRight size={20} className="text-green-600" />
-            </div>
-          </div>
-          <p className="text-3xl font-bold text-card-foreground mb-1">
-            {fmt(totalAssets)}
-          </p>
-          <p className="text-green-600 text-sm">
-            {accounts.filter((a) => a.balance >= 0).length} tài khoản dương
-          </p>
-        </div>
-
-        <div
+      {/* ════════════════════ SUMMARY CARDS ════════════════════ */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+        <StatCard
+          icon={TrendingUp}
+          label="Giá trị ròng"
+          value={fmt(summary.netWorth)}
+          sublabel={`${accounts.length} tài khoản`}
+          gradient="bg-gradient-to-br from-purple-600 to-purple-800"
+        />
+        <StatCard
+          icon={ArrowUpRight}
+          label="Tổng tài sản"
+          value={fmt(totalAssets)}
+          sublabel={`${assetCount} tài khoản dương`}
+          sublabelColor="text-green-600"
+        />
+        <StatCard
+          icon={ArrowDownRight}
+          label="Nợ"
+          value={fmt(summary.totalLiabilities)}
+          sublabel={`${accounts.filter((a) => a.balance < 0).length} tài khoản nợ`}
+          sublabelColor="text-red-500"
           onClick={() => navigate("/accounts/liabilities")}
-          className="bg-card rounded-2xl p-6 border border-border cursor-pointer hover:border-red-400 hover:shadow-md transition-all"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-muted-foreground text-sm font-medium">
-              Nợ
-            </span>
-            <div className="w-10 h-10 rounded-full bg-red-500/15 flex items-center justify-center">
-              <ArrowDownRight size={20} className="text-red-600" />
-            </div>
-          </div>
-          <p className="text-3xl font-bold text-card-foreground mb-1">
-            {fmt(summary.totalLiabilities)}
-          </p>
-          <p className="text-red-600 text-sm">
-            {accounts.filter((a) => a.balance < 0).length} tài khoản nợ
-          </p>
-        </div>
+        />
       </div>
 
-      {/* Charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* ════════════════════ CHARTS ROW ════════════════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Balance Trend */}
-        <div className="lg:col-span-2 bg-card rounded-2xl p-6 border border-border">
-          <h2 className="text-lg font-bold text-card-foreground mb-6">
+        <div className="lg:col-span-2 bg-card rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-shadow">
+          <h2 className="text-base font-bold text-card-foreground mb-1 flex items-center gap-2">
+            <Activity size={18} className="text-purple-500" />
             Xu hướng số dư
           </h2>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={balanceHistory}>
+          <p className="text-xs text-muted-foreground mb-5">Biến động tài sản 6 tháng gần nhất</p>
+          <ResponsiveContainer width="100%" height={240}>              <AreaChart
+                data={chartData}
+                onMouseMove={(state) => {
+                  if (state?.activePayload) {
+                    setHoveredMonth(state.activePayload[0].payload);
+                  }
+                }}
+                onMouseLeave={() => setHoveredMonth(null)}
+              >
               <defs>
                 <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#9333ea" stopOpacity={0.25} />
+                  <stop offset="5%" stopColor="#9333ea" stopOpacity={0.3} />
                   <stop offset="95%" stopColor="#9333ea" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="var(--color-border)"
-              />
-              <XAxis
-                dataKey="month"
-                stroke="var(--color-muted-foreground)"
-                tick={{ fontSize: 12 }}
-              />
-              <YAxis
-                stroke="var(--color-muted-foreground)"
-                tick={{ fontSize: 12 }}
-                tickFormatter={fmtShort}
-              />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+              <XAxis dataKey="month" stroke="var(--color-muted-foreground)" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+              <YAxis stroke="var(--color-muted-foreground)" tick={{ fontSize: 12 }} tickFormatter={fmtShort} tickLine={false} axisLine={false} />
               <Tooltip
                 contentStyle={{
                   backgroundColor: "var(--color-card)",
                   border: "1px solid var(--color-border)",
-                  borderRadius: "10px",
+                  borderRadius: "12px",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
                 }}
-                formatter={(val) => [fmt(val), "Số dư"]}
+                formatter={(val, name, props) => [fmt(val), "Số dư"]}
+                labelFormatter={(label, payload) => {
+                  if (!payload || !payload.length) return label;
+                  const p = payload[0].payload;
+                  return `${label}  ·  ${p.txCount} giao dịch`;
+                }}
               />
               <Area
+                key={`area-${selectedRange ? `${selectedRange.start.monthIndex}-${selectedRange.start.year}-${selectedRange.end.monthIndex}-${selectedRange.end.year}` : 'all'}`}
                 type="monotone"
                 dataKey="balance"
                 stroke="#9333ea"
                 strokeWidth={2.5}
                 fillOpacity={1}
                 fill="url(#colorBalance)"
-                dot={{ r: 4, fill: "#9333ea" }}
+                animationBegin={0}
+                animationDuration={600}
+                animationEasing="ease-out"
+                dot={(props) => {
+                  const { cx, cy, payload } = props;
+                  if (!payload) return null;
+                  const idx = payload.monthIndex + payload.year * 12;
+                  const startIdx = selectedRange ? selectedRange.start.monthIndex + selectedRange.start.year * 12 : -1;
+                  const endIdx   = selectedRange ? selectedRange.end.monthIndex   + selectedRange.end.year   * 12 : -1;
+                  const inRange = selectedRange && idx >= Math.min(startIdx, endIdx) && idx <= Math.max(startIdx, endIdx);
+                  const isStart = selectedRange && idx === startIdx;
+                  const isEnd   = selectedRange && idx === endIdx;
+                  return (
+                    <circle
+                      key={`dot-${payload.year}-${payload.monthIndex}`}
+                      cx={cx}
+                      cy={cy}
+                      r={isStart || isEnd ? 9 : inRange ? 7 : 4}
+                      fill={isStart || isEnd ? "#a855f7" : inRange ? "#c084fc" : "#9333ea"}
+                      stroke={isStart || isEnd ? "#d8b4fe" : inRange ? "#e9d5ff" : "#fff"}
+                      strokeWidth={isStart || isEnd ? 3 : inRange ? 2.5 : 2}
+                      style={{ cursor: "pointer", transition: "all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
+                      onClick={(e) => {
+                        const clicked = { monthIndex: payload.monthIndex, year: payload.year, label: payload.month };
+                        if (e.shiftKey && selectedRange) {
+                          // Shift+click: extend range to clicked month
+                          setSelectedRange({ start: selectedRange.start, end: clicked });
+                        } else if (
+                          selectedRange &&
+                          idx === Math.min(startIdx, endIdx) &&
+                          idx === Math.max(startIdx, endIdx)
+                        ) {
+                          // Click on single selected month → clear
+                          setSelectedRange(null);
+                        } else if (selectedRange) {
+                          // Already have a range, re-start fresh
+                          setSelectedRange({ start: clicked, end: clicked });
+                        } else {
+                          // First selection
+                          setSelectedRange({ start: clicked, end: clicked });
+                        }
+                      }}
+                    />
+                  );
+                }}
               />
             </AreaChart>
           </ResponsiveContainer>
-        </div>
 
-        {/* Asset breakdown pie */}
-        {pieData.length > 0 ? (
-          <div className="bg-card rounded-2xl p-6 border border-border">
-            <h2 className="text-lg font-bold text-card-foreground mb-4">
-              Cơ cấu tài sản
-            </h2>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={55}
-                  outerRadius={100}
-                  paddingAngle={3}
-                  dataKey="value"
-
-                >
-                  {pieData.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--color-card)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: "10px",
-                  }}
-                  formatter={(val, name) => [fmt(val), name]}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="mt-4 space-y-2.5 max-h-[200px] overflow-y-auto">
-              {pieData.map((d, i) => (
-                <div
-                  key={d.name}
-                  className="flex items-center justify-between text-xs hover:bg-muted px-2 py-1 rounded-lg transition-colors"
-                >
-                  <div className="flex items-center gap-2 min-w-0 flex-1 mr-3">
-                    <div
-                      className="w-3 h-3 rounded-full shrink-0"
-                      style={{
-                        backgroundColor: PIE_COLORS[i % PIE_COLORS.length],
-                      }}
-                    />
-                    <span className="text-muted-foreground truncate">
-                      {d.name}
-                    </span>
+          {/* ═══ Hover Summary Bar ═══ */}
+          {(() => {
+            const point = hoveredMonth || chartData[chartData.length - 1];
+            if (!point) return null;
+            const idx = chartData.findIndex(
+              (d) => d.monthIndex === point.monthIndex && d.year === point.year
+            );
+            const prevBalance = idx > 0 ? chartData[idx - 1].balance : point.balance;
+            const netChange = point.balance - prevBalance;
+            const netPct = prevBalance !== 0 ? ((netChange / prevBalance) * 100) : 0;
+            const isPositive = netChange > 0;
+            const isNegative = netChange < 0;
+            return (
+              <div className="mt-4 pt-4 border-t border-border flex flex-wrap items-center justify-between gap-4 text-sm">
+                <div className="flex items-center gap-3">
+                  <span className="font-bold text-card-foreground">
+                    {point.month} {point.year}
+                  </span>
+                  <span className="text-muted-foreground">
+                    <span className="font-semibold text-card-foreground">{point.txCount || 0}</span> giao dịch
+                  </span>
+                </div>
+                <div className="flex items-center gap-5">
+                  <div className="flex items-center gap-1.5">
+                    <Activity size={14} className="text-purple-500" />
+                    <span className="font-semibold text-card-foreground">{fmt(point.balance)}</span>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-muted-foreground font-medium">
-                      {pieTotal > 0
-                        ? ((d.value / pieTotal) * 100).toFixed(1)
-                        : 0}%
-                    </span>
-                    <span className="font-semibold text-foreground">
-                      {fmt(d.value)}
+                  <div className={`flex items-center gap-1.5 font-semibold ${isPositive ? "text-green-600" : isNegative ? "text-red-500" : "text-muted-foreground"}`}>
+                    {isPositive ? (
+                      <ArrowUpRight size={14} />
+                    ) : isNegative ? (
+                      <ArrowDownRight size={14} />
+                    ) : (
+                      <Activity size={14} className="rotate-90" />
+                    )}
+                    <span>{isPositive ? "+" : isNegative ? "" : "±"}{fmt(Math.abs(netChange))}</span>
+                    <span className="text-xs opacity-60">
+                      ({netPct >= 0 ? "+" : ""}{netPct.toFixed(1)}%)
                     </span>
                   </div>
                 </div>
-              ))}
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Asset Breakdown Pie */}
+        {pieData.length > 0 ? (
+          <div className="bg-card rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-shadow">
+            <h2 className="text-base font-bold text-card-foreground mb-1 flex items-center gap-2">
+              <PieChart size={18} className="text-purple-500" />
+              Cơ cấu tài sản
+            </h2>
+            <p className="text-xs text-muted-foreground mb-2">Phân bổ theo từng tài khoản</p>
+            <div className="flex justify-center">
+              <ResponsiveContainer width="100%" height={210}>
+                <RePieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%" cy="50%"
+                    innerRadius={50} outerRadius={95}
+                    paddingAngle={3}
+                    dataKey="value"
+                    stroke="none"
+                    activeIndex={txWalletFilter !== "all" ? pieData.findIndex(d => String(d.id) === txWalletFilter) : undefined}
+                    activeShape={{ outerRadius: 105, stroke: "#fff", strokeWidth: 3 }}
+                    onClick={(entry) => {
+                      const idStr = String(entry.id);
+                      if (txWalletFilter === idStr) {
+                        setTxWalletFilter("all");
+                        setSelectedAccountName(null);
+                      } else {
+                        setTxWalletFilter(idStr);
+                        setSelectedAccountName(entry.name);
+                      }
+                    }}
+                  >
+                    {pieData.map((entry, i) => (
+                      <Cell
+                        key={entry.id || i}
+                        fill={PIE_COLORS[i % PIE_COLORS.length]}
+                        style={{ cursor: "pointer" }}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--color-card)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "10px",
+                    }}
+                    formatter={(val, name) => [fmt(val), name]}
+                  />
+                </RePieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-3 space-y-2 max-h-[170px] overflow-y-auto scrollbar-thin">
+              {pieData.map((d, i) => {
+                const isActive = String(d.id) === txWalletFilter && txWalletFilter !== "all";
+                const hasRangeActivity = !activeInRange || activeInRange.has(String(d.id));
+                const dimmed = selectedRange && !hasRangeActivity && !isActive;
+                return (
+                <div
+                  key={d.name}
+                  onClick={() => {
+                    const idStr = String(d.id);
+                    if (txWalletFilter === idStr) {
+                      setTxWalletFilter("all");
+                      setSelectedAccountName(null);
+                    } else {
+                      setTxWalletFilter(idStr);
+                      setSelectedAccountName(d.name);
+                    }
+                  }}
+                  className={`flex items-center justify-between text-xs px-2 py-1.5 rounded-lg transition-all duration-300 cursor-pointer ${isActive ? "bg-purple-100 dark:bg-purple-900/30 ring-1 ring-purple-300 dark:ring-purple-600" : "hover:bg-muted"} ${dimmed ? "opacity-40" : ""}`}
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1 mr-3">
+                    <div className={`w-2.5 h-2.5 rounded-full shrink-0 transition-all duration-300 ${dimmed ? "grayscale" : ""}`} style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                    <span className={`truncate transition-all duration-300 ${dimmed ? "text-muted-foreground/50" : isActive ? "text-purple-700 dark:text-purple-300 font-semibold" : "text-muted-foreground"}`}>
+                      {d.name}
+                      {dimmed && <span className="ml-1.5 text-[10px] opacity-60">(không có giao dịch)</span>}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className={`transition-all duration-300 ${dimmed ? "text-muted-foreground/50" : "text-muted-foreground"}`}>{pieTotal > 0 ? ((d.value / pieTotal) * 100).toFixed(1) : 0}%</span>
+                    <span className={`font-semibold transition-all duration-300 ${dimmed ? "text-foreground/50" : "text-foreground"}`}>{fmtShort(d.value)}</span>
+                  </div>
+                </div>
+              );})}
             </div>
           </div>
         ) : (
           <div className="bg-card rounded-2xl p-6 border border-border flex items-center justify-center text-muted-foreground text-sm">
-            Không có dữ liệu tài sản
+            <div className="text-center">
+              <BarChart3 size={36} className="mx-auto mb-2 opacity-30" />
+              <p>Chưa có dữ liệu tài sản</p>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Balance distribution bar */}
-      {accounts.length > 1 && totalAssets > 0 && (
-        <div className="bg-card rounded-2xl p-6 border border-border mt-6 mb-6">
-          <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+      {/* ════════════════════ BALANCE DISTRIBUTION ════════════════════ */}
+      {positiveAccounts.length > 1 && totalAssets > 0 && (
+        <div className="bg-card rounded-2xl p-6 border border-border shadow-sm mb-8">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1 flex items-center gap-2">
+            <Percent size={15} className="text-purple-500" />
             Phân bổ số dư
           </h2>
-          <div className="flex h-3 rounded-full overflow-hidden gap-0.5 mb-3">
-            {accounts
-              .filter((a) => a.balance > 0)
-              .map((a, i) => (
-                <div
-                  key={a.id}
-                  className="h-full rounded-full transition-all"
-                  style={{
-                    width: `${(a.balance / totalAssets) * 100}%`,
-                    background: `linear-gradient(90deg, ${a.gradientFrom}, ${a.gradientTo})`,
-                    minWidth: "4px",
-                  }}
-                  title={`${a.name}: ${fmt(a.balance)}`}
-                />
-              ))}
+          <p className="text-xs text-muted-foreground mb-4">Tỉ lệ tài sản giữa các tài khoản</p>
+          <div className="flex h-4 rounded-full overflow-hidden gap-0.5 mb-4 shadow-inner">
+            {positiveAccounts.map((a, i) => (
+              <div
+                key={a.id}
+                className="h-full rounded-full transition-all duration-300 hover:opacity-80"
+                style={{
+                  width: `${(a.balance / totalAssets) * 100}%`,
+                  background: `linear-gradient(90deg, ${a.gradientFrom}, ${a.gradientTo})`,
+                  minWidth: "6px",
+                }}
+                title={`${a.name}: ${fmt(a.balance)}`}
+              />
+            ))}
           </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {accounts
-              .filter((a) => a.balance > 0)
-              .map((a) => (
-                <div
-                  key={a.id}
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground"
-                >
-                  <div
-                    className="w-2.5 h-2.5 rounded-full"
-                    style={{ background: a.gradientFrom }}
-                  />
-                  <span>{a.name}</span>
-                  <span className="text-muted-foreground">
-                    {((a.balance / totalAssets) * 100).toFixed(0)}%
-                  </span>
-                </div>
-              ))}
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            {positiveAccounts.map((a) => (
+              <div key={a.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="w-3 h-3 rounded-full" style={{ background: a.gradientFrom }} />
+                <span className="font-medium text-foreground">{a.name}</span>
+                <span className="opacity-60">{((a.balance / totalAssets) * 100).toFixed(0)}%</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Search & sort toolbar */}
+      {/* ════════════════════ SEARCH & SORT ════════════════════ */}
       {accounts.length > 0 && (
         <div className="flex flex-col sm:flex-row gap-3 mb-5">
           <div className="relative flex-1 max-w-full sm:max-w-xs">
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Tìm kiếm tài khoản..."
-              className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card"
             />
           </div>
           <div className="flex items-center gap-1.5 border border-border rounded-lg px-3 bg-card w-full sm:w-auto">
@@ -600,7 +701,7 @@ export function AssetAccounts() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="text-sm text-foreground bg-transparent focus:outline-none py-2.5 pr-1"
+              className="text-sm text-foreground bg-transparent focus:outline-none py-2.5 pr-1 cursor-pointer"
             >
               <option value="default">Mặc định</option>
               <option value="balance-desc">Số dư (Cao → Thấp)</option>
@@ -611,241 +712,206 @@ export function AssetAccounts() {
         </div>
       )}
 
-      {/* Account cards */}
+      {/* ════════════════════ ACCOUNT CARDS ════════════════════ */}
       {isLoading ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {[1, 2].map((i) => (
-            <div key={i} className="h-48 rounded-2xl bg-accent animate-pulse" />
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-44 rounded-2xl bg-muted animate-pulse" />
           ))}
         </div>
       ) : accounts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 mb-8 bg-card rounded-2xl border border-dashed border-border">
-          <WalletIcon size={48} className="text-muted-foreground mb-4" />
-          <p className="text-muted-foreground font-medium">
+        <div className="flex flex-col items-center justify-center py-20 mb-8 bg-card rounded-2xl border border-dashed border-border">
+          <WalletIcon size={56} className="text-muted-foreground mb-4 opacity-30" />
+          <p className="text-muted-foreground font-medium text-lg">
             {search ? "Không tìm thấy tài khoản phù hợp" : "Chưa có tài khoản"}
           </p>
           {!search && (
-            <p className="text-muted-foreground text-sm mt-1">
-              Nhấn "Thêm tài khoản" để bắt đầu
-            </p>
+            <p className="text-muted-foreground text-sm mt-1">Thêm tài khoản từ trang giao dịch để bắt đầu theo dõi</p>
           )}
         </div>
       ) : (
         <>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {displayAccounts.map((account) => {
-            const Icon = account.icon;
-            const isPositive = account.balance >= 0;
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
+            {displayAccounts.map((account) => {
+              const Icon = account.icon;
+              const isPositive = account.balance >= 0;
+              return (
+                <div
+                  key={account.id}
+                  className="relative overflow-hidden rounded-2xl p-6 text-white group shadow-md hover:shadow-xl transition-all duration-300"
+                  style={{
+                    background: `linear-gradient(135deg, ${account.gradientFrom} 0%, ${account.gradientTo} 100%)`,
+                  }}
+                >
+                  {/* Decorative circles */}
+                  <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-5 rounded-full -mr-20 -mt-20 pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 w-32 h-32 bg-white opacity-5 rounded-full -ml-16 -mb-16 pointer-events-none" />
+                  <div className="absolute top-1/2 left-1/2 w-20 h-20 bg-white opacity-[0.02] rounded-full pointer-events-none" />
 
-            return (
-              <div
-                key={account.id}
-                className="relative overflow-hidden rounded-2xl p-6 text-white group"
-                style={{
-                  background: `linear-gradient(135deg, ${account.gradientFrom} 0%, ${account.gradientTo} 100%)`,
-                }}
-              >
-                {/* decorative circles */}
-                <div className="absolute top-0 right-0 w-36 h-36 bg-card opacity-10 rounded-full -mr-18 -mt-18 pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-28 h-28 bg-card opacity-10 rounded-full -ml-14 -mb-14 pointer-events-none" />
+                  <div className="relative">
+                    {/* Top row */}
+                    <div className="flex items-start justify-between mb-5">
+                      <div>
+                        <p className="text-white/60 text-[10px] font-semibold uppercase tracking-widest mb-1">
+                          {account.type}
+                        </p>
+                        <h3 className="text-xl font-bold leading-tight">{account.name}</h3>
+                      </div>
+                      <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center backdrop-blur-sm">
+                        <Icon size={24} className="text-white" />
+                      </div>
+                    </div>
 
-                <div className="relative">
-                  {/* Top row */}
-                  <div className="flex items-start justify-between mb-6">
-                    <div>
-                      <p className="text-white/70 text-xs font-medium uppercase tracking-wider mb-1">
-                        {account.type}
+                    {/* Balance */}
+                    <div className="mb-4">
+                      <p className="text-white/60 text-xs mb-1 font-medium">Số dư hiện tại</p>
+                      <p className="text-3xl font-bold tracking-tight">
+                        {isPositive ? "" : "-"}
+                        {fmt(Math.abs(account.balance))}
                       </p>
-                      <h3 className="text-xl font-bold leading-tight">
-                        {account.name}
-                      </h3>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => setEditingWallet(account)}
-                        className="p-1.5 rounded-full hover:bg-white/20 transition-colors opacity-0 group-hover:opacity-100"
-                        title="Sửa"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleDeleteWallet(account.id, account.name)
-                        }
-                        className="p-1.5 rounded-full hover:bg-white/20 transition-colors opacity-0 group-hover:opacity-100"
-                        title="Xóa"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                      <Icon size={30} className="text-white/80 ml-1" />
-                    </div>
-                  </div>
-
-                  {/* Balance */}
-                  <div className="mb-5">
-                    <p className="text-white/70 text-xs mb-1">Số dư hiện tại</p>
-                    <p className="text-4xl font-bold tracking-tight">
-                      {isPositive ? "" : "-"}
-                      {fmt(Math.abs(account.balance))}
-                    </p>
-                    <div className="mt-1 flex items-center gap-1.5">
-                      <span className="text-[10px] font-semibold bg-white/15 text-white/90 px-2 py-0.5 rounded-full">
-                        {account.currencyCode}
-                      </span>
-                    </div>
-                    {account.initialBalance !== undefined && (
-                      <p className="text-white/60 text-xs mt-1">
-                        Số dư ban đầu: {fmt(account.initialBalance)}
-                        {account.balance !== account.initialBalance && (
-                          <span
-                            className={`ml-2 font-semibold ${account.balance >= account.initialBalance ? "text-green-300" : "text-red-300"}`}
-                          >
-                            {account.balance >= account.initialBalance
-                              ? "+"
-                              : "-"}
-                            {fmt(
-                              Math.abs(
-                                account.balance - account.initialBalance,
-                              ),
-                            )}
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-[10px] font-semibold bg-white/15 text-white/90 px-2 py-0.5 rounded-full backdrop-blur-sm">
+                          {account.currencyCode}
+                        </span>
+                        {account.initialBalance !== undefined && account.initialBalance !== account.balance && (
+                          <span className={`text-[10px] font-semibold ${account.balance >= account.initialBalance ? "text-green-300" : "text-red-300"}`}>
+                            {account.balance >= account.initialBalance ? "+" : "-"}
+                            {fmt(Math.abs(account.balance - account.initialBalance))} so với ban đầu
                           </span>
                         )}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Card number + badge */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-base tracking-widest text-white/75 font-mono">
-                        {account.cardNumber || "—"}
-                      </span>
-                      {account.cardNumber && (
-                        <CopyButton text={account.cardNumber} />
-                      )}
+                      </div>
                     </div>
-                    <div
-                      className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${
-                        isPositive ? "bg-white/20" : "bg-black/20"
-                      }`}
-                    >
-                      {isPositive ? (
-                        <ArrowUpRight size={12} />
-                      ) : (
-                        <ArrowDownRight size={12} />
-                      )}
-                      {isPositive ? "Tài sản" : "Nợ"}
+
+                    {/* Card number + badge */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm tracking-widest text-white/60 font-mono">
+                          {account.cardNumber || "—"}
+                        </span>
+                        {account.cardNumber && <CopyButton text={account.cardNumber} />}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingAccount(account);
+                          }}
+                          className="p-1.5 rounded-lg bg-white/10 hover:bg-white/25 text-white/70 hover:text-white transition-all backdrop-blur-sm"
+                          title="Sửa"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteAsset(account.id, account.name);
+                          }}
+                          className="p-1.5 rounded-lg bg-white/10 hover:bg-red-400/40 text-white/70 hover:text-red-200 transition-all backdrop-blur-sm"
+                          title="Xóa"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                        <div
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm ${
+                            isPositive ? "bg-white/20 text-white" : "bg-black/20 text-white/80"
+                          }`}
+                        >
+                          {isPositive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                          {isPositive ? "Tài sản" : "Nợ"}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Account pagination */}
-        {accountTotalPages > 1 && (
-          <div className="mb-8">
-            <PaginationBar
-              currentPage={accountPage}
-              totalPages={accountTotalPages}
-              totalCount={accountTotalCount}
-              pageSize={accountPageSize}
-              onPageChange={(p) => { setAccountPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-              onPageSizeChange={(newSize) => { setAccountPageSize(newSize); setAccountPage(1); }}
-            />
+              );
+            })}
           </div>
-        )}
+
+          {/* Pagination */}
+          {accountTotalPages > 1 && (
+            <div className="mb-8">
+              <PaginationBar
+                currentPage={accountPage}
+                totalPages={accountTotalPages}
+                totalCount={accountTotalCount}
+                pageSize={accountPageSize}
+                onPageChange={(p) => { setAccountPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                onPageSizeChange={(newSize) => { setAccountPageSize(newSize); setAccountPage(1); }}
+              />
+            </div>
+          )}
         </>
       )}
 
-      {/* Account details table */}
+      {/* ════════════════════ ACCOUNT DETAILS TABLE ════════════════════ */}
       {accounts.length > 0 && (
-        <div className="bg-card rounded-2xl border border-border overflow-hidden mb-6">
-          <div className="px-4 sm:px-6 py-4 border-b border-border bg-muted/50">
-            <h2 className="text-sm sm:text-base font-bold text-card-foreground">
-              Chi tiết tài khoản
-            </h2>
+        <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden mb-8">
+          <div className="px-6 py-4 border-b border-border bg-muted/50 flex items-center gap-2">
+            <Eye size={16} className="text-purple-500" />
+            <h2 className="text-sm font-bold text-card-foreground">Chi tiết tài khoản</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="text-xs uppercase tracking-wider text-muted-foreground border-b border-border bg-muted">
-                  <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">
-                    Tên tài khoản
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">
-                    Loại
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 font-semibold text-center whitespace-nowrap">
-                    Tiền tệ
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 font-semibold text-right whitespace-nowrap">
-                    Số dư ban đầu
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 font-semibold text-right whitespace-nowrap">
-                    Số dư hiện tại
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 font-semibold text-right whitespace-nowrap">
-                    Thay đổi
-                  </th>
+                  <th className="px-4 sm:px-6 py-3.5 font-semibold whitespace-nowrap">Tên tài khoản</th>
+                  <th className="px-4 sm:px-6 py-3.5 font-semibold whitespace-nowrap">Loại</th>
+                  <th className="px-4 sm:px-6 py-3.5 font-semibold text-center whitespace-nowrap">Tiền tệ</th>
+                  <th className="px-4 sm:px-6 py-3.5 font-semibold text-right whitespace-nowrap">Số dư ban đầu</th>
+                  <th className="px-4 sm:px-6 py-3.5 font-semibold text-right whitespace-nowrap">Số dư hiện tại</th>
+                  <th className="px-4 sm:px-6 py-3.5 font-semibold text-right whitespace-nowrap">Thay đổi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {accounts.map((acc) => {
                   const diff = acc.balance - acc.initialBalance;
-                  const diffPct =
-                    acc.initialBalance !== 0
-                      ? ((diff / acc.initialBalance) * 100).toFixed(1)
-                      : null;
+                  const diffPct = acc.initialBalance !== 0 ? ((diff / acc.initialBalance) * 100).toFixed(1) : null;
                   return (
-                    <tr
-                      key={acc.id}
-                      className="hover:bg-muted transition-colors"
-                    >
-                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                    <tr key={acc.id} className="hover:bg-muted/50 transition-colors group">
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <div
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs shrink-0"
-                            style={{
-                              background: `linear-gradient(135deg, ${acc.gradientFrom}, ${acc.gradientTo})`,
-                            }}
+                            className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs shrink-0 shadow-sm"
+                            style={{ background: `linear-gradient(135deg, ${acc.gradientFrom}, ${acc.gradientTo})` }}
                           >
-                            <acc.icon size={14} />
+                            <acc.icon size={16} />
                           </div>
-                          <span className="font-semibold text-card-foreground text-sm sm:text-base">
-                            {acc.name}
-                          </span>
+                          <span className="font-semibold text-card-foreground">{acc.name}</span>
                         </div>
                       </td>
-                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                        <span className="px-2.5 py-1 bg-muted text-muted-foreground rounded-full text-xs font-medium">
-                          {acc.type}
-                        </span>
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                        <span className="px-2.5 py-1 bg-muted text-muted-foreground rounded-full text-xs font-medium">{acc.type}</span>
                       </td>
-                      <td className="px-3 sm:px-6 py-4 text-center whitespace-nowrap">
-                        <span className="px-2.5 py-1 bg-purple-500/15 text-purple-600 rounded-full text-xs font-semibold">
-                          {acc.currencyCode}
-                        </span>
+                      <td className="px-4 sm:px-6 py-4 text-center whitespace-nowrap">
+                        <span className="px-2.5 py-1 bg-purple-500/10 text-purple-600 rounded-full text-xs font-semibold">{acc.currencyCode}</span>
                       </td>
-                      <td className="px-3 sm:px-6 py-4 text-right text-muted-foreground font-medium whitespace-nowrap text-sm">
-                        {fmt(acc.initialBalance)}
-                      </td>
-                      <td className="px-3 sm:px-6 py-4 text-right font-bold text-card-foreground whitespace-nowrap text-sm">
-                        {fmt(acc.balance)}
-                      </td>
-                      <td className="px-3 sm:px-6 py-4 text-right whitespace-nowrap">
-                        <span
-                          className={`font-semibold text-xs sm:text-sm ${diff >= 0 ? "text-green-600" : "text-red-500"}`}
-                        >
-                          {diff >= 0 ? "+" : "-"}
-                          {fmt(Math.abs(diff))}
-                          {diffPct !== null && (
-                            <span className="text-xs font-normal ml-1 opacity-70">
-                              ({diffPct}%)
-                            </span>
-                          )}
-                        </span>
+                      <td className="px-4 sm:px-6 py-4 text-right text-muted-foreground font-medium whitespace-nowrap">{fmt(acc.initialBalance)}</td>
+                      <td className="px-4 sm:px-6 py-4 text-right font-bold text-card-foreground whitespace-nowrap">{fmt(acc.balance)}</td>
+                      <td className="px-4 sm:px-6 py-4 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-2">
+                          <span className={`font-semibold text-sm ${diff >= 0 ? "text-green-600" : "text-red-500"}`}>
+                            {diff >= 0 ? "+" : "-"}{fmt(Math.abs(diff))}
+                            {diffPct !== null && (
+                              <span className="text-xs font-normal ml-1 opacity-60">({diffPct}%)</span>
+                            )}
+                          </span>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => setEditingAccount(acc)}
+                              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                              title="Sửa"
+                            >
+                              <Pencil size={13} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAsset(acc.id, acc.name)}
+                              className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors"
+                              title="Xóa"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -856,22 +922,76 @@ export function AssetAccounts() {
         </div>
       )}
 
-      {/* Recent Transactions */}
-      <div className="bg-card rounded-2xl border border-border overflow-hidden mb-6">
-        <div className="px-4 sm:px-6 py-4 border-b border-border bg-muted/50 flex items-center justify-between flex-wrap gap-3">
-          <h2 className="text-sm sm:text-base font-bold text-card-foreground">
-            Lịch sử giao dịch gần nhất
-          </h2>
+      {/* ════════════════════ RECENT TRANSACTIONS ════════════════════ */}
+      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-border bg-muted/50 flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Activity size={16} className="text-purple-500" />
+            <h2 className="text-sm font-bold text-card-foreground">Lịch sử giao dịch gần nhất</h2>
+            {/* Combined filter badges */}
+            {selectedRange && selectedAccountName && (
+              <button
+                onClick={() => {
+                  setSelectedRange(null);
+                  setTxWalletFilter("all");
+                  setSelectedAccountName(null);
+                }}
+                className="tx-filter-badge inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-purple-100 to-rose-100 dark:from-purple-900/40 dark:to-rose-900/40 text-purple-700 dark:text-purple-300 rounded-full text-xs font-semibold hover:from-purple-200 hover:to-rose-200 dark:hover:from-purple-900/60 dark:hover:to-rose-900/60 shrink-0 ring-1 ring-purple-300/50 dark:ring-purple-600/50"
+              >
+                {(() => {
+                  const s = selectedRange.start;
+                  const e = selectedRange.end;
+                  const sIdx = s.monthIndex + s.year * 12;
+                  const eIdx = e.monthIndex + e.year * 12;
+                  const rangeLabel = sIdx === eIdx
+                    ? `${s.label} ${s.year}`
+                    : `${s.label} ${s.year} → ${e.label} ${e.year}`;
+                  return <span>Tài khoản: {selectedAccountName} · {rangeLabel}</span>;
+                })()}
+                <span className="ml-2 text-purple-500 hover:text-purple-700 dark:text-purple-300 dark:hover:text-purple-200">&times;</span>
+              </button>
+            )}
+            {selectedRange && !selectedAccountName && (
+              <button
+                onClick={() => setSelectedRange(null)}
+                className="tx-filter-badge inline-flex items-center gap-1.5 px-3 py-1 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-full text-xs font-semibold hover:bg-purple-200 dark:hover:bg-purple-900/60 shrink-0"
+              >
+                {(() => {
+                  const s = selectedRange.start;
+                  const e = selectedRange.end;
+                  const sIdx = s.monthIndex + s.year * 12;
+                  const eIdx = e.monthIndex + e.year * 12;
+                  if (sIdx === eIdx) {
+                    return <span>Tháng: {s.label} {s.year}</span>;
+                  }
+                  const first = sIdx < eIdx ? s : e;
+                  const last  = sIdx < eIdx ? e : s;
+                  return <span>Tháng {first.label} {first.year} → {last.label} {last.year}</span>;
+                })()}
+                <span className="ml-1 text-purple-500 hover:text-purple-700">&times;</span>
+              </button>
+            )}
+            {selectedAccountName && !selectedRange && (
+              <button
+                onClick={() => {
+                  setTxWalletFilter("all");
+                  setSelectedAccountName(null);
+                }}
+                className="tx-filter-badge inline-flex items-center gap-1.5 px-3 py-1 bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 rounded-full text-xs font-semibold hover:bg-rose-200 dark:hover:bg-rose-900/60 shrink-0"
+              >
+                <span>Tài khoản: {selectedAccountName}</span>
+                <span className="ml-1 text-rose-500 hover:text-rose-700">&times;</span>
+              </button>
+            )}
+          </div>
           <select
             value={txWalletFilter}
             onChange={(e) => setTxWalletFilter(e.target.value)}
-            className="text-xs sm:text-sm border border-border rounded-lg px-2 sm:px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card"
+            className="text-sm border border-border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card cursor-pointer"
           >
             <option value="all">Tất cả ví</option>
             {accounts.map((a) => (
-              <option key={a.id} value={String(a.id)}>
-                {a.name}
-              </option>
+              <option key={a.id} value={String(a.id)}>{a.name}</option>
             ))}
           </select>
         </div>
@@ -879,106 +999,88 @@ export function AssetAccounts() {
           <table className="w-full text-left">
             <thead>
               <tr className="text-xs uppercase tracking-wider text-muted-foreground border-b border-border bg-muted">
-                <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">
-                  Mô tả
-                </th>
-                <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">
-                  Danh mục
-                </th>
-                <th className="px-3 sm:px-6 py-3 font-semibold whitespace-nowrap">
-                  Ngày
-                </th>
-                <th className="px-3 sm:px-6 py-3 font-semibold text-right whitespace-nowrap">
-                  Số tiền
-                </th>
+                <th className="px-4 sm:px-6 py-3.5 font-semibold whitespace-nowrap">Mô tả</th>
+                <th className="px-4 sm:px-6 py-3.5 font-semibold whitespace-nowrap">Danh mục</th>
+                <th className="px-4 sm:px-6 py-3.5 font-semibold whitespace-nowrap">Ngày</th>
+                <th className="px-4 sm:px-6 py-3.5 font-semibold text-right whitespace-nowrap">Số tiền</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {recentTxs
                 .filter((t) => {
-                  if (txWalletFilter === "all") return true;
-                  return (t.details || []).some(
-                    (d) => String(d.accountId) === txWalletFilter,
-                  );
+                  if (txWalletFilter !== "all") {
+                    const matchesWallet = (t.details || []).some((d) => String(d.accountId) === txWalletFilter);
+                    if (!matchesWallet) return false;
+                  }
+                  if (selectedRange) {
+                    const d = new Date(t.transactionDate);
+                    const txIdx = d.getMonth() + d.getFullYear() * 12;
+                    const sIdx = selectedRange.start.monthIndex + selectedRange.start.year * 12;
+                    const eIdx = selectedRange.end.monthIndex + selectedRange.end.year * 12;
+                    const min = Math.min(sIdx, eIdx);
+                    const max = Math.max(sIdx, eIdx);
+                    if (txIdx < min || txIdx > max) return false;
+                  }
+                  return true;
                 })
-              .map((t) => {
-                  const iconBg = t.isTransfer
-                    ? "bg-blue-500/10"
-                    : t.isIncome
-                      ? "bg-green-500/15"
-                      : "bg-red-500/10";
-                  const TxIcon = t.isTransfer
-                    ? ArrowLeftRight
-                    : t.isIncome
-                      ? ArrowUpRight
-                      : ArrowDownRight;
-                  const iconCls = t.isTransfer
-                    ? "text-blue-500"
-                    : t.isIncome
-                      ? "text-green-600"
-                      : "text-red-500";
-                  const amtCls = t.isTransfer
-                    ? "text-blue-600"
-                    : t.isIncome
-                      ? "text-green-600"
-                      : "text-card-foreground";
+                .map((t) => {
+                  const iconBg = t.isTransfer ? "bg-blue-500/10" : t.isIncome ? "bg-green-500/15" : "bg-red-500/10";
+                  const TxIcon = t.isTransfer ? ArrowLeftRight : t.isIncome ? ArrowUpRight : ArrowDownRight;
+                  const iconCls = t.isTransfer ? "text-blue-500" : t.isIncome ? "text-green-600" : "text-red-500";
+                  const amtCls = t.isTransfer ? "text-blue-600" : t.isIncome ? "text-green-600" : "text-card-foreground";
                   const prefix = t.isIncome ? "+" : t.isTransfer ? "" : "-";
                   return (
-                    <tr
-                      key={t.journalId}
-                      className="hover:bg-muted transition-colors"
-                    >
-                      <td className="px-3 sm:px-6 py-3.5 whitespace-nowrap">
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <div
-                            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}
-                          >
-                            <TxIcon
-                              size={12}
-                              className={iconCls + " sm:hidden"}
-                            />
-                            <TxIcon
-                              size={14}
-                              className={iconCls + " hidden sm:block"}
-                            />
+                    <tr key={`${t.journalId}-${selectedRange ? `${selectedRange.start.monthIndex}-${selectedRange.end.monthIndex}` : 'all'}`} className="tx-row-enter hover:bg-muted/50 transition-colors">
+                      <td className="px-4 sm:px-6 py-3.5 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}>
+                            <TxIcon size={14} className={iconCls} />
                           </div>
-                          <span className="font-medium text-card-foreground text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">
+                          <span className="font-medium text-card-foreground text-sm truncate max-w-[160px] sm:max-w-none">
                             {t.description || "—"}
                           </span>
                         </div>
                       </td>
-                      <td className="px-3 sm:px-6 py-3.5 whitespace-nowrap">
-                        <span className="px-2 py-1 bg-muted text-muted-foreground rounded-full text-[10px] sm:text-xs font-medium">
-                          {t.categoryName}
-                        </span>
+                      <td className="px-4 sm:px-6 py-3.5 whitespace-nowrap">
+                        <span className="px-2.5 py-1 bg-muted text-muted-foreground rounded-full text-xs font-medium">{t.categoryName}</span>
                       </td>
-                      <td className="px-3 sm:px-6 py-3.5 text-muted-foreground text-xs sm:text-sm whitespace-nowrap">
-                        {t.transactionDate
-                          ? format(new Date(t.transactionDate), "dd/MM/yyyy")
-                          : "—"}
+                      <td className="px-4 sm:px-6 py-3.5 text-muted-foreground text-sm whitespace-nowrap">
+                        {t.transactionDate ? format(new Date(t.transactionDate), "dd/MM/yyyy") : "—"}
                       </td>
-                      <td
-                        className={`px-3 sm:px-6 py-3.5 text-right font-bold text-xs sm:text-sm ${amtCls} whitespace-nowrap`}
-                      >
-                        {prefix}
-                        {fmt(Math.abs(t.totalAmount))}
+                      <td className={`px-4 sm:px-6 py-3.5 text-right font-bold text-sm ${amtCls} whitespace-nowrap`}>
+                        {prefix}{fmt(Math.abs(t.totalAmount))}
                       </td>
                     </tr>
                   );
                 })}
-              {recentTxs.filter(
-                (t) =>
-                  txWalletFilter === "all" ||
-                  (t.details || []).some(
-                    (d) => String(d.accountId) === txWalletFilter,
-                  ),
-              ).length === 0 && (
+              {recentTxs.filter((t) => {
+                if (txWalletFilter !== "all") {
+                  const matchesWallet = (t.details || []).some((d) => String(d.accountId) === txWalletFilter);
+                  if (!matchesWallet) return false;
+                }
+                if (selectedRange) {
+                  const d = new Date(t.transactionDate);
+                  const txIdx = d.getMonth() + d.getFullYear() * 12;
+                  const sIdx = selectedRange.start.monthIndex + selectedRange.start.year * 12;
+                  const eIdx = selectedRange.end.monthIndex + selectedRange.end.year * 12;
+                  const min = Math.min(sIdx, eIdx);
+                  const max = Math.max(sIdx, eIdx);
+                  if (txIdx < min || txIdx > max) return false;
+                }
+                return true;
+              }).length === 0 && (
                 <tr>
-                  <td
-                    colSpan="4"
-                    className="px-3 sm:px-6 py-10 text-center text-muted-foreground text-sm"
-                  >
-                    Không có giao dịch nào
+                  <td colSpan="4" className="px-6 py-12 text-center text-muted-foreground text-sm">
+                    <Activity size={24} className="mx-auto mb-2 opacity-30" />
+                    {selectedAccountName && selectedRange ? (
+                      <p>Không có giao dịch cho <span className="font-semibold text-foreground">{selectedAccountName}</span> trong khoảng thời gian đã chọn</p>
+                    ) : selectedAccountName ? (
+                      <p>Không có giao dịch cho <span className="font-semibold text-foreground">{selectedAccountName}</span></p>
+                    ) : selectedRange ? (
+                      <p>Không có giao dịch trong khoảng thời gian đã chọn</p>
+                    ) : (
+                      <p>Không có giao dịch nào</p>
+                    )}
                   </td>
                 </tr>
               )}
@@ -988,38 +1090,39 @@ export function AssetAccounts() {
 
         {/* Transactions pagination */}
         {txTotalPages > 1 && (
-          <div className="px-4 sm:px-6 py-3 border-t border-border">
+          <div className="px-6 py-3 border-t border-border">
             <PaginationBar
               currentPage={txPage}
               totalPages={txTotalPages}
               totalCount={txTotalCount}
               pageSize={txPageSize}
-              onPageChange={(p) => { setTxPage(p); }}
+              onPageChange={(p) => setTxPage(p)}
               onPageSizeChange={(newSize) => { setTxPageSize(newSize); setTxPage(1); }}
             />
           </div>
         )}
       </div>
 
-      <AddWalletModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onAdd={handleAddWallet}
+      {/* ════════════════════ CREATE ASSET MODAL ════════════════════ */}
+      <AccountFormModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSubmit={handleCreateAsset}
+        account={null}
+        typeId={1}
       />
-      {editingWallet && (
-        <EditWalletModal
-          wallet={editingWallet}
-          onClose={() => setEditingWallet(null)}
-          onSave={handleEditWallet}
-        />
-      )}
-      {isTransferOpen && (
-        <QuickTransferModal
-          accounts={accounts}
-          onClose={() => setIsTransferOpen(false)}
-          onTransfer={handleTransfer}
+
+      {/* ════════════════════ EDIT ASSET MODAL ════════════════════ */}
+      {editingAccount && (
+        <AccountFormModal
+          isOpen={!!editingAccount}
+          onClose={() => setEditingAccount(null)}
+          onSubmit={(data) => handleEditAsset(editingAccount.id, data)}
+          account={editingAccount}
+          typeId={editingAccount.typeId}
         />
       )}
     </PageLayout>
+    </>
   );
 }
