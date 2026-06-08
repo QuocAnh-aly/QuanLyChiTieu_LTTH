@@ -26,6 +26,7 @@ import { authApi } from "../../api/authApi";
 import { transactionApi } from "../../api/transactionApi";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { useSettings } from "../../context/SettingsContext";
 import { PageLayout } from "../../components/layout/PageLayout";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -43,12 +44,13 @@ function mapTransaction(t) {
   return { ...t, categoryName, isIncome, isTransfer };
 }
 
-function Toggle({ value, onChange }) {
+function Toggle({ value, onChange, disabled = false }) {
   return (
     <button
       type="button"
       onClick={() => onChange(!value)}
-      className={`relative w-12 h-6 rounded-full transition-colors ${value ? "bg-purple-600" : "bg-muted-foreground/25"}`}
+      disabled={disabled}
+      className={`relative w-12 h-6 rounded-full transition-colors disabled:opacity-50 ${value ? "bg-purple-600" : "bg-muted-foreground/25"}`}
     >
       <span
         className={`absolute top-0.5 w-5 h-5 bg-card rounded-full shadow transition-transform ${value ? "translate-x-6" : "translate-x-0.5"}`}
@@ -133,6 +135,7 @@ const TX_FILTER_TYPES = [
 export function Profile() {
   const { user } = useAuth();
   const { addNotification } = useNotifications();
+  const { fmt, currencies, currency, setDefaultCurrency, firstDayOfWeek } = useSettings();
 
   // ── Tab state ──────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState("transactions");
@@ -160,17 +163,9 @@ export function Profile() {
   const [showPw, setShowPw] = useState({ current: false, next: false, confirm: false });
   const [isSavingPw, setIsSavingPw] = useState(false);
 
-  // ── Settings state (localStorage) ─────────────────────────────────────────
-  const [notifications, setNotifications] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("notif_settings")) || { email: true, push: true, sms: false };
-    } catch {
-      return { email: true, push: true, sms: false };
-    }
-  });
-  const [currency, setCurrency] = useState(
-    () => localStorage.getItem("app_currency") || "VND",
-  );
+  // ── Notification preferences (persisted on the user profile) ───────────────
+  const [notifications, setNotifications] = useState({ email: true, push: true, sms: false });
+  const [savingNotif, setSavingNotif] = useState(null); // key currently being saved
 
   // ── Load data ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -183,9 +178,14 @@ export function Profile() {
           transactionApi.getCashFlow(),
         ]);
         setProfile({
-          userName: prof.userName || "",
-          fullName: prof.fullName || prof.userName || "",
+          userName: prof.account || prof.userName || "",
+          fullName: prof.userName || "",
           email: prof.email || "",
+        });
+        setNotifications({
+          email: prof.notifyEmail ?? true,
+          push:  prof.notifyPush  ?? true,
+          sms:   prof.notifySms   ?? false,
         });
         setTransactions(
           (transData.items || transData || []).map(mapTransaction),
@@ -203,10 +203,6 @@ export function Profile() {
   }, []);
 
   // ── Filtered transactions ──────────────────────────────────────────────────
-  // const filtered = transactions.filter((t) => {
-  //   const matchSearch =
-  //     (t.description || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-  //     (t.categoryName || "").toLowerCase().includes(searchTerm.toLowerCase());
   const filtered = transactions.filter((t) => {
     const matchSearch =
       (t.description || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -251,7 +247,7 @@ export function Profile() {
     try {
       setIsSavingProfile(true);
       await authApi.updateProfile({
-        fullName: profile.fullName,
+        userName: profile.fullName,
         email: profile.email,
       });
       toast.success("Đã cập nhật hồ sơ");
@@ -307,19 +303,35 @@ export function Profile() {
     }
   };
 
-  // ── Notification toggle ────────────────────────────────────────────────────
-  const toggleNotif = (key) => {
-    const updated = { ...notifications, [key]: !notifications[key] };
-    setNotifications(updated);
-    localStorage.setItem("notif_settings", JSON.stringify(updated));
-    toast.success(updated[key] ? "Đã bật thông báo" : "Đã tắt thông báo");
+  // ── Notification toggle (persisted on the profile) ─────────────────────────
+  const NOTIF_FIELD = { email: "notifyEmail", push: "notifyPush", sms: "notifySms" };
+  const toggleNotif = async (key) => {
+    const next = !notifications[key];
+    const prev = notifications;
+    const updated = { ...notifications, [key]: next };
+    setNotifications(updated); // optimistic
+    setSavingNotif(key);
+    try {
+      await authApi.updateProfile({ [NOTIF_FIELD[key]]: next });
+      toast.success(next ? "Đã bật thông báo" : "Đã tắt thông báo");
+    } catch (err) {
+      setNotifications(prev); // rollback
+      const msg = err?.response?.data?.message ?? err?.response?.data;
+      toast.error(typeof msg === "string" ? msg : "Không thể lưu cài đặt thông báo");
+    } finally {
+      setSavingNotif(null);
+    }
   };
 
-  // ── Currency change ────────────────────────────────────────────────────────
-  const handleCurrencyChange = (val) => {
-    setCurrency(val);
-    localStorage.setItem("app_currency", val);
-    toast.success(`Đã đổi tiền tệ sang ${val}`);
+  // ── Currency change (app-wide default, persisted server-side) ──────────────
+  const handleCurrencyChange = async (val) => {
+    if (val === currency) return;
+    try {
+      await setDefaultCurrency(val);
+      toast.success(`Đã đổi tiền tệ mặc định sang ${val}`);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.message || "Không thể đổi tiền tệ");
+    }
   };
 
   const initials = (profile.fullName || profile.userName || "U")
@@ -380,7 +392,7 @@ export function Profile() {
                 </div>
               </div>
               <p className="text-3xl font-bold text-card-foreground">
-                {cashFlow.totalIncome.toLocaleString()} {currency}
+                {fmt(cashFlow.totalIncome)}
               </p>
               <p className="text-green-600 text-sm mt-1">
                 {filtered.filter((t) => t.isIncome).length} giao dịch
@@ -395,7 +407,7 @@ export function Profile() {
                 </div>
               </div>
               <p className="text-3xl font-bold text-card-foreground">
-                {cashFlow.totalExpense.toLocaleString()} {currency}
+                {fmt(cashFlow.totalExpense)}
               </p>
               <p className="text-red-600 text-sm mt-1">
                 {filtered.filter((t) => !t.isIncome && !t.isTransfer).length}{" "}
@@ -411,10 +423,7 @@ export function Profile() {
               <p
                 className={`text-3xl font-bold ${cashFlow.totalIncome - cashFlow.totalExpense < 0 ? "text-red-200" : ""}`}
               >
-                {(
-                  cashFlow.totalIncome - cashFlow.totalExpense
-                ).toLocaleString()}{" "}
-                {currency}
+                {fmt(cashFlow.totalIncome - cashFlow.totalExpense)}
               </p>
 
               <p className="text-purple-100 text-sm mt-1">
@@ -482,6 +491,7 @@ export function Profile() {
                       selected={dateRange}
                       onSelect={setDateRange}
                       numberOfMonths={2}
+                      weekStartsOn={firstDayOfWeek}
                     />
                     {dateRange && (
                       <button
@@ -559,17 +569,13 @@ export function Profile() {
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
                                 <div
-                                  className={`w-9 h-9 rounded-full ${iconBg} flex items-center justify-center`}
+                                  className={`w-9 h-9 rounded-full ${iconBg} flex items-center justify-center flex-shrink-0`}
                                 >
-                                  <div
-                                    className={`w-9 h-9 rounded-full ${iconBg} flex items-center justify-center`}
-                                  >
-                                    <Icon size={16} className={iconCls} />
-                                  </div>
-                                  <span className="font-medium text-card-foreground">
-                                    {t.description || "—"}
-                                  </span>
+                                  <Icon size={16} className={iconCls} />
                                 </div>
+                                <span className="font-medium text-card-foreground">
+                                  {t.description || "—"}
+                                </span>
                               </div>
                             </td>
                             <td className="px-6 py-4">
@@ -586,8 +592,7 @@ export function Profile() {
                             <td className="px-6 py-4 text-right">
                               <span className={`font-bold ${amtCls}`}>
                                 {prefix}
-                                {Math.abs(t.totalAmount).toLocaleString()}{" "}
-                                {currency}
+                                {fmt(Math.abs(t.totalAmount))}
                               </span>
                             </td>
                           </tr>
@@ -827,21 +832,6 @@ export function Profile() {
                   label: "Thông báo SMS",
                   desc: "Cảnh báo qua tin nhắn",
                 },
-                {
-                  key: "email",
-                  label: "Thông báo Email",
-                  desc: "Nhận cập nhật qua email",
-                },
-                {
-                  key: "push",
-                  label: "Thông báo đẩy",
-                  desc: "Thông báo trên thiết bị",
-                },
-                {
-                  key: "sms",
-                  label: "Thông báo SMS",
-                  desc: "Cảnh báo qua tin nhắn",
-                },
               ].map(({ key, label, desc }) => (
                 <div
                   key={key}
@@ -855,10 +845,7 @@ export function Profile() {
                   </div>
                   <Toggle
                     value={notifications[key]}
-                    onChange={() => toggleNotif(key)}
-                  />
-                  <Toggle
-                    value={notifications[key]}
+                    disabled={savingNotif === key}
                     onChange={() => toggleNotif(key)}
                   />
                 </div>
@@ -888,13 +875,13 @@ export function Profile() {
                 onChange={(e) => handleCurrencyChange(e.target.value)}
                 className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
               >
-                <option value="VND">VND — Việt Nam Đồng</option>
-                <option value="USD">USD — US Dollar</option>
-                <option value="EUR">EUR — Euro</option>
-                <option value="JPY">JPY — Japanese Yen</option>
-                <option value="GBP">GBP — British Pound</option>
-                <option value="SGD">SGD — Singapore Dollar</option>
+                {currencies.map((c) => (
+                  <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
+                ))}
               </select>
+              <p className="text-xs text-muted-foreground mt-2">
+                Đặt tiền tệ mặc định cho toàn ứng dụng. Thêm/bớt loại tiền tại trang <strong>Tiền tệ</strong>.
+              </p>
             </div>
           </div>
 

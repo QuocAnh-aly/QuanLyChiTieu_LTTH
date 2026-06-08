@@ -1,29 +1,78 @@
-import { useState } from "react";
-import { Monitor, Moon, Sun, Globe, Hash, Clock, CheckCircle2, Save } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Monitor, Moon, Sun, Globe, Hash, Clock, CheckCircle2, Save, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
 
 import { PageLayout } from "../../components/layout/PageLayout";
+import { useSettings } from "../../context/SettingsContext";
+
+const NUMBER_FORMATS = [
+  { value: "vi-VN", label: "1.000.000,00 (Việt Nam)" },
+  { value: "en-US", label: "1,000,000.00 (Mỹ/Anh)" },
+  { value: "fr-FR", label: "1 000 000,00 (Pháp/Châu Âu)" },
+];
+
+const WEEK_DAYS = [
+  { value: "1", label: "Thứ Hai (Khuyến nghị)" },
+  { value: "0", label: "Chủ Nhật" },
+  { value: "6", label: "Thứ Bảy" },
+];
 
 export function Preferences() {
   const { theme, setTheme } = useTheme();
+  const {
+    currencies, currency, setDefaultCurrency,
+    numberFormat, firstDayOfWeek, savePreferences,
+  } = useSettings();
+
   const [isSaving, setIsSaving] = useState(false);
 
-  // Local state for the form so we don't apply immediately until saved
+  // Local form state — applied only when the user clicks "Lưu thay đổi".
   const [formData, setFormData] = useState({
     theme: theme || "light",
-    currency: "VND",
-    numberFormat: "vi-VN",
-    firstDayOfWeek: "1", // 1 = Monday
+    currency,
+    numberFormat,
+    firstDayOfWeek: String(firstDayOfWeek ?? 1),
   });
 
-  const handleSave = () => {
+  // Keep the form in sync with context values once they hydrate from the
+  // server (currency list / preferences arrive asynchronously on first load).
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      theme: theme || prev.theme,
+      currency,
+      numberFormat,
+      firstDayOfWeek: String(firstDayOfWeek ?? 1),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currency, numberFormat, firstDayOfWeek, theme]);
+
+  const errMsg = (e) => e?.response?.data?.message || e?.message || "Lỗi không xác định";
+
+  const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => {
+    try {
+      // Apply theme (next-themes persists it locally).
       setTheme(formData.theme);
-      setIsSaving(false);
+
+      // Currency change is a real app-wide action (sets the primary currency).
+      if (formData.currency && formData.currency !== currency) {
+        await setDefaultCurrency(formData.currency);
+      }
+
+      // Number format + first day of week are stored locally per browser.
+      savePreferences({
+        numberFormat: formData.numberFormat,
+        firstDayOfWeek: formData.firstDayOfWeek,
+      });
+
       toast.success("Đã lưu các tùy chọn hiển thị!");
-    }, 800);
+    } catch (e) {
+      toast.error(errMsg(e));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -31,7 +80,7 @@ export function Preferences() {
       title="Tùy chọn hiển thị"
       subtitle="Cá nhân hóa giao diện và định dạng dữ liệu cho ứng dụng"
       actions={
-        <button 
+        <button
           onClick={handleSave}
           disabled={isSaving}
           className="flex items-center gap-2 px-6 py-2.5 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors shadow-sm disabled:opacity-70"
@@ -43,7 +92,7 @@ export function Preferences() {
     >
 
       <div className="space-y-8">
-        
+
         {/* Theme Settings */}
         <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
           <div className="p-6 border-b border-border bg-muted/50">
@@ -102,21 +151,40 @@ export function Preferences() {
             </h2>
           </div>
           <div className="p-6 space-y-6">
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Currency */}
+              <div>
+                <label className="block text-sm font-bold text-foreground mb-2 flex items-center gap-2">
+                  <DollarSign size={16} className="text-muted-foreground" /> Tiền tệ mặc định
+                </label>
+                <select
+                  value={formData.currency}
+                  onChange={(e) => setFormData({...formData, currency: e.target.value})}
+                  className="w-full border border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-foreground bg-card"
+                >
+                  {currencies.map((c) => (
+                    <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Đơn vị tiền tệ chính hiển thị toàn ứng dụng. Quản lý danh sách tại trang <strong>Tiền tệ</strong>.
+                </p>
+              </div>
+
               {/* Number Format */}
               <div>
                 <label className="block text-sm font-bold text-foreground mb-2 flex items-center gap-2">
                   <Hash size={16} className="text-muted-foreground" /> Định dạng số
                 </label>
-                <select 
+                <select
                   value={formData.numberFormat}
                   onChange={(e) => setFormData({...formData, numberFormat: e.target.value})}
                   className="w-full border border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-foreground bg-card"
                 >
-                  <option value="vi-VN">1.000.000,00 (Việt Nam)</option>
-                  <option value="en-US">1,000,000.00 (Mỹ/Anh)</option>
-                  <option value="fr-FR">1 000 000,00 (Pháp/Châu Âu)</option>
+                  {NUMBER_FORMATS.map((f) => (
+                    <option key={f.value} value={f.value}>{f.label}</option>
+                  ))}
                 </select>
                 <p className="text-xs text-muted-foreground mt-2">Định dạng phân cách hàng nghìn và phần thập phân.</p>
               </div>
@@ -126,16 +194,16 @@ export function Preferences() {
                 <label className="block text-sm font-bold text-foreground mb-2 flex items-center gap-2">
                   <Clock size={16} className="text-muted-foreground" /> Ngày đầu tuần
                 </label>
-                <select 
+                <select
                   value={formData.firstDayOfWeek}
                   onChange={(e) => setFormData({...formData, firstDayOfWeek: e.target.value})}
                   className="w-full border border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-foreground bg-card"
                 >
-                  <option value="1">Thứ Hai (Khuyến nghị)</option>
-                  <option value="0">Chủ Nhật</option>
-                  <option value="6">Thứ Bảy</option>
+                  {WEEK_DAYS.map((d) => (
+                    <option key={d.value} value={d.value}>{d.label}</option>
+                  ))}
                 </select>
-                <p className="text-xs text-muted-foreground mt-2">Ảnh hưởng đến các báo cáo thống kê theo tuần.</p>
+                <p className="text-xs text-muted-foreground mt-2">Ảnh hưởng đến lịch chọn ngày và các báo cáo theo tuần.</p>
               </div>
             </div>
 

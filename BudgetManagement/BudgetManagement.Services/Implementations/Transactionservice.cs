@@ -92,6 +92,7 @@ public class TransactionService : ITransactionService
             Description     = request.Description ?? "Unknown",
             Notes           = request.Notes,
             Tags            = request.Tags,
+            BillId          = request.BillId,
             CreatedAt       = DateTime.UtcNow
         };
 

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Legend,
+  Tooltip, ResponsiveContainer, Legend, AreaChart, Area, ReferenceLine,
 } from "recharts";
 import {
   Calendar, TrendingUp, TrendingDown, DollarSign, RefreshCw, AlertCircle,
+  Tags, Wallet, Activity,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSettings } from "../../context/SettingsContext";
@@ -22,6 +23,17 @@ const CHART_PALETTE = [
 const monthLabel = (yyyyMm, multiYear) => {
   const [y, m] = yyyyMm.split("-");
   return multiYear ? `T${parseInt(m, 10)}/${y.slice(2)}` : `Th${parseInt(m, 10)}`;
+};
+
+// Compact currency for chart axes (e.g. 1.2M, 850k). Keeps axes readable when
+// fmt() would render long localized strings with currency symbols.
+const compactNumber = (value) => {
+  const n = Number(value);
+  if (!n) return "0";
+  if (Math.abs(n) >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
+  if (Math.abs(n) >= 1_000_000)     return `${(n / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(n) >= 1_000)         return `${(n / 1_000).toFixed(0)}k`;
+  return `${n}`;
 };
 
 function resolveRange(rangeKey) {
@@ -57,8 +69,12 @@ export function Reports() {
 
   const [incomeTotal,  setIncomeTotal]  = useState(0);
   const [expenseTotal, setExpenseTotal] = useState(0);
+  const [incomeCount,  setIncomeCount]  = useState(0);
+  const [expenseCount, setExpenseCount] = useState(0);
   const [monthly,      setMonthly]      = useState([]);
   const [byCategory,   setByCategory]   = useState([]);
+  const [incomeByCat,  setIncomeByCat]  = useState([]);
+  const [expenseByTag, setExpenseByTag] = useState([]);
 
   const errMsg = (e) => e?.response?.data?.message || e?.message || "Lỗi không xác định";
 
@@ -67,16 +83,22 @@ export function Reports() {
     setLoading(true);
     setError(null);
     try {
-      const [inc, exp, m, cat] = await Promise.all([
+      const [inc, exp, m, cat, incCat, expTag] = await Promise.all([
         insightApi.incomeTotal(params),
         insightApi.expenseTotal(params),
         insightApi.monthly(params),
         insightApi.expenseByCategory(params),
+        insightApi.incomeByCategory(params),
+        insightApi.expenseByTag(params),
       ]);
       setIncomeTotal(Number(inc?.total ?? 0));
       setExpenseTotal(Number(exp?.total ?? 0));
+      setIncomeCount(Number(inc?.count ?? 0));
+      setExpenseCount(Number(exp?.count ?? 0));
       setMonthly(Array.isArray(m) ? m : []);
       setByCategory(Array.isArray(cat) ? cat : []);
+      setIncomeByCat(Array.isArray(incCat) ? incCat : []);
+      setExpenseByTag(Array.isArray(expTag) ? expTag : []);
     } catch (e) {
       setError(errMsg(e));
       toast.error(errMsg(e));
@@ -93,12 +115,18 @@ export function Reports() {
   const monthlyData = useMemo(
     () => {
       const multiYear = new Set(monthly.map(r => r.month.split("-")[0])).size > 1;
-      return monthly.map(r => ({
-        name:    monthLabel(r.month, multiYear),
-        monthKey: r.month,
-        income:  Number(r.income  ?? 0),
-        expense: Number(r.expense ?? 0),
-      }));
+      return monthly.map(r => {
+        const income  = Number(r.income  ?? 0);
+        const expense = Number(r.expense ?? 0);
+        return {
+          name:    monthLabel(r.month, multiYear),
+          monthKey: r.month,
+          income,
+          expense,
+          net:     income - expense,
+          rate:    income > 0 ? ((income - expense) / income) * 100 : 0,
+        };
+      });
     },
     [monthly]
   );
@@ -110,6 +138,24 @@ export function Reports() {
       color: CHART_PALETTE[i % CHART_PALETTE.length],
     })),
     [byCategory]
+  );
+
+  const incomeCatData = useMemo(
+    () => incomeByCat.map((c, i) => ({
+      name:  c.label || c.key,
+      value: Number(c.amount ?? 0),
+      color: CHART_PALETTE[i % CHART_PALETTE.length],
+    })),
+    [incomeByCat]
+  );
+
+  // Top 8 tags keeps the horizontal bar chart readable; the rest are rare anyway.
+  const tagData = useMemo(
+    () => expenseByTag.slice(0, 8).map((t) => ({
+      name:   t.label || t.key,
+      value:  Number(t.amount ?? 0),
+    })),
+    [expenseByTag]
   );
 
   const hasAnyData = incomeTotal > 0 || expenseTotal > 0 || monthlyData.some(r => r.income > 0 || r.expense > 0);
@@ -166,6 +212,7 @@ export function Reports() {
           <div>
             <p className="text-sm font-medium text-muted-foreground">Tổng thu</p>
             <p className="text-2xl font-bold text-card-foreground">{fmt(incomeTotal)}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{incomeCount} giao dịch</p>
           </div>
         </div>
 
@@ -176,6 +223,7 @@ export function Reports() {
           <div>
             <p className="text-sm font-medium text-muted-foreground">Tổng chi</p>
             <p className="text-2xl font-bold text-card-foreground">{fmt(expenseTotal)}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{expenseCount} giao dịch</p>
           </div>
         </div>
 
@@ -203,6 +251,7 @@ export function Reports() {
           <p className="text-muted-foreground font-medium">Đổi sang khoảng khác hoặc thêm giao dịch để xem báo cáo.</p>
         </div>
       ) : (
+       <>
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
           {/* Bar Chart: Income vs Expense */}
           <div className="xl:col-span-2 bg-card rounded-2xl p-6 border border-border shadow-sm">
@@ -215,14 +264,7 @@ export function Reports() {
                   <YAxis
                     axisLine={false} tickLine={false}
                     tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }}
-                    tickFormatter={(value) => {
-                      const n = Number(value);
-                      if (!n) return "0";
-                      if (Math.abs(n) >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
-                      if (Math.abs(n) >= 1_000_000)     return `${(n / 1_000_000).toFixed(1)}M`;
-                      if (Math.abs(n) >= 1_000)         return `${(n / 1_000).toFixed(0)}k`;
-                      return `${n}`;
-                    }}
+                    tickFormatter={compactNumber}
                   />
                   <Tooltip
                     cursor={{ fill: "var(--color-muted)" }}
@@ -287,6 +329,161 @@ export function Reports() {
             )}
           </div>
         </div>
+
+        {/* Area Chart: Net cash flow trend per month */}
+        <div className="bg-card rounded-2xl p-6 border border-border shadow-sm mb-8">
+          <div className="flex items-center gap-2 mb-6">
+            <Activity size={18} className="text-indigo-500" />
+            <h2 className="text-lg font-bold text-card-foreground">Xu hướng dòng tiền ròng</h2>
+          </div>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="netPos" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }} tickFormatter={compactNumber} />
+                <Tooltip
+                  cursor={{ stroke: "var(--color-border)" }}
+                  contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+                  formatter={(value) => [fmt(value), "Dòng tiền ròng"]}
+                />
+                <ReferenceLine y={0} stroke="var(--color-border)" />
+                <Area type="monotone" dataKey="net" stroke="#6366f1" strokeWidth={2} fill="url(#netPos)" name="Dòng tiền ròng" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+          {/* Pie Chart: Income by Category */}
+          <div className="bg-card rounded-2xl p-6 border border-border shadow-sm flex flex-col">
+            <div className="flex items-center gap-2 mb-2">
+              <Wallet size={18} className="text-emerald-500" />
+              <h2 className="text-lg font-bold text-card-foreground">Cơ cấu nguồn thu</h2>
+            </div>
+            {incomeCatData.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground py-10">
+                Chưa có dữ liệu thu nhập.
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col justify-center">
+                <div className="h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={incomeCatData}
+                        cx="50%" cy="50%"
+                        innerRadius={60} outerRadius={80}
+                        paddingAngle={2} dataKey="value"
+                      >
+                        {incomeCatData.map((entry, index) => (
+                          <Cell key={`inc-cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value) => [fmt(value), ""]}
+                        contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="mt-4 space-y-3 max-h-44 overflow-y-auto pr-1">
+                  {incomeCatData.map((item, index) => (
+                    <div key={index} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                        <span className="text-muted-foreground truncate">{item.name}</span>
+                      </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <span className="font-semibold text-card-foreground">{fmt(item.value)}</span>
+                        <span className="text-muted-foreground text-xs w-10 text-right">
+                          {incomeTotal > 0 ? Math.round((item.value / incomeTotal) * 100) : 0}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Horizontal Bar Chart: Expense by Tag */}
+          <div className="bg-card rounded-2xl p-6 border border-border shadow-sm flex flex-col">
+            <div className="flex items-center gap-2 mb-2">
+              <Tags size={18} className="text-orange-500" />
+              <h2 className="text-lg font-bold text-card-foreground">Chi tiêu theo nhãn</h2>
+            </div>
+            {tagData.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground py-10">
+                Chưa có giao dịch nào gắn nhãn.
+              </div>
+            ) : (
+              <div className="flex-1 mt-2" style={{ height: Math.max(220, tagData.length * 42) }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={tagData} layout="vertical" margin={{ top: 0, right: 16, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" />
+                    <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }} tickFormatter={compactNumber} />
+                    <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} width={90} tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }} />
+                    <Tooltip
+                      cursor={{ fill: "var(--color-muted)" }}
+                      contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+                      formatter={(value) => [fmt(value), "Chi tiêu"]}
+                    />
+                    <Bar dataKey="value" name="Chi tiêu" fill="#f97316" radius={[0, 4, 4, 0]} maxBarSize={26} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Detail Table: monthly breakdown */}
+        <div className="bg-card rounded-2xl border border-border shadow-sm mb-8 overflow-hidden">
+          <div className="flex items-center gap-2 p-6 pb-4">
+            <Calendar size={18} className="text-muted-foreground" />
+            <h2 className="text-lg font-bold text-card-foreground">Chi tiết theo tháng</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-y border-border bg-muted/40 text-muted-foreground">
+                  <th className="text-left  font-medium px-6 py-3">Tháng</th>
+                  <th className="text-right font-medium px-6 py-3">Thu</th>
+                  <th className="text-right font-medium px-6 py-3">Chi</th>
+                  <th className="text-right font-medium px-6 py-3">Tiết kiệm</th>
+                  <th className="text-right font-medium px-6 py-3">Tỷ lệ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monthlyData.map((row) => (
+                  <tr key={row.monthKey} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                    <td className="px-6 py-3 font-medium text-card-foreground">{row.name}</td>
+                    <td className="px-6 py-3 text-right text-emerald-600">{fmt(row.income)}</td>
+                    <td className="px-6 py-3 text-right text-rose-600">{fmt(row.expense)}</td>
+                    <td className={`px-6 py-3 text-right font-semibold ${row.net >= 0 ? "text-card-foreground" : "text-rose-600"}`}>{fmt(row.net)}</td>
+                    <td className={`px-6 py-3 text-right ${row.net >= 0 ? "text-emerald-600" : "text-rose-600"}`}>{row.rate.toFixed(1)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-border bg-muted/40 font-bold text-card-foreground">
+                  <td className="px-6 py-3">Tổng cộng</td>
+                  <td className="px-6 py-3 text-right text-emerald-600">{fmt(incomeTotal)}</td>
+                  <td className="px-6 py-3 text-right text-rose-600">{fmt(expenseTotal)}</td>
+                  <td className={`px-6 py-3 text-right ${savings >= 0 ? "" : "text-rose-600"}`}>{fmt(savings)}</td>
+                  <td className={`px-6 py-3 text-right ${savings >= 0 ? "text-emerald-600" : "text-rose-600"}`}>{savingsRate.toFixed(1)}%</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+       </>
       )}
     </div>
   );

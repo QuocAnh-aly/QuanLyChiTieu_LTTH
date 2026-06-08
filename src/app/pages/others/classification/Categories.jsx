@@ -265,39 +265,63 @@ export function Categories() {
   const [editIncomeId, setEditIncomeId] = useState(null);
 
   // ── Expense category handlers ──────────────────────────────────────────────
-  const handleAddExpense = (data) => {
-    addExpenseCategory(data);
-    setShowAddExpense(false);
-    toast.success("Đã thêm danh mục");
+  const handleAddExpense = async (data) => {
+    try {
+      await addExpenseCategory(data);
+      setShowAddExpense(false);
+      toast.success("Đã thêm danh mục");
+    } catch {
+      toast.error("Không thể thêm danh mục");
+    }
   };
 
-  const handleUpdateExpense = (id, data) => {
-    updateExpenseCategory(id, data);
-    setEditExpenseId(null);
-    toast.success("Đã cập nhật danh mục");
+  const handleUpdateExpense = async (id, data) => {
+    try {
+      await updateExpenseCategory(id, data);
+      setEditExpenseId(null);
+      toast.success("Đã cập nhật danh mục");
+    } catch {
+      toast.error("Không thể cập nhật danh mục");
+    }
   };
 
-  const handleDeleteExpense = (id, name) => {
-    deleteExpenseCategory(id);
-    toast.success(`Đã xóa "${name}"`);
+  const handleDeleteExpense = async (id, name) => {
+    try {
+      await deleteExpenseCategory(id);
+      toast.success(`Đã xóa "${name}"`);
+    } catch {
+      toast.error("Không thể xóa danh mục");
+    }
   };
 
   // ── Income source handlers ─────────────────────────────────────────────────
-  const handleAddIncome = (data) => {
-    addIncomeSource(data);
-    setShowAddIncome(false);
-    toast.success("Đã thêm nguồn thu");
+  const handleAddIncome = async (data) => {
+    try {
+      await addIncomeSource(data);
+      setShowAddIncome(false);
+      toast.success("Đã thêm nguồn thu");
+    } catch {
+      toast.error("Không thể thêm nguồn thu");
+    }
   };
 
-  const handleUpdateIncome = (id, data) => {
-    updateIncomeSource(id, data);
-    setEditIncomeId(null);
-    toast.success("Đã cập nhật nguồn thu");
+  const handleUpdateIncome = async (id, data) => {
+    try {
+      await updateIncomeSource(id, data);
+      setEditIncomeId(null);
+      toast.success("Đã cập nhật nguồn thu");
+    } catch {
+      toast.error("Không thể cập nhật nguồn thu");
+    }
   };
 
-  const handleDeleteIncome = (id, name) => {
-    deleteIncomeSource(id);
-    toast.success(`Đã xóa "${name}"`);
+  const handleDeleteIncome = async (id, name) => {
+    try {
+      await deleteIncomeSource(id);
+      toast.success(`Đã xóa "${name}"`);
+    } catch {
+      toast.error("Không thể xóa nguồn thu");
+    }
   };
 
   return (
