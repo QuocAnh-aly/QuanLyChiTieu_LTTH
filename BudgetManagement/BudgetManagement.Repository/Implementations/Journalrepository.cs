@@ -91,6 +91,11 @@ public class JournalRepository : BaseRepository<JournalEntry>, IJournalRepositor
         await _context.SaveChangesAsync();
         return true;
     }
+    public async Task<bool> HasTransaction (int accountId)
+    {
+        return await _context.JournalDetails
+            .AnyAsync(d => d.AccountId == accountId);
+    }
 
     public async Task<bool> UpdateEntryAmountAsync(int journalId, decimal newAmount)
     {

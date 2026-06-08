@@ -84,11 +84,11 @@ public class AccountService : IAccountService
             Name         = request.Name,
             IconName     = request.IconName     ?? "Landmark",
             Color        = request.Color        ?? "blue",
-            GradientFrom = request.GradientFrom ?? "#3b82f6",
-            GradientTo   = request.GradientTo   ?? "#1d4ed8",
-            Balance        = request.Balance        ?? 0,
-            InitialBalance = request.InitialBalance ?? request.Balance ?? 0,
-            CardNumber     = request.CardNumber   ?? "•••• ••••",
+            GradientFrom = request.GradientFrom,
+            GradientTo   = request.GradientTo,
+            Balance        = request.Balance      ?? 0,
+            InitialBalance = request.Balance      ?? 0,
+            CardNumber     = request.CardNumber,
             CurrencyCode = request.CurrencyCode,
             IsActive     = true,
             CreatedAt    = DateTime.UtcNow
@@ -126,24 +126,16 @@ public class AccountService : IAccountService
 
         if (account.UserId != userId)
             throw new UnauthorizedAccessException("Access denied.");
+        
+        bool hasTransaction = await _journalRepo.HasTransaction(accountId);
+        if (!hasTransaction)
+        {
+            return await _accountRepo.DeleteAsync(accountId);
+        }
 
-        // 1. Kiểm tra JournalDetails — nếu có giao dịch liên quan, báo lỗi
-        var hasTransactions = await _journalRepo.HasDetailsForAccountAsync(accountId);
-        if (hasTransactions)
-            throw new InvalidOperationException(
-                $"Không thể xóa tài khoản \"{account.Name}\" vì có giao dịch liên quan. Hãy xóa các giao dịch đó trước.");
-
-        // 2. Kiểm tra RecurringJournals — nếu có giao dịch định kỳ, báo lỗi
-        var hasRecurring = await _recurringRepo.HasJournalsForAccountAsync(accountId);
-        if (hasRecurring)
-            throw new InvalidOperationException(
-                $"Không thể xóa tài khoản \"{account.Name}\" vì có giao dịch định kỳ liên quan. Hãy xóa các giao dịch định kỳ đó trước.");
-
-        // 3. Xoá Budgets liên quan (an toàn — budgets là dữ liệu phụ thuộc)
-        await _budgetRepo.DeleteByAccountIdAsync(accountId);
-
-        // 4. Xoá Account
-        return await _accountRepo.DeleteAsync(accountId);
+        account.IsActive = false;
+        var res = await _accountRepo.UpdateAsync(account);
+        return res != null;
     }
 
     public async Task<WalletSummaryDto> GetWalletSummaryAsync(int userId, int page = 1, int pageSize = 50, string? search = null, string? sortBy = null)
