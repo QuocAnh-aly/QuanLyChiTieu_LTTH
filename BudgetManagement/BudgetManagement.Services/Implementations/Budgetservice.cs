@@ -7,13 +7,15 @@ namespace BudgetManagement.Services.Implementations;
 
 public class BudgetService : IBudgetService
 {
-    private readonly IBudgetRepository  _budgetRepo;
-    private readonly IAccountRepository _accountRepo;
+    private readonly IBudgetRepository   _budgetRepo;
+    private readonly IAccountRepository  _accountRepo;
+    private readonly IJournalRepository  _journalRepo;
 
-    public BudgetService(IBudgetRepository budgetRepo, IAccountRepository accountRepo)
+    public BudgetService(IBudgetRepository budgetRepo, IAccountRepository accountRepo, IJournalRepository journalRepo)
     {
-        _budgetRepo  = budgetRepo;
-        _accountRepo = accountRepo;
+        _budgetRepo   = budgetRepo;
+        _accountRepo  = accountRepo;
+        _journalRepo  = journalRepo;
     }
 
     private const int TypeExpenseAccount = 5;
@@ -65,6 +67,20 @@ public class BudgetService : IBudgetService
         if (expenseAccount.TypeId != TypeExpenseAccount)
             throw new ArgumentException("Danh mục được chọn phải là danh mục chi tiêu (Expense).");
 
+        // Chỉ tính giao dịch từ startDate đến hiện tại (không lấy giao dịch trước ngày bắt đầu)
+        var now        = DateTime.UtcNow;
+        var periodType = request.PeriodType ?? "monthly";
+
+        decimal pastExpenseTotal = 0;
+        var pastTransactions = await _journalRepo.GetByDateRangeAndAccountAsync(userId, request.StartDate, now, expenseAccount.AccountId);
+        if (pastTransactions.Any())
+        {
+            pastExpenseTotal = pastTransactions
+                .SelectMany(e => e.JournalDetails)
+                .Where(d => d.AccountId == expenseAccount.AccountId && (d.Debit ?? 0) > 0)
+                .Sum(d => d.Debit ?? 0);
+        }
+
         var budget = new Budget
         {
             UserId              = userId,
@@ -72,14 +88,14 @@ public class BudgetService : IBudgetService
             Title               = request.Title,
             BudgetType          = "expense",
             TargetAmount        = request.TargetAmount,
-            CurrentAmount       = 0,
-            PeriodType          = request.PeriodType ?? "monthly",
+            CurrentAmount       = pastExpenseTotal,
+            PeriodType          = periodType,
             StartDate           = request.StartDate,
             EndDate             = request.EndDate,
             IconName            = expenseAccount.IconName ?? "Coffee",
             Color               = expenseAccount.Color ?? "orange",
             IsActive            = true,
-            CreatedAt           = DateTime.UtcNow
+            CreatedAt           = now
         };
 
         var created = await _budgetRepo.CreateAsync(budget);

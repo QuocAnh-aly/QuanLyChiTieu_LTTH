@@ -9,16 +9,21 @@ namespace BudgetManagement.Tests;
 
 public class BudgetServiceTests
 {
-    private readonly Mock<IBudgetRepository> _budgetRepoMock;
+    private readonly Mock<IBudgetRepository>  _budgetRepoMock;
     private readonly Mock<IAccountRepository> _accountRepoMock;
+    private readonly Mock<IJournalRepository> _journalRepoMock;
     private readonly BudgetService _service;
     private readonly int _userId = 1;
 
     public BudgetServiceTests()
     {
-        _budgetRepoMock  = new Mock<IBudgetRepository>();
-        _accountRepoMock = new Mock<IAccountRepository>();
-        _service = new BudgetService(_budgetRepoMock.Object, _accountRepoMock.Object);
+        _budgetRepoMock   = new Mock<IBudgetRepository>();
+        _accountRepoMock  = new Mock<IAccountRepository>();
+        _journalRepoMock  = new Mock<IJournalRepository>();
+        _service = new BudgetService(
+            _budgetRepoMock.Object,
+            _accountRepoMock.Object,
+            _journalRepoMock.Object);
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────
@@ -213,16 +218,28 @@ public class BudgetServiceTests
             .Setup(r => r.GetWithDetailsAsync(10))
             .ReturnsAsync(existingAccount);
 
+        // No past transactions for this account
+        _journalRepoMock
+            .Setup(r => r.GetByDateRangeAndAccountAsync(
+                _userId, It.IsAny<DateTime>(), It.IsAny<DateTime>(), 10))
+            .ReturnsAsync(Array.Empty<JournalEntry>());
+
         _budgetRepoMock
-            .Setup(r => r.CreateAsync(It.Is<Budget>(b => b.Title == "Budget Ăn uống T6" && b.TargetAmount == 2000m)))
-            .ReturnsAsync(MakeBudget(1, title: "Budget Ăn uống T6", target: 2000m));
+            .Setup(r => r.CreateAsync(It.Is<Budget>(b =>
+                b.Title == "Budget Ăn uống T6" &&
+                b.TargetAmount == 2000m &&
+                b.CurrentAmount == 0m)))  // no past transactions → CurrentAmount = 0
+            .ReturnsAsync((Budget b) => b);  // return the actual budget the service built
 
         var result = await _service.CreateExpenseBudgetAsync(_userId, request);
 
         result.Title.Should().Be("Budget Ăn uống T6");
         result.TargetAmount.Should().Be(2000m);
+        result.CurrentAmount.Should().Be(0m);
         _accountRepoMock.Verify(r => r.CreateAsync(It.IsAny<Account>()), Times.Never);
         _budgetRepoMock.Verify(r => r.CreateAsync(It.IsAny<Budget>()), Times.Once);
+        _journalRepoMock.Verify(r => r.GetByDateRangeAndAccountAsync(
+            _userId, It.IsAny<DateTime>(), It.IsAny<DateTime>(), 10), Times.Once);
     }
 
     [Fact]

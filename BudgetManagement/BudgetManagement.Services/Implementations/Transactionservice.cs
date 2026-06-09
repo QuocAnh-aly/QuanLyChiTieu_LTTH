@@ -57,21 +57,45 @@ public class TransactionService : ITransactionService
 
     public async Task<TransactionDto> CreateAsync(int userId, CreateTransactionDto request)
     {
-        // Chi tiêu: tìm Expense account có sẵn — KHÔNG tự động tạo mới
+        // Chi tiêu: tìm Expense account — tự động tạo mới nếu chưa tồn tại
         if (request.DebitAccountId <= 0 && !string.IsNullOrWhiteSpace(request.ExpenseCategoryName))
         {
             var expenseAcct = await _accountRepo.FindByUserAndNameAsync(userId, TypeExpense, request.ExpenseCategoryName);
             if (expenseAcct is null)
-                throw new ArgumentException($"Danh mục chi tiêu '{request.ExpenseCategoryName}' chưa tồn tại. Hãy tạo danh mục trước khi ghi giao dịch.");
+            {
+                expenseAcct = await _accountRepo.CreateAsync(new Account
+                {
+                    UserId        = userId,
+                    TypeId        = TypeExpense,
+                    Name          = request.ExpenseCategoryName.Trim(),
+                    IconName      = "Coffee",
+                    Color         = "red",
+                    Balance       = 0,
+                    CurrencyCode  = "VND",
+                    IsActive      = true,
+                });
+            }
             request.DebitAccountId = expenseAcct.AccountId;
         }
 
-        // Thu nhập: tìm Revenue account có sẵn — KHÔNG tự động tạo mới
+        // Thu nhập: tìm Revenue account — tự động tạo mới nếu chưa tồn tại
         if (request.CreditAccountId <= 0 && !string.IsNullOrWhiteSpace(request.IncomeCategoryName))
         {
             var revenueAcct = await _accountRepo.FindByUserAndNameAsync(userId, TypeRevenue, request.IncomeCategoryName);
             if (revenueAcct is null)
-                throw new ArgumentException($"Nguồn thu '{request.IncomeCategoryName}' chưa tồn tại. Hãy tạo nguồn thu trước khi ghi giao dịch.");
+            {
+                revenueAcct = await _accountRepo.CreateAsync(new Account
+                {
+                    UserId        = userId,
+                    TypeId        = TypeRevenue,
+                    Name          = request.IncomeCategoryName.Trim(),
+                    IconName      = "BriefcaseBusiness",
+                    Color         = "green",
+                    Balance       = 0,
+                    CurrencyCode  = "VND",
+                    IsActive      = true,
+                });
+            }
             request.CreditAccountId = revenueAcct.AccountId;
         }
 
