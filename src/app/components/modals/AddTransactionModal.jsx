@@ -188,38 +188,38 @@ export function AddTransactionModal({
     if (!canSubmit) return;
 
     const base = {
-      amount:           parseFloat(amount),
-      description:      description || null,
-      notes:            notes || null,
-      tags:             selectedTags.length > 0 ? selectedTags.join(",") : null,
-      transactionDate:  new Date(date).toISOString(),
+      amount: parseFloat(amount),
+      description: description || null,
+      notes: notes || null,
+      tags: selectedTags.length > 0 ? selectedTags.join(",") : null,
+      transactionDate: new Date(date).toISOString(),
     };
 
     let payload;
     if (txType === "expense") {
       payload = {
         ...base,
-        debitAccountId:      expenseCategory.accountId,
-        creditAccountId:     parseInt(walletId),
+        debitAccountId: expenseCategory.accountId,
+        creditAccountId: parseInt(walletId),
         expenseCategoryName: expenseCategory.name.trim() || "Chưa phân loại",
       };
     } else if (txType === "income") {
       payload = {
         ...base,
-        debitAccountId:    parseInt(walletId),
-        creditAccountId:   incomeCategory.accountId,
+        debitAccountId: parseInt(walletId),
+        creditAccountId: incomeCategory.accountId,
         incomeCategoryName: incomeCategory.name.trim() || "Khác",
       };
     } else if (txType === "repayment") {
       payload = {
         ...base,
-        debitAccountId:  parseInt(liabilityId),
+        debitAccountId: parseInt(liabilityId),
         creditAccountId: parseInt(walletId),
       };
     } else {
       payload = {
         ...base,
-        debitAccountId:  parseInt(toWalletId),
+        debitAccountId: parseInt(toWalletId),
         creditAccountId: parseInt(walletId),
       };
     }
@@ -396,7 +396,7 @@ export function AddTransactionModal({
                     <button
                       type="button"
                       onClick={() => {
-                        setExpenseCategory({ accountId: 0, name: "" });
+                        setExpenseCategory(DEFAULT_CATEGORY);
                         setShowCustomCategory(true);
                         setSelectedBudget(null);
                       }}
@@ -414,7 +414,7 @@ export function AddTransactionModal({
                 {budgets.length > 0 && (
                   <div>
                     <label className="block text-sm font-semibold text-foreground mb-1.5">
-                      Danh mục ngân sách{' '}
+                      Danh mục ngân sách{" "}
                       <span className="text-muted-foreground font-normal">
                         (không bắt buộc)
                       </span>
@@ -424,8 +424,7 @@ export function AddTransactionModal({
                         const isSelected =
                           selectedBudget?.budgetId === b.budgetId;
                         const pct = Math.min(b.percentage ?? 0, 100);
-                        const BudgetIcon =
-                          ICON_MAP[b.iconName] || Coffee;
+                        const BudgetIcon = ICON_MAP[b.iconName] || Coffee;
                         return (
                           <button
                             key={b.budgetId}
@@ -472,7 +471,7 @@ export function AddTransactionModal({
                               />
                             </div>
                             <div className="text-[10px] text-slate-400">
-                              {fmt(b.currentAmount ?? 0)} /{' '}
+                              {fmt(b.currentAmount ?? 0)} /{" "}
                               {fmt(b.targetAmount ?? 0)}
                             </div>
                           </button>
@@ -538,7 +537,7 @@ export function AddTransactionModal({
                     <button
                       type="button"
                       onClick={() => {
-                        setIncomeCategory({ accountId: 0, name: "" });
+                        setIncomeCategory(DEFAULT_CATEGORY);
                         setShowCustomCategory(true);
                       }}
                       className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${

@@ -58,12 +58,11 @@ public class TransactionService : ITransactionService
     public async Task<TransactionDto> CreateAsync(int userId, CreateTransactionDto request)
     {
         // Chi tiêu: tìm Expense account — tự động tạo mới nếu chưa tồn tại
-        if (request.DebitAccountId <= 0 && !string.IsNullOrWhiteSpace(request.ExpenseCategoryName))
+        if (!string.IsNullOrWhiteSpace(request.ExpenseCategoryName))
         {
-            var expenseAcct = await _accountRepo.FindByUserAndNameAsync(userId, TypeExpense, request.ExpenseCategoryName);
-            if (expenseAcct is null)
-            {
-                expenseAcct = await _accountRepo.CreateAsync(new Account
+            var expenseAcct = 
+                await _accountRepo.GetByIdAsync(request.DebitAccountId)
+                ?? await _accountRepo.CreateAsync(new Account
                 {
                     UserId        = userId,
                     TypeId        = TypeExpense,
@@ -74,17 +73,15 @@ public class TransactionService : ITransactionService
                     CurrencyCode  = "VND",
                     IsActive      = true,
                 });
-            }
             request.DebitAccountId = expenseAcct.AccountId;
         }
 
-        // Thu nhập: tìm Revenue account có s  ẵn — KHÔNG tự động tạo mới
-        if (request.CreditAccountId <= 0 && !string.IsNullOrWhiteSpace(request.IncomeCategoryName))
+        // Thu nhập: tìm Revenue account có sẵn — CÓ tự động tạo mới
+        if (!string.IsNullOrWhiteSpace(request.IncomeCategoryName))
         {
-            var revenueAcct = await _accountRepo.FindByUserAndNameAsync(userId, TypeRevenue, request.IncomeCategoryName);
-            if (revenueAcct is null)
-            {
-                revenueAcct = await _accountRepo.CreateAsync(new Account
+            var revenueAcct = 
+                await _accountRepo.GetByIdAsync(request.CreditAccountId)
+                ?? await _accountRepo.CreateAsync(new Account
                 {
                     UserId        = userId,
                     TypeId        = TypeRevenue,
@@ -95,7 +92,6 @@ public class TransactionService : ITransactionService
                     CurrencyCode  = "VND",
                     IsActive      = true,
                 });
-            }
             request.CreditAccountId = revenueAcct.AccountId;
         }
 
