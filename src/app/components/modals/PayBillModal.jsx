@@ -1,6 +1,6 @@
 import { X, Receipt, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
-import { walletApi } from "../../api/walletApi";
+import { accountApi } from "../../api/accountApi";
 import { useCategories } from "../../context/CategoriesContext";
 import { useSettings } from "../../context/SettingsContext";
 import { formatVND, parseVND } from "../../utils/formatMoney";
