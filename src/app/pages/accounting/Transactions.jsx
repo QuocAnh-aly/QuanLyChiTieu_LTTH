@@ -18,6 +18,7 @@ import { AddTransactionModal } from "../../components/modals/AddTransactionModal
 import { EditTransactionModal } from "../../components/modals/EditTransactionModal";
 import { useSettings } from "../../context/SettingsContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { confirmDialog } from "../../utils/confirmDialog";
 
 // typeId: 1=Assets, 2=Liabilities, 4=Revenue, 5=Expense
 // Source = credit side, Destination = debit side (Firefly III model)
@@ -222,7 +223,7 @@ export function Transactions() {
   };
 
   const handleDelete = async (id, description) => {
-    if (!window.confirm(`Xóa giao dịch "${description || 'này'}"?`)) return;
+    if (!await confirmDialog(`Xóa giao dịch "${description || 'này'}"?`)) return;
     try {
       await transactionApi.delete(id);
       await loadData(true);

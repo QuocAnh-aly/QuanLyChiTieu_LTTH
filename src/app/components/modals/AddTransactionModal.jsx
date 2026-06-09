@@ -6,11 +6,15 @@ import {
   ArrowLeftRight,
   Tag,
   HandCoins,
+  Coffee,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { walletApi } from "../../api/walletApi";
+
+import { accountApi } from "../../api/accountApi";
+import { budgetApi } from "../../api/budgetApi";
 import { useCategories } from "../../context/CategoriesContext";
 import { useSettings } from "../../context/SettingsContext";
+import { ICON_MAP } from "../../utils/icons";
 import { formatVND, parseVND } from "../../utils/formatMoney";
 
 const TX_TYPES = [
@@ -101,18 +105,28 @@ export function AddTransactionModal({
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   const [createAnother, setCreateAnother] = useState(false);
+  const [budgets, setBudgets] = useState([]);
+  const [selectedBudget, setSelectedBudget] = useState(null);
 
   useEffect(() => {
     if (!isOpen) return;
     setTxType(initialType);
     setLiabilityAccounts([]);
-    walletApi
+    setSelectedBudget(null);
+    accountApi
       .getByType(1)
       .then((data) => setAssetAccounts(data.items || data || []))
       .catch(() => {});
-    walletApi
+    accountApi
       .getByType(2)
       .then((data) => setLiabilityAccounts(data.items || data || []))
+      .catch(() => {});
+    budgetApi
+      .getExpenseBudgets({ page: 1, pageSize: 50 })
+      .then((data) => {
+        const items = data.items || data || [];
+        setBudgets(items.filter((b) => b.isActive !== false));
+      })
       .catch(() => {});
   }, [isOpen, initialType]);
 
@@ -131,6 +145,7 @@ export function AddTransactionModal({
     setSelectedTags([]);
     setDate(new Date().toISOString().slice(0, 10));
     setShowCustomCategory(false);
+    setSelectedBudget(null);
   };
   const handleTypeChange = (key) => {
     setTxType(key);
@@ -140,6 +155,7 @@ export function AddTransactionModal({
     setIncomeCategory(DEFAULT_CATEGORY);
     setLiabilityId("");
     setShowCustomCategory(false);
+    setSelectedBudget(null);
   };
 
   const sameWalletError =
@@ -167,49 +183,53 @@ export function AddTransactionModal({
     return false;
   })();
 
-  const buildPayload = () => {
-    const base = {
-      amount: parseFloat(amount),
-      description: description || null,
-      notes: notes || null,
-      tags: selectedTags.length > 0 ? selectedTags.join(",") : null,
-      transactionDate: new Date(date).toISOString(),
-    };
-    if (txType === "expense") {
-      return {
-        ...base,
-        debitAccountId: expenseCategory.accountId,
-        creditAccountId: parseInt(walletId),
-        expenseCategoryName: expenseCategory.name.trim() || "Chưa phân loại",
-      };
-    }
-    if (txType === "income")
-      return {
-        ...base,
-        debitAccountId: parseInt(walletId),
-        creditAccountId: incomeCategory.accountId,
-        incomeCategoryName: incomeCategory.name.trim() || "Khác",
-      };
-    if (txType === "repayment")
-      return {
-        ...base,
-        debitAccountId: parseInt(liabilityId),
-        creditAccountId: parseInt(walletId),
-      };
-    return {
-      ...base,
-      debitAccountId: parseInt(toWalletId),
-      creditAccountId: parseInt(walletId),
-    };
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!canSubmit) return;
-    await onAdd(buildPayload());
+
+    const base = {
+      amount:           parseFloat(amount),
+      description:      description || null,
+      notes:            notes || null,
+      tags:             selectedTags.length > 0 ? selectedTags.join(",") : null,
+      transactionDate:  new Date(date).toISOString(),
+    };
+
+    let payload;
+    if (txType === "expense") {
+      payload = {
+        ...base,
+        debitAccountId:      expenseCategory.accountId,
+        creditAccountId:     parseInt(walletId),
+        expenseCategoryName: expenseCategory.name.trim() || "Chưa phân loại",
+      };
+    } else if (txType === "income") {
+      payload = {
+        ...base,
+        debitAccountId:    parseInt(walletId),
+        creditAccountId:   incomeCategory.accountId,
+        incomeCategoryName: incomeCategory.name.trim() || "Khác",
+      };
+    } else if (txType === "repayment") {
+      payload = {
+        ...base,
+        debitAccountId:  parseInt(liabilityId),
+        creditAccountId: parseInt(walletId),
+      };
+    } else {
+      payload = {
+        ...base,
+        debitAccountId:  parseInt(toWalletId),
+        creditAccountId: parseInt(walletId),
+      };
+    }
+
+    await onAdd(payload);
+
     if (showCustomCategory) {
       await fetchCategories();
     }
+
     if (createAnother) {
       setAmount("");
       setDescription("");
@@ -357,6 +377,11 @@ export function AddTransactionModal({
                             name: cat.name,
                           });
                           setShowCustomCategory(false);
+                          // Auto-select budget matching this category
+                          const matching = budgets.find(
+                            (b) => b.accountId === cat.accountId,
+                          );
+                          if (matching) setSelectedBudget(matching);
                         }}
                         className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
                           expenseCategory.accountId === cat.accountId &&
@@ -373,6 +398,7 @@ export function AddTransactionModal({
                       onClick={() => {
                         setExpenseCategory({ accountId: 0, name: "" });
                         setShowCustomCategory(true);
+                        setSelectedBudget(null);
                       }}
                       className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
                         showCustomCategory
@@ -383,6 +409,78 @@ export function AddTransactionModal({
                     </button>
                   </div>
                 </div>
+
+                {/* ── BUDGET SECTION ── */}
+                {budgets.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">
+                      Danh mục ngân sách{' '}
+                      <span className="text-muted-foreground font-normal">
+                        (không bắt buộc)
+                      </span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-0.5">
+                      {budgets.map((b) => {
+                        const isSelected =
+                          selectedBudget?.budgetId === b.budgetId;
+                        const pct = Math.min(b.percentage ?? 0, 100);
+                        const BudgetIcon =
+                          ICON_MAP[b.iconName] || Coffee;
+                        return (
+                          <button
+                            key={b.budgetId}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedBudget(null);
+                              } else {
+                                setSelectedBudget(b);
+                                // Auto-select the matching category
+                                const match = expenseCategories.find(
+                                  (c) => c.accountId === b.accountId,
+                                );
+                                if (match) {
+                                  setExpenseCategory({
+                                    accountId: match.accountId,
+                                    name: match.name,
+                                  });
+                                  setShowCustomCategory(false);
+                                }
+                              }
+                            }}
+                            className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
+                              isSelected
+                                ? "border-purple-400 bg-purple-50 text-purple-700"
+                                : "border-slate-200 hover:border-slate-300 text-slate-600"
+                            }`}>
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <BudgetIcon size={13} />
+                              <span className="truncate font-semibold">
+                                {b.title}
+                              </span>
+                            </div>
+                            <div className="w-full bg-slate-100 rounded-full h-1.5 mb-1">
+                              <div
+                                className={`h-1.5 rounded-full transition-all ${
+                                  pct >= 100
+                                    ? "bg-red-500"
+                                    : pct >= 80
+                                      ? "bg-amber-400"
+                                      : "bg-purple-500"
+                                }`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <div className="text-[10px] text-slate-400">
+                              {fmt(b.currentAmount ?? 0)} /{' '}
+                              {fmt(b.targetAmount ?? 0)}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </>
             )}
 

@@ -38,7 +38,8 @@ function mapTransaction(t) {
   const isIncome = !!revenueDetail;
   let categoryName = "Chưa phân loại";
   if (expenseDetail) categoryName = expenseDetail.accountName || "Chi tiêu";
-  else if (revenueDetail) categoryName = revenueDetail.accountName || "Thu nhập";
+  else if (revenueDetail)
+    categoryName = revenueDetail.accountName || "Thu nhập";
   else if (isTransfer) categoryName = "Chuyển khoản";
   return { ...t, categoryName, isIncome, isTransfer };
 }
@@ -48,10 +49,10 @@ function Toggle({ value, onChange }) {
     <button
       type="button"
       onClick={() => onChange(!value)}
-      className={`relative w-12 h-6 rounded-full transition-colors ${value ? "bg-purple-600" : "bg-muted-foreground/25"}`}
+      className={`relative w-12 h-6 rounded-full transition-colors overflow-hidden ${value ? "bg-purple-600" : "bg-muted-foreground/25"}`}
     >
       <span
-        className={`absolute top-0.5 w-5 h-5 bg-card rounded-full shadow transition-transform ${value ? "translate-x-6" : "translate-x-0.5"}`}
+        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-card rounded-full shadow transition-transform ${value ? "translate-x-6" : "translate-x-0"}`}
       />
     </button>
   );
@@ -99,7 +100,11 @@ function PasswordStrengthIndicator({ password }) {
             ) : (
               <X size={12} className="text-muted-foreground shrink-0" />
             )}
-            <span className={rule.passed ? "text-green-600" : "text-muted-foreground"}>
+            <span
+              className={
+                rule.passed ? "text-green-600" : "text-muted-foreground"
+              }
+            >
               {rule.label}
             </span>
           </li>
@@ -131,7 +136,7 @@ const TX_FILTER_TYPES = [
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export function Profile() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { addNotification } = useNotifications();
 
   // ── Tab state ──────────────────────────────────────────────────────────────
@@ -157,13 +162,23 @@ export function Profile() {
   // ── Change password state ──────────────────────────────────────────────────
   const [showPwForm, setShowPwForm] = useState(false);
   const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
-  const [showPw, setShowPw] = useState({ current: false, next: false, confirm: false });
+  const [showPw, setShowPw] = useState({
+    current: false,
+    next: false,
+    confirm: false,
+  });
   const [isSavingPw, setIsSavingPw] = useState(false);
 
   // ── Settings state (localStorage) ─────────────────────────────────────────
   const [notifications, setNotifications] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem("notif_settings")) || { email: true, push: true, sms: false };
+      return (
+        JSON.parse(localStorage.getItem("notif_settings")) || {
+          email: true,
+          push: true,
+          sms: false,
+        }
+      );
     } catch {
       return { email: true, push: true, sms: false };
     }
@@ -254,6 +269,7 @@ export function Profile() {
         fullName: profile.fullName,
         email: profile.email,
       });
+      await refreshUser();
       toast.success("Đã cập nhật hồ sơ");
       addNotification({
         type: "success",
@@ -559,17 +575,13 @@ export function Profile() {
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
                                 <div
-                                  className={`w-9 h-9 rounded-full ${iconBg} flex items-center justify-center`}
+                                  className={`w-9 h-9 rounded-full ${iconBg} flex items-center justify-center shrink-0`}
                                 >
-                                  <div
-                                    className={`w-9 h-9 rounded-full ${iconBg} flex items-center justify-center`}
-                                  >
-                                    <Icon size={16} className={iconCls} />
-                                  </div>
-                                  <span className="font-medium text-card-foreground">
-                                    {t.description || "—"}
-                                  </span>
+                                  <Icon size={16} className={iconCls} />
                                 </div>
+                                <span className="font-medium text-card-foreground">
+                                  {t.description || "—"}
+                                </span>
                               </div>
                             </td>
                             <td className="px-6 py-4">
@@ -799,7 +811,6 @@ export function Profile() {
           {/* Notifications */}
           <div className="bg-card rounded-2xl p-6 border border-border">
             <div className="flex items-center gap-3 mb-5">
-              {" "}
               <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center">
                 <Bell size={18} className="text-purple-600" />
               </div>
@@ -827,25 +838,10 @@ export function Profile() {
                   label: "Thông báo SMS",
                   desc: "Cảnh báo qua tin nhắn",
                 },
-                {
-                  key: "email",
-                  label: "Thông báo Email",
-                  desc: "Nhận cập nhật qua email",
-                },
-                {
-                  key: "push",
-                  label: "Thông báo đẩy",
-                  desc: "Thông báo trên thiết bị",
-                },
-                {
-                  key: "sms",
-                  label: "Thông báo SMS",
-                  desc: "Cảnh báo qua tin nhắn",
-                },
               ].map(({ key, label, desc }) => (
                 <div
                   key={key}
-                  className="flex items-center justify-between py-2 border-b border-border last:border-0"
+                  className="flex items-center justify-between py-1 border-b border-border last:border-0"
                 >
                   <div>
                     <p className="font-medium text-card-foreground text-sm">
@@ -853,10 +849,6 @@ export function Profile() {
                     </p>
                     <p className="text-xs text-muted-foreground">{desc}</p>
                   </div>
-                  <Toggle
-                    value={notifications[key]}
-                    onChange={() => toggleNotif(key)}
-                  />
                   <Toggle
                     value={notifications[key]}
                     onChange={() => toggleNotif(key)}

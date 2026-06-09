@@ -13,6 +13,7 @@ import { SubscriptionFormModal } from "../../components/modals/SubscriptionFormM
 import { useSettings } from "../../context/SettingsContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { shouldShowToast } from "../../utils/toastOnce";
+import { confirmDialog } from "../../utils/confirmDialog";
 
 const FREQ_LABELS = {
   daily:      "Hàng ngày",
@@ -113,7 +114,7 @@ export function Subscriptions() {
   };
 
   const handleDelete = async (bill) => {
-    if (!window.confirm(`Xóa "${bill.name}"?`)) return;
+    if (!await confirmDialog(`Xóa "${bill.name}"?`)) return;
     try {
       await billApi.delete(bill.billId);
       await load();

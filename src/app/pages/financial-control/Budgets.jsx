@@ -22,6 +22,7 @@ import { budgetApi } from "../../api/budgetApi";
 import { useSettings } from "../../context/SettingsContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { shouldShowToast } from "../../utils/toastOnce";
+import { confirmDialog } from "../../utils/confirmDialog";
 
 import { ICON_MAP, COLOR_MAP } from "../../utils/icons";
 
@@ -225,7 +226,7 @@ export function Budgets() {
   };
 
   const handleDeleteBudget = async (id, name) => {
-    if (!window.confirm(`Xóa ngân sách "${name}"?`)) return;
+    if (!await confirmDialog(`Xóa ngân sách "${name}"?`)) return;
     try {
       await budgetApi.deleteBudget(id);
       await fetchBudgets();
