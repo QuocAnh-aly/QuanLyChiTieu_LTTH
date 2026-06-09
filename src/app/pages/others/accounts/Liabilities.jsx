@@ -17,14 +17,16 @@ import {
   Trash2,
 } from "lucide-react";
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { vi } from "date-fns/locale";
-import { walletApi } from "../../../api/walletApi";
+import { accountApi } from "../../../api/accountApi";
 import { transactionApi } from "../../../api/transactionApi";
 import { useSettings } from "../../../context/SettingsContext";
 import { PageLayout } from "../../../components/layout/PageLayout";
 import { AccountFormModal } from "../../../components/modals/AccountFormModal";
+import { EditAccountModal } from "../../../components/modals/EditAccountModal";
 import { toast } from "sonner";
 
 const PIE_COLORS = ["#ef4444", "#f97316", "#eab308", "#ec4899", "#a855f7", "#f43f5e", "#fb923c", "#fdba74"];
@@ -64,6 +66,7 @@ function StatCard({ icon: Icon, label, value, sublabel, gradient }) {
 }
 
 export function Liabilities() {
+  const navigate = useNavigate();
   const { fmt } = useSettings();
   const [accounts, setAccounts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -80,7 +83,7 @@ export function Liabilities() {
   const fetchAccounts = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await walletApi.getByType(2);
+      const data = await accountApi.getByType(2);
       setAccounts(data.items || data || []);
     } catch {
       setAccounts([]);
@@ -91,7 +94,7 @@ export function Liabilities() {
 
   const handleEditLiability = useCallback(async (id, data) => {
     try {
-      await walletApi.update(id, data);
+      await accountApi.update(id, data);
       toast.success("Đã cập nhật khoản nợ");
       setEditingAccount(null);
       fetchAccounts();
@@ -101,9 +104,9 @@ export function Liabilities() {
   }, [fetchAccounts]);
 
   const handleDeleteLiability = useCallback(async (id, name) => {
-    if (!window.confirm(`Xóa khoản nợ "${name}"?\nHành động này không thể hoàn tác.`)) return;
+    if (!await confirmDialog(`Xóa khoản nợ "${name}"?\nHành động này không thể hoàn tác.`)) return;
     try {
-      await walletApi.delete(id);
+      await accountApi.delete(id);
       toast.success(`Đã xóa "${name}".`);
       fetchAccounts();
     } catch (error) {
@@ -570,6 +573,13 @@ export function Liabilities() {
                       {/* Actions */}
                       <div className="flex items-center gap-1">
                         <button
+                          onClick={() => navigate(`/accounts/${acc.accountId}/detail`)}
+                          className="p-2 rounded-lg text-muted-foreground hover:text-purple-600 hover:bg-purple-50 transition-colors border border-border"
+                          title="Phân tích"
+                        >
+                          <Activity size={13} />
+                        </button>
+                        <button
                           onClick={() => setEditingAccount(acc)}
                           className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border border-border"
                           title="Sửa"
@@ -667,7 +677,7 @@ export function Liabilities() {
       )}
       {/* ════════════════════ EDIT LIABILITY MODAL ════════════════════ */}
       {editingAccount && (
-        <AccountFormModal
+        <EditAccountModal
           isOpen={!!editingAccount}
           onClose={() => setEditingAccount(null)}
           onSubmit={(data) => handleEditLiability(editingAccount.accountId, data)}

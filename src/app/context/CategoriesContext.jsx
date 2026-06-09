@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { accountApi } from "../api/accountApi";
 import { useAuth } from "./AuthContext";
+import { toast } from "sonner";
 
 const DEFAULT_EXPENSE_CATEGORIES = [
   { accountId: "", name: "Ăn uống", iconName: "Pizza", color: "red" },
@@ -48,15 +49,11 @@ export function CategoriesProvider({ children }) {
   );
   const fetchCategories = async () => {
     try {
-      const [expenseRes, incomeRes, liabilityRes] = await Promise.all([
+      const [expenseRes, incomeRes] = await Promise.all([
         accountApi.getByType(5),
         accountApi.getByType(4),
-        accountApi.getByType(2),
       ]);
-      const allExpenseCategories = [
-        ...(expenseRes.items ?? []),
-        ...(liabilityRes.items ?? []),
-      ];
+      const allExpenseCategories = [...(expenseRes.items ?? [])];
 
       const allIncomeCategories = [...(incomeRes.items ?? [])];
       setExpenseCategories(
@@ -165,7 +162,7 @@ export function CategoriesProvider({ children }) {
       await accountApi.delete(id);
 
       setIncomeSources((prev) => prev.filter((item) => item.accountId !== id));
-      alert("Xoá danh mục thành công");
+      toast.success("Xoá danh mục thành công");
     } catch (err) {
       console.error("Lỗi khi xoá nguồn thu", err);
     }

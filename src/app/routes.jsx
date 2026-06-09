@@ -27,6 +27,7 @@ import { AssetAccounts } from "./pages/others/accounts/AssetAccounts";
 import { Liabilities } from "./pages/others/accounts/Liabilities";
 import { ExpenseView } from "./pages/others/accounts/ExpenseView";
 import { IncomeView } from "./pages/others/accounts/IncomeView";
+import { AccountDetail } from "./pages/others/accounts/AccountDetail";
 
 // Others - Classification
 import { Categories } from "./pages/others/classification/Categories";
@@ -40,12 +41,12 @@ import { ErrorPage } from "./pages/others/ErrorPage";
 
 // Options
 import { Profile } from "./pages/options/Profile";
-import { OAuthTokens } from "./pages/options/OAuthTokens";
+// import { OAuthTokens } from "./pages/options/OAuthTokens";
 import { Preferences } from "./pages/options/Preferences";
 import { Currencies } from "./pages/options/Currencies";
 import { ExchangeRates } from "./pages/options/ExchangeRates";
 import { Administrations } from "./pages/options/Administrations";
-import { SystemSettings } from "./pages/options/SystemSettings";
+// import { SystemSettings } from "./pages/options/SystemSettings";
 
 import { NotificationCenter } from "./pages/notifications/NotificationCenter";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
@@ -87,9 +88,9 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="/transactions/all" replace /> },
           { path: "withdrawal", element: <Withdrawal /> },
-          { path: "deposit",    element: <Deposit /> },
-          { path: "transfers",  element: <Transfers /> },
-          { path: "all",        element: <Transactions /> },
+          { path: "deposit", element: <Deposit /> },
+          { path: "transfers", element: <Transfers /> },
+          { path: "all", element: <Transactions /> },
         ],
       },
 
@@ -108,6 +109,7 @@ export const router = createBrowserRouter([
           { path: "expense", element: <ExpenseView /> },
           { path: "income", element: <IncomeView /> },
           { path: "liabilities", element: <Liabilities /> },
+          { path: ":id/detail", element: <AccountDetail /> },
         ],
       },
       // Legacy redirect
@@ -132,14 +134,14 @@ export const router = createBrowserRouter([
         path: "profile",
         children: [
           { index: true, element: <Profile /> },
-          { path: "oauth", element: <OAuthTokens /> },
+          // { path: "oauth", element: <OAuthTokens /> },
         ],
       },
       { path: "preferences", element: <Preferences /> },
       { path: "currencies", element: <Currencies /> },
       { path: "exchange-rates", element: <ExchangeRates /> },
       { path: "administrations", element: <Administrations /> },
-      { path: "settings", element: <SystemSettings /> },
+      // { path: "settings", element: <SystemSettings /> },
     ],
   },
 ]);
