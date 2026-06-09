@@ -34,7 +34,13 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "sonner";
 import { NotificationBell } from "../notifications/NotificationBell";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "../ui/overlays/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "../ui/overlays/sheet";
 import { useIsMobile } from "../ui/use-mobile";
 
 // ──────────────────────────────────────────────
@@ -88,7 +94,7 @@ function SubMenuItem({ to, icon: Icon, label, onClick }) {
 function CollapsibleMenu({ icon: Icon, label, children, matchPaths = [] }) {
   const location = useLocation();
   const isAnyChildActive = matchPaths.some((p) =>
-    location.pathname.startsWith(p)
+    location.pathname.startsWith(p),
   );
   const [open, setOpen] = useState(isAnyChildActive);
 
@@ -162,7 +168,9 @@ function SidebarContent({ onNavClick }) {
           <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent tracking-tight">
             MoneyFlow
           </h1>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Quản lý chi tiêu</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Quản lý chi tiêu
+          </p>
         </div>
         <div className="hidden md:block">
           <NotificationBell />
@@ -172,14 +180,25 @@ function SidebarContent({ onNavClick }) {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5 scrollbar-thin">
         {/* Dashboard */}
-        <NavItem to="/" icon={LayoutDashboard} label="Tổng quan" end onClick={onNavClick} />
+        <NavItem
+          to="/"
+          icon={LayoutDashboard}
+          label="Tổng quan"
+          end
+          onClick={onNavClick}
+        />
 
         <Divider />
 
         {/* ── FINANCIAL CONTROL ── */}
         <SectionLabel label="Kiểm soát tài chính" />
 
-        <NavItem to="/budgets" icon={TrendingUp} label="Ngân sách" onClick={onNavClick} />
+        <NavItem
+          to="/budgets"
+          icon={TrendingUp}
+          label="Ngân sách"
+          onClick={onNavClick}
+        />
         <NavItem
           to="/subscriptions"
           icon={Repeat2}
@@ -231,21 +250,31 @@ function SidebarContent({ onNavClick }) {
         </CollapsibleMenu>
 
         {/* Automation submenu */}
-        <CollapsibleMenu
+        {/* <CollapsibleMenu
           icon={Bot}
           label="Tự động hóa"
           matchPaths={["/rules", "/recurring", "/webhooks"]}
         >
-          <SubMenuItem to="/rules" icon={BookOpen} label="Quy tắc" onClick={onNavClick} />
+          <SubMenuItem
+            to="/rules"
+            icon={BookOpen}
+            label="Quy tắc"
+            onClick={onNavClick}
+          />
           <SubMenuItem
             to="/recurring"
             icon={Repeat2}
             label="Định kỳ"
             onClick={onNavClick}
           />
-          <SubMenuItem to="/webhooks" icon={Webhook} label="Webhooks" onClick={onNavClick} />
+          <SubMenuItem
+            to="/webhooks"
+            icon={Webhook}
+            label="Webhooks"
+            onClick={onNavClick}
+          />
         </CollapsibleMenu>
-
+ */}
         <Divider />
 
         {/* ── OTHERS ── */}
@@ -283,7 +312,12 @@ function SidebarContent({ onNavClick }) {
             label="Danh mục"
             onClick={onNavClick}
           />
-          <SubMenuItem to="/tags" icon={Tag} label="Nhãn" onClick={onNavClick} />
+          <SubMenuItem
+            to="/tags"
+            icon={Tag}
+            label="Nhãn"
+            onClick={onNavClick}
+          />
           <SubMenuItem
             to="/object-groups"
             icon={Layers}
@@ -292,7 +326,12 @@ function SidebarContent({ onNavClick }) {
           />
         </CollapsibleMenu>
 
-        <NavItem to="/reports" icon={BarChart2} label="Báo cáo" onClick={onNavClick} />
+        <NavItem
+          to="/reports"
+          icon={BarChart2}
+          label="Báo cáo"
+          onClick={onNavClick}
+        />
         <NavItem
           to="/export"
           icon={Download}
@@ -317,13 +356,18 @@ function SidebarContent({ onNavClick }) {
             "/settings",
           ]}
         >
-          <SubMenuItem to="/profile" icon={User} label="Hồ sơ cá nhân" onClick={onNavClick} />
           <SubMenuItem
+            to="/profile"
+            icon={User}
+            label="Hồ sơ cá nhân"
+            onClick={onNavClick}
+          />
+          {/* <SubMenuItem
             to="/profile/oauth"
             icon={KeyRound}
             label="Mã OAuth"
             onClick={onNavClick}
-          />
+          /> */}
           <SubMenuItem
             to="/preferences"
             icon={SlidersHorizontal}
@@ -348,12 +392,12 @@ function SidebarContent({ onNavClick }) {
             label="Quản trị"
             onClick={onNavClick}
           />
-          <SubMenuItem
+          {/* <SubMenuItem
             to="/settings"
             icon={Settings}
             label="Cài đặt hệ thống"
             onClick={onNavClick}
-          />
+          /> */}
         </CollapsibleMenu>
       </nav>
 
@@ -394,8 +438,8 @@ export function Layout() {
 
   // Scroll to top on route change (pairs with page transition animation)
   useEffect(() => {
-    const el = document.querySelector('main');
-    if (el) el.scrollTo({ top: 0, behavior: 'smooth' });
+    const el = document.querySelector("main");
+    if (el) el.scrollTo({ top: 0, behavior: "smooth" });
   }, [location.pathname]);
 
   const closeMobileSidebar = () => setMobileSidebarOpen(false);
@@ -409,7 +453,10 @@ export function Layout() {
 
       {/* ── Mobile Sidebar (Sheet drawer) ── */}
       <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
-        <SheetContent side="left" className="w-[280px] sm:max-w-[300px] p-0 bg-sidebar">
+        <SheetContent
+          side="left"
+          className="w-[280px] sm:max-w-[300px] p-0 bg-sidebar"
+        >
           <SheetHeader className="sr-only">
             <SheetTitle>Thanh bên</SheetTitle>
             <SheetDescription>Menu điều hướng ứng dụng</SheetDescription>
@@ -437,7 +484,10 @@ export function Layout() {
           <NotificationBell />
         </div>
         <div className="flex-1">
-          <div key={location.pathname} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div
+            key={location.pathname}
+            className="animate-in fade-in slide-in-from-bottom-2 duration-300"
+          >
             <Outlet />
           </div>
         </div>

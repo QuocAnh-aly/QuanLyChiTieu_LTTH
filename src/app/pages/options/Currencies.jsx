@@ -19,6 +19,7 @@ const POPULAR_CURRENCIES = [
 const EMPTY_FORM = { code: '', name: '', symbol: '' };
 
 import { PageLayout } from '../../components/layout/PageLayout';
+import { confirmDialog } from '../../utils/confirmDialog';
 
 export function Currencies() {
   const { currencies, setDefaultCurrency, addCurrency, removeCurrency } = useSettings();
@@ -84,7 +85,7 @@ export function Currencies() {
       toast.error('Không thể xóa tiền tệ mặc định. Vui lòng chọn mặc định khác trước.');
       return;
     }
-    if (!window.confirm(`Xóa tiền tệ ${code}?`)) return;
+    if (!await confirmDialog(`Xóa tiền tệ ${code}?`)) return;
     try {
       await removeCurrency(code);
       toast.success(`Đã xóa ${code}`);

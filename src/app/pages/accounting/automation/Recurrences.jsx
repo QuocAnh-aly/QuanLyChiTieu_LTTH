@@ -18,8 +18,8 @@ export function Recurrences() {
     toast.success(currentStatus === "active" ? "Đã dừng tiến trình lặp" : "Đã kích hoạt tiến trình lặp");
   };
 
-  const deleteRecurrence = (id, name) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa tiến trình "${name}"?`)) return;
+  const deleteRecurrence = async (id, name) => {
+    if (!await confirmDialog(`Bạn có chắc chắn muốn xóa tiến trình "${name}"?`)) return;
     setRecurrences(recurrences.filter(r => r.id !== id));
     toast.success("Đã xóa thành công");
   };

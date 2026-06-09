@@ -102,7 +102,7 @@ export function SubscriptionDetail() {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Xóa "${bill?.name}"?`)) return;
+    if (!await confirmDialog(`Xóa "${bill?.name}"?`)) return;
     try {
       await billApi.delete(id);
       toast.success(`Đã xóa "${bill?.name}".`);

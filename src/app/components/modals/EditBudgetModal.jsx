@@ -6,6 +6,7 @@ import { ICON_MAP, COLOR_MAP } from "../../utils/icons";
 const periodTypes = ["monthly", "weekly", "yearly", "custom"];
 
 const PERIOD_LABELS = {
+  daily: "Hàng ngày",
   monthly: "Hàng tháng",
   weekly: "Hàng tuần",
   yearly: "Hàng năm",
@@ -81,7 +82,8 @@ export function EditBudgetModal({ budget, onClose, onSave }) {
                   {title || "Tên ngân sách"}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {formatVND(amount || "0")} / {PERIOD_LABELS[periodType] || periodType}
+                  {formatVND(amount || "0")} /{" "}
+                  {PERIOD_LABELS[periodType] || periodType}
                 </p>
               </div>
             </div>

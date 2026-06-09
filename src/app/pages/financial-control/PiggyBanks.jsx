@@ -5,11 +5,12 @@ import {
   Plus as PlusIcon, Minus, ChevronRight,
 } from "lucide-react";
 import { piggyBankApi } from "../../api/piggyBankApi";
-import { walletApi } from "../../api/walletApi";
+import { accountApi } from "../../api/accountApi";
 import { toast } from "sonner";
 import { PiggyBankFormModal } from "../../components/modals/PiggyBankFormModal";
 import { useSettings } from "../../context/SettingsContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { confirmDialog } from "../../utils/confirmDialog";
 
 const COLOR_MAP = {
   green:   { bg: "bg-green-100",   text: "text-green-600",   hex: "#22c55e" },
@@ -55,7 +56,7 @@ export function PiggyBanks() {
       setIsLoading(true);
       const [gData, aData] = await Promise.all([
         piggyBankApi.getAll(),
-        walletApi.getByType(1),
+        accountApi.getByType(1),
       ]);
       setGoals((gData || []).map(mapGoal));
       setAccounts(aData.items || aData || []);
@@ -97,7 +98,7 @@ export function PiggyBanks() {
   };
 
   const handleDelete = async (goal) => {
-    if (!window.confirm(`Xóa "${goal.name}"? Toàn bộ lịch sử sẽ bị xóa.`)) return;
+    if (!await confirmDialog(`Xóa "${goal.name}"? Toàn bộ lịch sử sẽ bị xóa.`)) return;
     try {
       await piggyBankApi.delete(goal.id);
       await load();
