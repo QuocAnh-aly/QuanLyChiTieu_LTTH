@@ -66,7 +66,7 @@ public class TransactionService : ITransactionService
             request.DebitAccountId = expenseAcct.AccountId;
         }
 
-        // Thu nhập: tìm Revenue account có sẵn — KHÔNG tự động tạo mới
+        // Thu nhập: tìm Revenue account có s  ẵn — KHÔNG tự động tạo mới
         if (request.CreditAccountId <= 0 && !string.IsNullOrWhiteSpace(request.IncomeCategoryName))
         {
             var revenueAcct = await _accountRepo.FindByUserAndNameAsync(userId, TypeRevenue, request.IncomeCategoryName);
