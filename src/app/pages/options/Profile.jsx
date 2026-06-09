@@ -50,7 +50,8 @@ function Toggle({ value, onChange, disabled = false }) {
     <button
       type="button"
       onClick={() => onChange(!value)}
-      className={`relative w-12 h-6 rounded-full transition-colors overflow-hidden ${value ? "bg-purple-600" : "bg-muted-foreground/25"}`}
+      disabled={disabled}
+      className={`relative w-12 h-6 rounded-full transition-colors overflow-hidden ${value ? "bg-purple-600" : "bg-muted-foreground/25"} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
     >
       <span
         className={`absolute top-0.5 left-0.5 w-5 h-5 bg-card rounded-full shadow transition-transform ${value ? "translate-x-6" : "translate-x-0"}`}
@@ -185,9 +186,8 @@ export function Profile() {
       return { email: true, push: true, sms: false };
     }
   });
-  const [currency, setCurrency] = useState(
-    () => localStorage.getItem("app_currency") || "VND",
-  );
+  // Trạng thái lưu cho từng toggle thông báo (đang gọi API)
+  const [savingNotif, setSavingNotif] = useState(null);
 
   // ── Load data ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -868,6 +868,7 @@ export function Profile() {
                   <Toggle
                     value={notifications[key]}
                     onChange={() => toggleNotif(key)}
+                    disabled={savingNotif === key}
                   />
                 </div>
               ))}
