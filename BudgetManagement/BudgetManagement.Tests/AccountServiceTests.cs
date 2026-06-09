@@ -375,20 +375,34 @@ public class AccountServiceTests
     // ─── DeleteAsync ────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task DeleteAsync_OwnAccount_DeletesAndReturnsTrue()
+    public async Task DeleteAsync_OwnAccount_NoTransactions_HardDeletes()
     {
         var existing = MakeAccount();
         _repoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(existing);
-        _journalRepoMock.Setup(r => r.HasDetailsForAccountAsync(1)).ReturnsAsync(false);
-        _recurringRepoMock.Setup(r => r.HasJournalsForAccountAsync(1)).ReturnsAsync(false);
-        _budgetRepoMock.Setup(r => r.DeleteByAccountIdAsync(1)).Returns(Task.CompletedTask);
+        _journalRepoMock.Setup(r => r.HasTransaction(1)).ReturnsAsync(false);
         _repoMock.Setup(r => r.DeleteAsync(1)).ReturnsAsync(true);
 
         var result = await _service.DeleteAsync(_userId, 1);
 
         result.Should().BeTrue();
-        _budgetRepoMock.Verify(r => r.DeleteByAccountIdAsync(1), Times.Once);
         _repoMock.Verify(r => r.DeleteAsync(1), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_OwnAccount_WithTransactions_SoftDeletes()
+    {
+        var existing = MakeAccount();
+        _repoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(existing);
+        _journalRepoMock.Setup(r => r.HasTransaction(1)).ReturnsAsync(true);
+        _repoMock.Setup(r => r.UpdateAsync(It.IsAny<Account>())).ReturnsAsync((Account a) => a);
+
+        var result = await _service.DeleteAsync(_userId, 1);
+
+        // Account kept but deactivated; hard delete must NOT be called.
+        result.Should().BeTrue();
+        existing.IsActive.Should().BeFalse();
+        _repoMock.Verify(r => r.UpdateAsync(It.Is<Account>(a => a.IsActive == false)), Times.Once);
+        _repoMock.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
     }
 
     [Fact]

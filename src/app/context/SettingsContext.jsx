@@ -27,6 +27,15 @@ export function SettingsProvider({ children }) {
   );
   const [isLoading, setIsLoading] = useState(false);
 
+  // ── Display preferences (stored locally per browser) ──────────
+  // Kept client-side so they apply instantly without any DB change.
+  const [numberFormat, setNumberFormat] = useState(
+    () => localStorage.getItem("app_number_format") || "vi-VN",
+  );
+  const [firstDayOfWeek, setFirstDayOfWeek] = useState(
+    () => Number(localStorage.getItem("app_first_day") ?? 1),
+  );
+
   // ── Mapping ───────────────────────────────────────────
   // Backend dto → frontend shape used by pages.
   const dtoToCurrency = (c) => ({
@@ -85,6 +94,20 @@ export function SettingsProvider({ children }) {
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, [refreshCurrencies, refreshRates]);
+
+  // ── Save display preferences (localStorage only — no DB change) ─────
+  // Accepts a partial { numberFormat, firstDayOfWeek }. Currency is managed
+  // via setDefaultCurrency; theme via next-themes.
+  const savePreferences = ({ numberFormat: nf, firstDayOfWeek: fd } = {}) => {
+    if (nf != null) {
+      setNumberFormat(nf);
+      localStorage.setItem("app_number_format", nf);
+    }
+    if (fd != null) {
+      setFirstDayOfWeek(Number(fd));
+      localStorage.setItem("app_first_day", String(fd));
+    }
+  };
 
   // ── Currencies API ────────────────────────────────────
   const setCurrency = (code) => setCurrencyCode(code);
@@ -154,11 +177,11 @@ export function SettingsProvider({ children }) {
   const fmt = (n) => {
     const num = Number(n ?? 0);
     try {
-      // Dùng Intl.NumberFormat locale-aware — trình duyệt tự xử lý symbol
-      return num.toLocaleString("vi-VN", { style: "currency", currency });
+      // Locale-aware — trình duyệt tự xử lý symbol & phân cách theo numberFormat
+      return num.toLocaleString(numberFormat, { style: "currency", currency });
     } catch {
-      // Fallback nếu currency code không hợp lệ
-      return `${num.toLocaleString("vi-VN")} ${currency}`;
+      // Fallback nếu currency code hoặc locale không hợp lệ
+      return `${num.toLocaleString(numberFormat)} ${currency}`;
     }
   };
   const fmtShort = (n) => {
@@ -190,6 +213,9 @@ export function SettingsProvider({ children }) {
         fmtShort,
         refreshCurrencies,
         refreshRates,
+        numberFormat,
+        firstDayOfWeek,
+        savePreferences,
       }}
     >
       {children}

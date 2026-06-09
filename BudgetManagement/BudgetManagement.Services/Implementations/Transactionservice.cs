@@ -78,7 +78,7 @@ public class TransactionService : ITransactionService
             request.DebitAccountId = expenseAcct.AccountId;
         }
 
-        // Thu nhập: tìm Revenue account — tự động tạo mới nếu chưa tồn tại
+        // Thu nhập: tìm Revenue account có s  ẵn — KHÔNG tự động tạo mới
         if (request.CreditAccountId <= 0 && !string.IsNullOrWhiteSpace(request.IncomeCategoryName))
         {
             var revenueAcct = await _accountRepo.FindByUserAndNameAsync(userId, TypeRevenue, request.IncomeCategoryName);
@@ -116,6 +116,7 @@ public class TransactionService : ITransactionService
             Description     = request.Description ?? "Unknown",
             Notes           = request.Notes,
             Tags            = request.Tags,
+            BillId          = request.BillId,
             CreatedAt       = DateTime.UtcNow
         };
 

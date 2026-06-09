@@ -2,6 +2,7 @@ using BudgetManagement.Dto;
 using BudgetManagement.Entities;
 using BudgetManagement.Repository.Interfaces;
 using BudgetManagement.Services.Implementations;
+using BudgetManagement.Services.Interfaces;
 using FluentAssertions;
 using Moq;
 
@@ -10,13 +11,15 @@ namespace BudgetManagement.Tests;
 public class BillServiceTests
 {
     private readonly Mock<IBillRepository> _billRepoMock;
+    private readonly Mock<ITransactionService> _transactionServiceMock;
     private readonly BillService _service;
     private readonly int _userId = 1;
 
     public BillServiceTests()
     {
         _billRepoMock = new Mock<IBillRepository>();
-        _service = new BillService(_billRepoMock.Object);
+        _transactionServiceMock = new Mock<ITransactionService>();
+        _service = new BillService(_billRepoMock.Object, _transactionServiceMock.Object);
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────
@@ -158,6 +161,31 @@ public class BillServiceTests
     }
 
     [Fact]
+    public async Task GetByIdAsync_PaidOnCycleDate_StatusIsPaid()
+    {
+        // Regression: bill whose cycle date is exactly today, paid today.
+        // The period window must include today, so status = "paid".
+        var today = DateTime.Today;
+        var bill = MakeBill(5);
+        bill.Date = today;
+        bill.RepeatFreq = "monthly";
+        var entry = new JournalEntry
+        {
+            JournalId = 100,
+            UserId = _userId,
+            BillId = 5,
+            TransactionDate = today,
+            JournalDetails = new List<JournalDetail> { new() { Debit = 250m } },
+        };
+        _billRepoMock.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(bill);
+        _billRepoMock.Setup(r => r.GetLinkedEntriesAsync(5)).ReturnsAsync(new[] { entry });
+
+        var result = await _service.GetByIdAsync(_userId, 5);
+
+        result.PaidStatus.Should().Be("paid");
+    }
+
+    [Fact]
     public async Task GetByIdAsync_OtherUser_ThrowsUnauthorized()
     {
         var bill = MakeBill(1, userId: 99);
@@ -275,5 +303,69 @@ public class BillServiceTests
 
         await FluentActions.Invoking(() => _service.RescanAsync(_userId, 1))
             .Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    // ─── PayAsync ───────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task PayAsync_ValidRequest_CreatesLinkedTransaction()
+    {
+        var bill = MakeBill(7, name: "Internet");
+        _billRepoMock.Setup(r => r.GetByIdAsync(7)).ReturnsAsync(bill);
+        _billRepoMock.Setup(r => r.GetLinkedEntriesAsync(7))
+            .ReturnsAsync(Array.Empty<JournalEntry>());
+
+        var request = new PayBillDto
+        {
+            WalletAccountId = 3,
+            ExpenseAccountId = 9,
+            Amount = 250m,
+        };
+
+        var result = await _service.PayAsync(_userId, 7, request);
+
+        result.BillId.Should().Be(7);
+        // Delegates to TransactionService with BillId stamped + bill name as description.
+        _transactionServiceMock.Verify(t => t.CreateAsync(_userId,
+            It.Is<CreateTransactionDto>(d =>
+                d.BillId == 7 &&
+                d.CreditAccountId == 3 &&
+                d.DebitAccountId == 9 &&
+                d.Amount == 250m &&
+                d.Description == "Internet")), Times.Once);
+    }
+
+    [Fact]
+    public async Task PayAsync_InactiveBill_ThrowsInvalidOperation()
+    {
+        var bill = MakeBill(1);
+        bill.Active = false;
+        _billRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(bill);
+
+        await FluentActions.Invoking(() =>
+                _service.PayAsync(_userId, 1, new PayBillDto { WalletAccountId = 1, ExpenseAccountId = 1, Amount = 10m }))
+            .Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task PayAsync_NonPositiveAmount_ThrowsArgument()
+    {
+        var bill = MakeBill(1);
+        _billRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(bill);
+
+        await FluentActions.Invoking(() =>
+                _service.PayAsync(_userId, 1, new PayBillDto { WalletAccountId = 1, ExpenseAccountId = 1, Amount = 0m }))
+            .Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
+    public async Task PayAsync_MissingCategory_ThrowsArgument()
+    {
+        var bill = MakeBill(1);
+        _billRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(bill);
+
+        await FluentActions.Invoking(() =>
+                _service.PayAsync(_userId, 1, new PayBillDto { WalletAccountId = 1, Amount = 10m }))
+            .Should().ThrowAsync<ArgumentException>();
     }
 }

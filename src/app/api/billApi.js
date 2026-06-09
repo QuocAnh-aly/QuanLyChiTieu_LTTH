@@ -9,4 +9,5 @@ export const billApi = {
   update(id, data)  { return axiosClient.put(`${BASE}/${id}`, data); },
   delete(id)        { return axiosClient.delete(`${BASE}/${id}`); },
   rescan(id)        { return axiosClient.post(`${BASE}/${id}/rescan`); },
+  pay(id, data)     { return axiosClient.post(`${BASE}/${id}/pay`, data); },
 };

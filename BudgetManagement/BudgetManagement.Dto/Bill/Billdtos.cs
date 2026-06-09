@@ -29,6 +29,17 @@ public class UpdateBillDto
     public bool? Active { get; set; }
 }
 
+// Request body for "Trả ngay" — creates an expense transaction linked to the bill.
+public class PayBillDto
+{
+    public int WalletAccountId { get; set; }            // Asset account paid from (credit side)
+    public int? ExpenseAccountId { get; set; }          // Expense category account (debit side)
+    public string? ExpenseCategoryName { get; set; }    // Fallback: resolve expense account by name
+    public decimal Amount { get; set; }
+    public DateTime? Date { get; set; }
+    public string? Notes { get; set; }
+}
+
 public class BillDto
 {
     public int BillId { get; set; }

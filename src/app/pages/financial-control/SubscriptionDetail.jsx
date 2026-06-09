@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Receipt, CheckCircle2, AlertCircle, Clock,
-  MinusCircle, Pencil, Trash2, RefreshCw,
+  MinusCircle, Pencil, Trash2, RefreshCw, Wallet,
   Calendar, DollarSign, TrendingDown,
 } from "lucide-react";
 import {
@@ -15,6 +15,7 @@ import { billApi } from "../../api/billApi";
 import { toast } from "sonner";
 import { useNotifications } from "../../context/NotificationContext";
 import { SubscriptionFormModal } from "../../components/modals/SubscriptionFormModal";
+import { PayBillModal } from "../../components/modals/PayBillModal";
 import { useSettings } from "../../context/SettingsContext";
 import { shouldShowToast } from "../../utils/toastOnce";
 
@@ -68,6 +69,7 @@ export function SubscriptionDetail() {
   const [bill,      setBill]      = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [editOpen,  setEditOpen]  = useState(false);
+  const [payOpen,   setPayOpen]   = useState(false);
   const [rescanning,setRescanning]= useState(false);
 
   const load = useCallback(async () => {
@@ -111,6 +113,18 @@ export function SubscriptionDetail() {
     } catch {
       toast.error("Không thể xóa");
       addNotification({ type: 'error', title: 'Lỗi xóa', message: 'Không thể xóa hóa đơn định kỳ' });
+    }
+  };
+
+  const handlePay = async (payload) => {
+    try {
+      await billApi.pay(id, payload);
+      await load();
+      setPayOpen(false);
+      toast.success(`Đã thanh toán "${bill?.name}"!`);
+      addNotification({ type: 'success', title: 'Đã thanh toán hóa đơn', message: `"${bill?.name}" đã được ghi nhận thanh toán`, link: `/subscriptions/${id}` });
+    } catch (e) {
+      toast.error(e?.response?.data?.message ?? "Không thể thanh toán");
     }
   };
 
@@ -187,6 +201,12 @@ export function SubscriptionDetail() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {bill.paidStatus === "expected_unpaid" && (
+            <button onClick={() => setPayOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-purple-600 text-white hover:bg-purple-700 rounded-lg font-medium text-sm transition-colors">
+              <Wallet size={14} /> Trả ngay
+            </button>
+          )}
           <button onClick={handleRescan} disabled={rescanning || !bill.active}
             className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg font-medium text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
             <RefreshCw size={14} className={rescanning ? "animate-spin" : ""} />
@@ -338,6 +358,7 @@ export function SubscriptionDetail() {
 
       {/* Edit modal */}
       <SubscriptionFormModal isOpen={editOpen} onClose={() => setEditOpen(false)} onSave={handleUpdate} bill={bill} />
+      <PayBillModal isOpen={payOpen} onClose={() => setPayOpen(false)} onPay={handlePay} bill={bill} />
     </div>
   );
 }

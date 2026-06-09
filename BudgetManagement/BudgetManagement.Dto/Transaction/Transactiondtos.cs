@@ -13,6 +13,7 @@ public class CreateTransactionDto
     public DateTime? TransactionDate    { get; set; }
     public string?  IncomeCategoryName  { get; set; }   // Thu nhập: backend tìm Revenue account có sẵn, không tự tạo
     public string?  ExpenseCategoryName { get; set; }   // Chi tiêu: backend tìm Expense account có sẵn, không tự tạo
+    public int?     BillId              { get; set; }   // Gắn giao dịch vào hóa đơn định kỳ (khi "Trả ngay")
 }
 
 // ─── Response ────────────────────────────────────────────────────────────────
