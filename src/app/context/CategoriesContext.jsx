@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { accountApi } from "../api/accountApi";
 import { useAuth } from "./AuthContext";
+import { toast } from "sonner";
 
 const DEFAULT_EXPENSE_CATEGORIES = [
   { accountId: "", name: "Ăn uống", iconName: "Pizza", color: "red" },
@@ -48,26 +49,22 @@ export function CategoriesProvider({ children }) {
   );
   const fetchCategories = async () => {
     try {
-      const [expenseRes, incomeRes, liabilityRes] = await Promise.all([
+      const [expenseRes, incomeRes] = await Promise.all([
         accountApi.getByType(5),
         accountApi.getByType(4),
-        accountApi.getByType(2),
       ]);
-      const allExpenseCategories = [
-        ...(expenseRes.items ?? []),
-        ...(liabilityRes.items ?? []),
-      ];
+      const allExpenseCategories = [...(expenseRes.items ?? [])];
 
       const allIncomeCategories = [...(incomeRes.items ?? [])];
       setExpenseCategories(
         allExpenseCategories.length > 0
           ? allExpenseCategories
-          : [DEFAULT_EXPENSE_CATEGORIES],
+          : DEFAULT_EXPENSE_CATEGORIES,
       );
       setIncomeSources(
         allIncomeCategories.length > 0
           ? allIncomeCategories
-          : [DEFAULT_INCOME_SOURCES],
+          : DEFAULT_INCOME_SOURCES,
       );
     } catch (err) {
       setExpenseCategories(
@@ -106,6 +103,8 @@ export function CategoriesProvider({ children }) {
     localStorage.setItem("app_object_groups", JSON.stringify(objectGroups));
   }, [objectGroups]);
 
+  // These re-throw on failure so callers can await and react (toast/keep form
+  // open) instead of silently assuming success.
   const addExpenseCategory = async (cat) => {
     try {
       const result = await accountApi.create({
@@ -113,8 +112,10 @@ export function CategoriesProvider({ children }) {
         typeId: 5,
       });
       setExpenseCategories((prev) => [...prev, result]);
+      return result;
     } catch (err) {
       console.error("Lỗi khi tạo danh mục", err);
+      throw err;
     }
   };
   const updateExpenseCategory = async (id, upd) => {
@@ -123,8 +124,10 @@ export function CategoriesProvider({ children }) {
       setExpenseCategories((prev) =>
         prev.map((c) => (c.accountId === id ? { ...c, ...result } : c)),
       );
+      return result;
     } catch (err) {
       console.error("Lỗi khi sửa danh mục", err);
+      throw err;
     }
   };
   const deleteExpenseCategory = async (id) => {
@@ -136,6 +139,7 @@ export function CategoriesProvider({ children }) {
       );
     } catch (err) {
       console.error("Lỗi khi xoá danh mục", err);
+      throw err;
     }
   };
 
@@ -146,8 +150,10 @@ export function CategoriesProvider({ children }) {
         typeId: 4,
       });
       setIncomeSources((prev) => [...prev, result]);
+      return result;
     } catch (err) {
       console.error("Lỗi khi tạo nguồn thu", err);
+      throw err;
     }
   };
   const updateIncomeSource = async (id, upd) => {
@@ -156,8 +162,10 @@ export function CategoriesProvider({ children }) {
       setIncomeSources((prev) =>
         prev.map((s) => (s.accountId === id ? { ...s, ...result } : s)),
       );
+      return result;
     } catch (err) {
       console.error("Lỗi khi sửa nguồn thu: ", err);
+      throw err;
     }
   };
   const deleteIncomeSource = async (id) => {
@@ -165,9 +173,10 @@ export function CategoriesProvider({ children }) {
       await accountApi.delete(id);
 
       setIncomeSources((prev) => prev.filter((item) => item.accountId !== id));
-      alert("Xoá danh mục thành công");
+      toast.success("Xoá danh mục thành công");
     } catch (err) {
       console.error("Lỗi khi xoá nguồn thu", err);
+      throw err;
     }
   };
 

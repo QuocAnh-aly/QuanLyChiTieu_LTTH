@@ -87,7 +87,7 @@ public class AccountService : IAccountService
             GradientFrom = request.GradientFrom,
             GradientTo   = request.GradientTo,
             Balance        = request.Balance      ?? 0,
-            InitialBalance = request.Balance      ?? 0,
+            InitialBalance = request.InitialBalance ?? request.Balance ?? 0,
             CardNumber     = request.CardNumber,
             CurrencyCode = request.CurrencyCode,
             IsActive     = true,

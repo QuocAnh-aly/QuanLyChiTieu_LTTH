@@ -1,6 +1,5 @@
 import { X, Receipt } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useSettings } from "../../context/SettingsContext";
 import { formatVND, parseVND } from "../../utils/formatMoney";
 
 const FREQ_OPTIONS = [
@@ -18,11 +17,9 @@ export function SubscriptionFormModal({
   onSave,
   bill = null,
 }) {
-  const { currencies, currency } = useSettings();
   const isEdit = !!bill;
 
   const [name, setName] = useState("");
-  const [selectedCurrency, setSelectedCurrency] = useState("");
   const [amountMin, setAmountMin] = useState("");
   const [amountMax, setAmountMax] = useState("");
   const [date, setDate] = useState("");
@@ -36,12 +33,13 @@ export function SubscriptionFormModal({
   const [active, setActive] = useState(true);
 
   const [returnHere, setReturnHere] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!isOpen) return;
+    setError("");
     if (bill) {
       setName(bill.name ?? "");
-      setSelectedCurrency(bill.currency ?? currency);
       setAmountMin(String(bill.amountMin ?? ""));
       setAmountMax(String(bill.amountMax ?? ""));
       setDate(bill.date ? bill.date.split("T")[0] : "");
@@ -56,7 +54,6 @@ export function SubscriptionFormModal({
       setActive(bill.active ?? true);
     } else {
       setName("");
-      setSelectedCurrency(currency);
       setAmountMin("");
       setAmountMax("");
       setDate(new Date().toISOString().split("T")[0]);
@@ -69,7 +66,7 @@ export function SubscriptionFormModal({
       setActive(true);
       setReturnHere(false);
     }
-  }, [isOpen, bill, currency]);
+  }, [isOpen, bill]);
 
   if (!isOpen) return null;
 
@@ -78,11 +75,19 @@ export function SubscriptionFormModal({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!canSubmit) return;
+
+    const min = parseFloat(amountMin);
+    const max = parseFloat(amountMax);
+    if (min > max) {
+      setError("Số tiền tối thiểu không được lớn hơn số tiền tối đa.");
+      return;
+    }
+    setError("");
+
     onSave({
       name: name.trim(),
-      currency: selectedCurrency,
-      amountMin: parseFloat(amountMin),
-      amountMax: parseFloat(amountMax),
+      amountMin: min,
+      amountMax: max,
       date: date,
       repeatFreq,
       skip: parseInt(skip) || 0,
@@ -154,23 +159,6 @@ export function SubscriptionFormModal({
                       className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                       placeholder="Tên hóa đơn"
                     />
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0">
-                      Tiền tệ
-                    </label>
-                    <select
-                      value={selectedCurrency}
-                      onChange={(e) => setSelectedCurrency(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card"
-                    >
-                      {currencies?.map((c) => (
-                        <option key={c.code} value={c.code}>
-                          {c.name} ({c.symbol})
-                        </option>
-                      ))}
-                    </select>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
@@ -318,26 +306,6 @@ export function SubscriptionFormModal({
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">
-                      Tệp đính kèm
-                    </label>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <label className="cursor-pointer bg-muted hover:bg-muted text-foreground px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
-                          Chọn tệp
-                          <input type="file" className="hidden" />
-                        </label>
-                        <span className="text-sm text-muted-foreground">
-                          Chưa chọn tệp
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Kích thước tối đa: 2 MB
-                      </p>
-                    </div>
-                  </div>
-
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                     <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0">
                       Nhóm
@@ -395,6 +363,9 @@ export function SubscriptionFormModal({
                     </span>
                   </label>
                 </div>
+                {error && (
+                  <p className="mt-3 text-sm text-red-600 text-right">{error}</p>
+                )}
                 <div className="mt-4 flex justify-end gap-3">
                   <button
                     type="button"

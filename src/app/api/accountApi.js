@@ -10,27 +10,22 @@ export const accountApi = {
   },
 
   getById(id) {
-    const url = `/api/accounts/${id}`;
-    return axiosClient.get(url);
+    return axiosClient.get(`/api/accounts/${id}`);
   },
 
-  getWalletSummary() {
-    const url = '/api/accounts/wallet-summary';
-    return axiosClient.get(url);
+  getSummary(params = {}) {
+    return axiosClient.get('/api/accounts/wallet-summary', { params });
   },
 
   create(data) {
-    const url = '/api/accounts';
-    return axiosClient.post(url, data);
+    return axiosClient.post('/api/accounts', data);
   },
 
   update(id, data) {
-    const url = `/api/accounts/${id}`;
-    return axiosClient.put(url, data);
+    return axiosClient.put(`/api/accounts/${id}`, data);
   },
 
   delete(id) {
-    const url = `/api/accounts/${id}`;
-    return axiosClient.delete(url);
+    return axiosClient.delete(`/api/accounts/${id}`);
   },
 };

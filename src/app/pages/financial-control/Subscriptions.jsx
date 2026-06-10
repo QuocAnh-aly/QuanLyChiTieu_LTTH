@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Receipt, Plus, Pencil, Trash2, GripVertical,
+  Receipt, Plus, Pencil, Trash2, Wallet,
   CheckCircle2, AlertCircle, MinusCircle, Clock,
   TrendingDown, CalendarClock, Layers,
 } from "lucide-react";
@@ -10,9 +10,11 @@ import { vi } from "date-fns/locale";
 import { toast } from "sonner";
 import { billApi } from "../../api/billApi";
 import { SubscriptionFormModal } from "../../components/modals/SubscriptionFormModal";
+import { PayBillModal } from "../../components/modals/PayBillModal";
 import { useSettings } from "../../context/SettingsContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { shouldShowToast } from "../../utils/toastOnce";
+import { confirmDialog } from "../../utils/confirmDialog";
 
 const FREQ_LABELS = {
   daily:      "Hàng ngày",
@@ -50,7 +52,6 @@ function PaidBadge({ status }) {
   );
 }
 
-import PaginationBar from "../../components/ui/navigation/PaginationBar";
 import { PageLayout } from "../../components/layout/PageLayout";
 
 export function Subscriptions() {
@@ -61,18 +62,25 @@ export function Subscriptions() {
   const [isLoading,setIsLoading]= useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editBill, setEditBill] = useState(null);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [totalCount, setTotalCount] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
+  const [payBill,  setPayBill]  = useState(null);
 
+  // Load ALL bills (looping server pages) so the summary cards, group
+  // subtotals and grand total are computed over the full dataset, not one page.
   const load = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await billApi.getAll({ page, pageSize });
-      setBills(data.items || data || []);
-      setTotalCount(data.totalCount ?? (data.items || data || []).length);
-      setTotalPages(data.totalPages ?? 1);
+      const PAGE_SIZE = 100;
+      let page = 1;
+      let all = [];
+      let totalPages = 1;
+      do {
+        const data = await billApi.getAll({ page, pageSize: PAGE_SIZE });
+        const items = data.items || data || [];
+        all = all.concat(items);
+        totalPages = data.totalPages ?? 1;
+        page += 1;
+      } while (page <= totalPages);
+      setBills(all);
     } catch {
       if (shouldShowToast('subscriptions-load-error')) {
         toast.error("Không thể tải danh sách hóa đơn");
@@ -80,7 +88,7 @@ export function Subscriptions() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
@@ -90,7 +98,8 @@ export function Subscriptions() {
     try {
       await billApi.create(data);
       await load();
-      setFormOpen(false);
+      // Keep the modal open when the user ticked "Quay lại đây" to add another.
+      if (!data.returnHere) setFormOpen(false);
       toast.success(`Đã tạo "${data.name}"!`);
       addNotification({ type: 'success', title: 'Đã tạo hóa đơn định kỳ', message: `"${data.name}" đã được tạo thành công`, link: '/subscriptions' });
     } catch {
@@ -112,8 +121,20 @@ export function Subscriptions() {
     }
   };
 
+  const handlePay = async (payload) => {
+    try {
+      await billApi.pay(payBill.billId, payload);
+      await load();
+      setPayBill(null);
+      toast.success(`Đã thanh toán "${payBill.name}"!`);
+      addNotification({ type: 'success', title: 'Đã thanh toán hóa đơn', message: `"${payBill.name}" đã được ghi nhận thanh toán`, link: `/subscriptions/${payBill.billId}` });
+    } catch (e) {
+      toast.error(e?.response?.data?.message ?? "Không thể thanh toán");
+    }
+  };
+
   const handleDelete = async (bill) => {
-    if (!window.confirm(`Xóa "${bill.name}"?`)) return;
+    if (!await confirmDialog(`Xóa "${bill.name}"?`)) return;
     try {
       await billApi.delete(bill.billId);
       await load();
@@ -212,7 +233,7 @@ export function Subscriptions() {
           <p className="font-medium text-muted-foreground">Chưa có hóa đơn nào</p>
           <p className="text-sm text-muted-foreground mt-1">Nhấn "Thêm hóa đơn" để bắt đầu</p>
         </div>
-      ) : totalPages > 0 && (
+      ) : (
         <div className="space-y-4">
           {sortedGroups.map(([groupName, groupBills]) => {
             const groupMonthly = groupBills.filter(b => b.active).reduce((sum, b) => {
@@ -242,9 +263,6 @@ export function Subscriptions() {
                     return (
                       <div key={bill.billId}
                         className={`px-3 sm:px-4 py-3 hover:bg-muted transition-colors flex items-center gap-2 sm:gap-3 group flex-wrap sm:flex-nowrap ${!bill.active ? "opacity-60" : ""}`}>
-                        {/* Drag handle (visual only) */}
-                        <GripVertical size={16} className="text-muted-foreground shrink-0 cursor-grab hidden sm:block" />
-
                         {/* Icon */}
                         <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center shrink-0 ${bill.active ? "bg-purple-100" : "bg-muted"}`}>
                           <Receipt size={14} className={bill.active ? "text-purple-600" : "text-muted-foreground"} />
@@ -303,6 +321,12 @@ export function Subscriptions() {
 
                         {/* Actions */}
                         <div className="flex items-center gap-1 shrink-0">
+                          {bill.paidStatus === "expected_unpaid" && (
+                            <button onClick={() => setPayBill(bill)}
+                              className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors text-xs font-semibold" title="Trả ngay">
+                              <Wallet size={14} /> <span className="hidden sm:inline">Trả ngay</span>
+                            </button>
+                          )}
                           <button onClick={() => setEditBill(bill)}
                             className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-purple-600 transition-colors" title="Sửa">
                             <Pencil size={14} />
@@ -341,21 +365,10 @@ export function Subscriptions() {
         </div>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && bills.length > 0 && (
-        <PaginationBar
-          currentPage={page}
-          totalPages={totalPages}
-          totalCount={totalCount}
-          pageSize={pageSize}
-          onPageChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-          onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(1); }}
-        />
-      )}
-
       {/* Modals */}
       <SubscriptionFormModal isOpen={formOpen}    onClose={() => setFormOpen(false)} onSave={handleCreate} />
       <SubscriptionFormModal isOpen={!!editBill}  onClose={() => setEditBill(null)}  onSave={handleUpdate} bill={editBill} />
+      <PayBillModal isOpen={!!payBill} onClose={() => setPayBill(null)} onPay={handlePay} bill={payBill} />
     </PageLayout>
   );
 }

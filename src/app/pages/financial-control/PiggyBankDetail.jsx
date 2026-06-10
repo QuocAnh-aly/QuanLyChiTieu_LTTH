@@ -125,7 +125,7 @@ export function PiggyBankDetail() {
   };
 
   const handleReset = async () => {
-    if (!window.confirm("Xóa toàn bộ lịch sử giao dịch? Số tiền đã tiết kiệm sẽ về 0.")) return;
+    if (!await confirmDialog("Xóa toàn bộ lịch sử giao dịch? Số tiền đã tiết kiệm sẽ về 0.")) return;
     try {
       await piggyBankApi.resetHistory(id);
       await load();
@@ -138,7 +138,7 @@ export function PiggyBankDetail() {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Xóa "${goal?.title}"? Toàn bộ lịch sử sẽ bị xóa.`)) return;
+    if (!await confirmDialog(`Xóa "${goal?.title}"? Toàn bộ lịch sử sẽ bị xóa.`)) return;
     try {
       await piggyBankApi.delete(id);
       toast.success(`Đã xóa "${goal?.title}".`);

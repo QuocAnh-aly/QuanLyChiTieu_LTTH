@@ -18,6 +18,7 @@ import { AddTransactionModal } from "../../components/modals/AddTransactionModal
 import { EditTransactionModal } from "../../components/modals/EditTransactionModal";
 import { useSettings } from "../../context/SettingsContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { confirmDialog } from "../../utils/confirmDialog";
 
 // typeId: 1=Assets, 2=Liabilities, 4=Revenue, 5=Expense
 // Source = credit side, Destination = debit side (Firefly III model)
@@ -222,7 +223,7 @@ export function Transactions() {
   };
 
   const handleDelete = async (id, description) => {
-    if (!window.confirm(`Xóa giao dịch "${description || 'này'}"?`)) return;
+    if (!await confirmDialog(`Xóa giao dịch "${description || 'này'}"?`)) return;
     try {
       await transactionApi.delete(id);
       await loadData(true);
@@ -268,7 +269,7 @@ export function Transactions() {
     return                    <span className="text-card-foreground">-{fmt(t.totalAmount)}</span>;
   };
 
-  const txBg   = (t) => t.isRepayment ? "bg-red-100" : t.isTransfer ? "bg-blue-50" : t.isIncome ? "bg-green-100" : "bg-red-50";
+  const txBg   = (t) => t.isRepayment ? "bg-red-100" : t.isTransfer ? "bg-blue-100" : t.isIncome ? "bg-green-100" : "bg-red-100";
   const TxIcon = (t) => t.isRepayment ? HandCoins : t.isTransfer ? ArrowLeftRight : t.isIncome ? ArrowUpRight : ArrowDownRight;
   const txIconCls = (t) => t.isRepayment ? "text-red-600" : t.isTransfer ? "text-blue-500" : t.isIncome ? "text-green-600" : "text-red-500";
 

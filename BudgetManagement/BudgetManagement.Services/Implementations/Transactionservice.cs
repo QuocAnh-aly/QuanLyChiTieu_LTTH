@@ -57,21 +57,41 @@ public class TransactionService : ITransactionService
 
     public async Task<TransactionDto> CreateAsync(int userId, CreateTransactionDto request)
     {
-        // Chi tiêu: tìm Expense account có sẵn — KHÔNG tự động tạo mới
-        if (request.DebitAccountId <= 0 && !string.IsNullOrWhiteSpace(request.ExpenseCategoryName))
+        // Chi tiêu: tìm Expense account — tự động tạo mới nếu chưa tồn tại
+        if (!string.IsNullOrWhiteSpace(request.ExpenseCategoryName))
         {
-            var expenseAcct = await _accountRepo.FindByUserAndNameAsync(userId, TypeExpense, request.ExpenseCategoryName);
-            if (expenseAcct is null)
-                throw new ArgumentException($"Danh mục chi tiêu '{request.ExpenseCategoryName}' chưa tồn tại. Hãy tạo danh mục trước khi ghi giao dịch.");
+            var expenseAcct = 
+                await _accountRepo.GetByIdAsync(request.DebitAccountId)
+                ?? await _accountRepo.CreateAsync(new Account
+                {
+                    UserId        = userId,
+                    TypeId        = TypeExpense,
+                    Name          = request.ExpenseCategoryName.Trim(),
+                    IconName      = "Coffee",
+                    Color         = "red",
+                    Balance       = 0,
+                    CurrencyCode  = "VND",
+                    IsActive      = true,
+                });
             request.DebitAccountId = expenseAcct.AccountId;
         }
 
-        // Thu nhập: tìm Revenue account có sẵn — KHÔNG tự động tạo mới
-        if (request.CreditAccountId <= 0 && !string.IsNullOrWhiteSpace(request.IncomeCategoryName))
+        // Thu nhập: tìm Revenue account có sẵn — CÓ tự động tạo mới
+        if (!string.IsNullOrWhiteSpace(request.IncomeCategoryName))
         {
-            var revenueAcct = await _accountRepo.FindByUserAndNameAsync(userId, TypeRevenue, request.IncomeCategoryName);
-            if (revenueAcct is null)
-                throw new ArgumentException($"Nguồn thu '{request.IncomeCategoryName}' chưa tồn tại. Hãy tạo nguồn thu trước khi ghi giao dịch.");
+            var revenueAcct = 
+                await _accountRepo.GetByIdAsync(request.CreditAccountId)
+                ?? await _accountRepo.CreateAsync(new Account
+                {
+                    UserId        = userId,
+                    TypeId        = TypeRevenue,
+                    Name          = request.IncomeCategoryName.Trim(),
+                    IconName      = "BriefcaseBusiness",
+                    Color         = "green",
+                    Balance       = 0,
+                    CurrencyCode  = "VND",
+                    IsActive      = true,
+                });
             request.CreditAccountId = revenueAcct.AccountId;
         }
 
@@ -92,6 +112,7 @@ public class TransactionService : ITransactionService
             Description     = request.Description ?? "Unknown",
             Notes           = request.Notes,
             Tags            = request.Tags,
+            BillId          = request.BillId,
             CreatedAt       = DateTime.UtcNow
         };
 
@@ -241,7 +262,7 @@ public class TransactionService : ITransactionService
     private static TransactionDto MapToDto(JournalEntry e) => new()
     {
         JournalId       = e.JournalId,
-        TransactionDate = e.TransactionDate,
+        TransactionDate = DateTime.SpecifyKind(e.TransactionDate, DateTimeKind.Utc),
         Description     = e.Description,
         Notes           = e.Notes,
         Tags            = e.Tags,

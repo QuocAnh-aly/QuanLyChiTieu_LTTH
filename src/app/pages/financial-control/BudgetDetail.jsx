@@ -20,6 +20,7 @@ import { transactionApi } from "../../api/transactionApi";
 import { useSettings } from "../../context/SettingsContext";
 import { PageLayout } from "../../components/layout/PageLayout";
 import { shouldShowToast } from "../../utils/toastOnce";
+import { confirmDialog } from "../../utils/confirmDialog";
 import { EditBudgetModal } from "../../components/modals/EditBudgetModal";
 import { ICON_MAP as iconMap, COLOR_MAP as colorMap } from "../../utils/icons";
 
@@ -279,7 +280,7 @@ export function BudgetDetail() {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Xóa ngân sách "${budget?.title}"?`)) return;
+    if (!await confirmDialog(`Xóa ngân sách "${budget?.title}"?`)) return;
     try {
       await budgetApi.deleteBudget(id);
       toast.success(`Đã xóa "${budget?.title}".`);
@@ -293,7 +294,6 @@ export function BudgetDetail() {
 
   const chartData    = useMemo(() => buildChartData(transactions), [transactions]);
   const sourcePie    = useMemo(() => buildPieData(transactions, "sourceAccount"), [transactions]);
-  const destPie      = useMemo(() => buildPieData(transactions, "destAccount"),   [transactions]);
   const cumulative   = useMemo(() => buildCumulativeData(transactions), [transactions]);
   const totalSpent   = useMemo(() => transactions.reduce((s, t) => s + (t.totalAmount ?? 0), 0), [transactions]);
   const avgSpend = useMemo(() => {
@@ -537,11 +537,10 @@ export function BudgetDetail() {
         </div>
       )}
 
-      {/* Source / Destination distribution */}
-      {(sourcePie.length > 0 || destPie.length > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      {/* Source distribution */}
+      {sourcePie.length > 0 && (
+        <div className="mb-6">
           <PieCard title="Chi tiêu theo tài khoản nguồn" data={sourcePie} total={totalSpent} fmt={fmt} />
-          <PieCard title="Chi tiêu theo điểm đến"        data={destPie}   total={totalSpent} fmt={fmt} />
         </div>
       )}
 

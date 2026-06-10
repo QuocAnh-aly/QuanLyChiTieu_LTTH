@@ -8,10 +8,12 @@ namespace BudgetManagement.Services.Implementations;
 public class BillService : IBillService
 {
     private readonly IBillRepository _billRepo;
+    private readonly ITransactionService _transactionService;
 
-    public BillService(IBillRepository billRepo)
+    public BillService(IBillRepository billRepo, ITransactionService transactionService)
     {
         _billRepo = billRepo;
+        _transactionService = transactionService;
     }
 
     public async Task<IEnumerable<BillDto>> GetAllAsync(int userId)
@@ -95,17 +97,23 @@ public class BillService : IBillService
                    ?? throw new KeyNotFoundException("Bill not found.");
         if (bill.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
 
-        bill.Name          = request.Name?.Trim()          ?? bill.Name;
-        bill.AmountMin     = request.AmountMin             ?? bill.AmountMin;
-        bill.AmountMax     = request.AmountMax             ?? bill.AmountMax;
-        bill.Date          = request.Date?.Date            ?? bill.Date;
-        bill.EndDate       = request.EndDate.HasValue       ? request.EndDate.Value.Date : bill.EndDate;
-        bill.ExtensionDate = request.ExtensionDate.HasValue ? request.ExtensionDate.Value.Date : bill.ExtensionDate;
-        bill.RepeatFreq    = request.RepeatFreq            ?? bill.RepeatFreq;
-        bill.Skip          = request.Skip                  ?? bill.Skip;
-        bill.Active        = request.Active                ?? bill.Active;
-        bill.Notes         = request.Notes?.Trim()         ?? bill.Notes;
-        bill.ObjectGroup   = request.ObjectGroup?.Trim()   ?? bill.ObjectGroup;
+        // Required fields keep their previous value when omitted (the edit form
+        // always sends them, so null here only happens for non-form callers).
+        bill.Name          = request.Name?.Trim()  ?? bill.Name;
+        bill.AmountMin     = request.AmountMin     ?? bill.AmountMin;
+        bill.AmountMax     = request.AmountMax     ?? bill.AmountMax;
+        bill.Date          = request.Date?.Date    ?? bill.Date;
+        bill.RepeatFreq    = request.RepeatFreq    ?? bill.RepeatFreq;
+        bill.Skip          = request.Skip          ?? bill.Skip;
+        bill.Active        = request.Active        ?? bill.Active;
+
+        // Optional fields: the form is authoritative and always sends the current
+        // value, so a null means the user cleared it — assign directly so it can
+        // actually be wiped (the old "?? bill.X" made them impossible to clear).
+        bill.EndDate       = request.EndDate?.Date;
+        bill.ExtensionDate = request.ExtensionDate?.Date;
+        bill.Notes         = request.Notes?.Trim();
+        bill.ObjectGroup   = request.ObjectGroup?.Trim();
 
         var updated = await _billRepo.UpdateAsync(bill);
         var entries = (await _billRepo.GetLinkedEntriesAsync(billId)).ToList();
@@ -137,14 +145,45 @@ public class BillService : IBillService
         return MapToDto(bill, DateTime.Today, entries, false);
     }
 
+    public async Task<BillDto> PayAsync(int userId, int billId, PayBillDto request)
+    {
+        var bill = await _billRepo.GetByIdAsync(billId)
+                   ?? throw new KeyNotFoundException("Bill not found.");
+        if (bill.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
+        if (!bill.Active) throw new InvalidOperationException("Cannot pay an inactive bill.");
+        if (request.Amount <= 0) throw new ArgumentException("Số tiền phải lớn hơn 0.");
+        if (request.WalletAccountId <= 0) throw new ArgumentException("Vui lòng chọn ví để trả.");
+        if ((request.ExpenseAccountId is null or <= 0) && string.IsNullOrWhiteSpace(request.ExpenseCategoryName))
+            throw new ArgumentException("Vui lòng chọn danh mục chi.");
+
+        // A bill payment is an ordinary expense transaction stamped with BillId so
+        // the bill's current period flips to "paid". Delegate to TransactionService
+        // to reuse all double-entry balance + budget logic (no duplication).
+        var txRequest = new CreateTransactionDto
+        {
+            DebitAccountId      = request.ExpenseAccountId ?? 0,
+            CreditAccountId     = request.WalletAccountId,
+            ExpenseCategoryName = request.ExpenseCategoryName,
+            Amount              = request.Amount,
+            Description         = bill.Name,
+            Notes               = request.Notes,
+            TransactionDate     = request.Date ?? DateTime.UtcNow,
+            BillId              = billId,
+        };
+        await _transactionService.CreateAsync(userId, txRequest);
+
+        var entries = (await _billRepo.GetLinkedEntriesAsync(billId)).ToList();
+        return MapToDto(bill, DateTime.Today, entries, false);
+    }
+
     // ─── Helpers ────────────────────────────────────────────────────────────────
 
     private static BillDto MapToDto(Bill b, DateTime today,
         List<JournalEntry> entries, bool includeTransactions)
     {
         var next        = ComputeNextExpectedMatch(b, today);
-        var paidStatus  = ComputePaidStatus(b, today, next, entries);
-        var periodTxId  = GetCurrentPeriodTransactionId(b, today, next, entries);
+        var paidStatus  = ComputePaidStatus(b, today, entries);
+        var periodTxId  = GetCurrentPeriodTransactionId(b, today, entries);
         var avgAmount   = (b.AmountMin + b.AmountMax) / 2m;
 
         var dto = new BillDto
@@ -200,7 +239,7 @@ public class BillService : IBillService
         return current;
     }
 
-    private static string ComputePaidStatus(Bill b, DateTime today, DateTime? next,
+    private static string ComputePaidStatus(Bill b, DateTime today,
         List<JournalEntry> entries)
     {
         if (!b.Active) return "inactive";
@@ -211,7 +250,11 @@ public class BillService : IBillService
         var periodStart = GetPeriodStart(b, today);
         if (periodStart == null) return "not_expected"; // bill hasn't started yet
 
-        var periodEnd = next ?? AdvanceDate(periodStart.Value, b.RepeatFreq, b.Skip + 1);
+        // Period window = [periodStart, periodStart + 1 interval). Derive the end
+        // from periodStart, NOT from nextExpected: when today lands exactly on a
+        // cycle date, nextExpected == periodStart, which would make an empty
+        // window and a payment dated today would never count as paid.
+        var periodEnd = AdvanceDate(periodStart.Value, b.RepeatFreq, b.Skip + 1);
 
         var hasPaid = entries.Any(e =>
             e.TransactionDate.Date >= periodStart.Value.Date &&
@@ -220,15 +263,17 @@ public class BillService : IBillService
         return hasPaid ? "paid" : "expected_unpaid";
     }
 
-    private static int GetCurrentPeriodTransactionId(Bill b, DateTime today, DateTime? next,
+    private static int GetCurrentPeriodTransactionId(Bill b, DateTime today,
         List<JournalEntry> entries)
     {
         var periodStart = GetPeriodStart(b, today);
-        if (periodStart == null || next == null) return 0;
+        if (periodStart == null) return 0;
+
+        var periodEnd = AdvanceDate(periodStart.Value, b.RepeatFreq, b.Skip + 1);
 
         var tx = entries.FirstOrDefault(e =>
             e.TransactionDate.Date >= periodStart.Value.Date &&
-            e.TransactionDate.Date < next.Value.Date);
+            e.TransactionDate.Date < periodEnd.Date);
 
         return tx?.JournalId ?? 0;
     }

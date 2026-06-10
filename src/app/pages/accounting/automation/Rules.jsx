@@ -126,7 +126,7 @@ export function Rules() {
   };
 
   const deleteRule = async (rule) => {
-    if (!window.confirm(`Xóa quy tắc "${rule.title}"?`)) return;
+    if (!await confirmDialog(`Xóa quy tắc "${rule.title}"?`)) return;
     try {
       await ruleApi.delete(rule.rule_id);
       toast.success('Đã xóa quy tắc');
@@ -142,7 +142,7 @@ export function Rules() {
   };
 
   const triggerRule = async (rule) => {
-    if (!window.confirm(`Áp dụng "${rule.title}" cho tất cả giao dịch khớp?`)) return;
+    if (!await confirmDialog(`Áp dụng "${rule.title}" cho tất cả giao dịch khớp?`, { destructive: false, title: 'Áp dụng quy tắc' })) return;
     try {
       const res = await ruleApi.trigger(rule.rule_id);
       toast.success(`Đã áp dụng: ${res.applied_count}/${res.matched_count} giao dịch được cập nhật`);
