@@ -21,9 +21,12 @@ export function confirmDialog(message, { destructive = true, title = "Xác nhậ
     document.body.appendChild(container);
     const root = createRoot(container);
 
+    let closed = false;
     const handleClose = (result) => {
+      if (closed) return;
+      closed = true;
       root.unmount();
-      document.body.removeChild(container);
+      container.remove();
       resolve(result);
     };
 
