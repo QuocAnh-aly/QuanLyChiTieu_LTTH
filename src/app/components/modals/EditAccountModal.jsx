@@ -145,9 +145,9 @@ export function EditAccountModal({ isOpen, onClose, onSubmit, account, typeId })
 
     const amount = parseFloat(form.balance) || 0;
     if (isLiability) {
+      // Gộp gốc & còn nợ — initialBalance = balance
       data.balance = -amount;
-      const initBal = parseFloat(form.initialBalance) || amount;
-      data.initialBalance = -initBal;
+      data.initialBalance = -amount;
     } else {
       data.balance = amount;
       if (isAsset) {
@@ -246,32 +246,17 @@ export function EditAccountModal({ isOpen, onClose, onSubmit, account, typeId })
                 </div>
               </div>
 
-              {/* Initial balance (liability only) */}
+              {/* Ghi chú: initialBalance được tự động đồng bộ = balance khi submit */}
               {isLiability && (
-                <div className="mt-3">
-                  <label className="block text-sm font-semibold text-foreground mb-1.5">
-                    Gốc
-                    <span className="text-muted-foreground font-normal">
-                      {" "}(tùy chọn)
-                    </span>
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold text-sm">
-                      {currencySymbol}
-                    </span>
-                    <input
-                      type="text"
-                      value={formatVND(form.initialBalance)}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          initialBalance: parseVND(e.target.value),
-                        }))
-                      }
-                      placeholder="0"
-                      className="w-full pl-9 pr-4 py-2.5 border border-border rounded-xl text-sm font-semibold tracking-tight focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
-                    />
-                  </div>
+                <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-200 dark:border-amber-800">
+                  <p className="text-[11px] text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="12" y1="16" x2="12" y2="12"/>
+                      <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    Nợ gốc được tự động đồng bộ với dư nợ hiện tại. Khi phát sinh giao dịch trả nợ, dư nợ sẽ giảm dần.
+                  </p>
                 </div>
               )}
 
@@ -428,11 +413,10 @@ export function EditAccountModal({ isOpen, onClose, onSubmit, account, typeId })
                     {currencySymbol}
                   </span>
                 </div>
-                {isLiability && form.initialBalance && (
+                {isLiability && (
                   <div className="flex items-center gap-2 mt-1.5">
                     <span className="text-[11px] text-white/70">
-                      Gốc: {formatVND(Math.abs(parseFloat(form.initialBalance) || 0))}{" "}
-                      {currencySymbol}
+                      Gốc = dư nợ hiện tại — sẽ giảm khi có giao dịch trả nợ
                     </span>
                   </div>
                 )}

@@ -342,11 +342,10 @@ export function AccountFormModal({
       };
     }
     if (isLiability) {
-      const initBal = parseFloat(form.initialBalance) || amount;
       return {
         balanceAfter: -amount,
-        initialBalanceAfter: -initBal,
-        description: `Nợ ${formatVND(amount)}${initBal !== amount ? ` (gốc ${formatVND(initBal)})` : ""}`,
+        initialBalanceAfter: -amount,
+        description: `Nợ ${formatVND(amount)}`,
       };
     }
     if (isAsset) {
@@ -516,14 +515,15 @@ export function AccountFormModal({
     };
 
     if (isLiability) {
-      const currentDebt = parseFloat(form.balance) || parseFloat(form.initialBalance) || 0;
+      const currentDebt = parseFloat(form.balance) || 0;
       if (hasSource) {
         data.sourceAccountId = parseInt(form.sourceAccountId);
         data.balance = currentDebt;
         data.initialBalance = -currentDebt;
       } else {
+        // Gộp gốc & còn nợ thành một — cả balance và initialBalance đều lấy từ 1 giá trị
         data.balance = -currentDebt;
-        data.initialBalance = -(parseFloat(form.initialBalance) || currentDebt);
+        data.initialBalance = -currentDebt;
       }
     } else {
       // Asset/Revenue
@@ -687,52 +687,29 @@ export function AccountFormModal({
                   </div>
                 )}
 
-                {/* Liability without source: 2 fields */}
+                {/* Liability without source: 1 field (gộp gốc + còn nợ) */}
                 {isLiability && !hasSource && (
-                  <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
-                    <div>
-                      <label className="block text-sm font-semibold text-foreground mb-1.5">
-                        Gốc
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold text-sm">
-                          {currencySymbol}
-                        </span>
-                        <input
-                          type="text"
-                          value={formatVND(form.initialBalance)}
-                          onChange={(e) =>
-                            setForm((f) => ({
-                              ...f,
-                              initialBalance: parseVND(e.target.value),
-                            }))
-                          }
-                          placeholder="300.000.000"
-                          className="w-full pl-9 pr-4 py-3 border border-border rounded-xl text-sm font-semibold tracking-tight focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-foreground mb-1.5">
-                        Còn nợ <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold text-sm">
-                          {currencySymbol}
-                        </span>
-                        <input
-                          type="text"
-                          value={formatVND(form.balance)}
-                          onChange={(e) =>
-                            setForm((f) => ({
-                              ...f,
-                              balance: parseVND(e.target.value),
-                            }))
-                          }
-                          placeholder="250.000.000"
-                          className="w-full pl-9 pr-4 py-3 border border-border rounded-xl text-sm font-semibold tracking-tight focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
-                        />
-                      </div>
+                  <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">
+                      Dư nợ còn lại <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold text-lg">
+                        {currencySymbol}
+                      </span>
+                      <input
+                        type="text"
+                        value={formatVND(form.balance)}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            balance: parseVND(e.target.value),
+                          }))
+                        }
+                        placeholder="250.000.000"
+                        className="w-full pl-12 pr-4 py-3.5 border-2 border-border focus:border-purple-400 rounded-xl text-lg font-bold tracking-tight focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-all duration-200"
+                        autoFocus
+                      />
                     </div>
                   </div>
                 )}
@@ -1193,33 +1170,16 @@ export function AccountFormModal({
                 </div>
                 {isLiability &&
                   !hasSource &&
-                  preview.initialBalanceAfter !== 0 && (
+                  Math.abs(preview.balanceAfter) > 0 && (
                     <div className="flex items-center gap-2 mt-1.5">
-                      <span className="text-[11px] text-white/70">
-                        Gốc: {formatVND(Math.abs(preview.initialBalanceAfter))}{" "}
-                        {currencySymbol}
+                      <span className="text-[11px] text-white/70 flex items-center gap-1">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"/>
+                          <line x1="12" y1="16" x2="12" y2="12"/>
+                          <line x1="12" y1="8" x2="12.01" y2="8"/>
+                        </svg>
+                        Số dư nợ sẽ giảm khi phát sinh giao dịch trả nợ
                       </span>
-                      {preview.initialBalanceAfter !== preview.balanceAfter && (
-                        <span
-                          className={`text-[11px] font-semibold ${
-                            Math.abs(preview.balanceAfter) <
-                            Math.abs(preview.initialBalanceAfter)
-                              ? "text-green-300"
-                              : "text-red-300"
-                          }`}
-                        >
-                          {Math.abs(preview.balanceAfter) <
-                          Math.abs(preview.initialBalanceAfter)
-                            ? "✓"
-                            : "✗"}
-                          {formatVND(
-                            Math.abs(
-                              Math.abs(preview.initialBalanceAfter) -
-                                Math.abs(preview.balanceAfter),
-                            ),
-                          )}
-                        </span>
-                      )}
                     </div>
                   )}
               </div>
