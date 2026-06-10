@@ -262,7 +262,7 @@ public class TransactionService : ITransactionService
     private static TransactionDto MapToDto(JournalEntry e) => new()
     {
         JournalId       = e.JournalId,
-        TransactionDate = e.TransactionDate,
+        TransactionDate = DateTime.SpecifyKind(e.TransactionDate, DateTimeKind.Utc),
         Description     = e.Description,
         Notes           = e.Notes,
         Tags            = e.Tags,

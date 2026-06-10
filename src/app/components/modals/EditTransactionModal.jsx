@@ -27,6 +27,7 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
 
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedTags, setSelectedTags] = useState([]);
@@ -36,8 +37,13 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
     setDescription(transaction.description ?? "");
     setDate(
       transaction.transactionDate
-        ? new Date(transaction.transactionDate).toISOString().slice(0, 10)
-        : new Date().toISOString().slice(0, 10),
+        ? format(new Date(transaction.transactionDate), "yyyy-MM-dd")
+        : format(new Date(), "yyyy-MM-dd"),
+    );
+    setTime(
+      transaction.transactionDate
+        ? format(new Date(transaction.transactionDate), "HH:mm")
+        : format(new Date(), "HH:mm"),
     );
     setAmount(String(transaction.totalAmount ?? 0));
     setNotes(transaction.notes ?? "");
@@ -102,7 +108,7 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
       description: description.trim() || null,
       notes: notes.trim() || null,
       tags: selectedTags.length > 0 ? selectedTags.join(",") : null,
-      transactionDate: new Date(date).toISOString(),
+      transactionDate: new Date(`${date}T${time}`).toISOString(),
       amount: isNaN(parsed) || parsed <= 0 ? undefined : parsed,
     });
   };
@@ -110,12 +116,10 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
   return (
     <div
       className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
-      onClick={onClose}
-    >
+      onClick={onClose}>
       <div
         className="bg-card rounded-2xl shadow-2xl w-full max-w-sm mx-4 max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
+        onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-card rounded-t-2xl z-10">
           <h2 className="text-base font-bold text-card-foreground">
@@ -123,8 +127,7 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
           </h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
-          >
+            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">
             <X size={18} />
           </button>
         </div>
@@ -133,15 +136,13 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
         <div className="px-5 py-4 bg-muted border-b border-border">
           <div className="flex items-center gap-3">
             <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${iconBg}`}
-            >
+              className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${iconBg}`}>
               <Icon size={18} className={iconCls} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
                 <span
-                  className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${typeBg}`}
-                >
+                  className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${typeBg}`}>
                   {typeLabel}
                 </span>
                 <span className="text-xs text-muted-foreground">
@@ -206,16 +207,24 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-1.5">
-                Ngày giao dịch
+              <label className="block text-sm font-semibold text-foreground mb-2">
+                Thời gian giao dịch
               </label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                required
-              />
+              <div className="flex items-center gap-2 bg-background">
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="flex-1 px-4 py-2.5 border border-border bg-transparent text-sm"
+                />
+                <div className="w-px h-6 bg-border" />
+                <input
+                  type="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  className="w-36 px-4 py-2.5 border border-border bg-transparent outline-none text-sm"
+                />
+              </div>
             </div>
 
             {/* Tags */}
@@ -237,8 +246,7 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
                           active
                             ? colorCls
                             : "bg-card border-border text-muted-foreground hover:border-border"
-                        }`}
-                      >
+                        }`}>
                         {tag.name}
                       </button>
                     );
@@ -260,22 +268,18 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
                 placeholder="Thêm ghi chú chi tiết..."
               />
             </div>
-
-
           </div>
 
           <div className="flex gap-3 px-5 py-4 border-t border-border">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold text-sm"
-            >
+              className="flex-1 px-4 py-2.5 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold text-sm">
               Hủy
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-sm"
-            >
+              className="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-sm">
               Lưu thay đổi
             </button>
           </div>

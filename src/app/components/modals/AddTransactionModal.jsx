@@ -9,6 +9,7 @@ import {
   Coffee,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { format } from "date-fns";
 
 import { accountApi } from "../../api/accountApi";
 import { budgetApi } from "../../api/budgetApi";
@@ -102,7 +103,10 @@ export function AddTransactionModal({
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedTags, setSelectedTags] = useState([]);
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+
+  const now = new Date();
+  const [date, setDate] = useState(format(now, "yyyy-MM-dd"));
+  const [time, setTime] = useState(format(now, "HH:mm"));
 
   const [createAnother, setCreateAnother] = useState(false);
   const [budgets, setBudgets] = useState([]);
@@ -192,7 +196,7 @@ export function AddTransactionModal({
       description: description || null,
       notes: notes || null,
       tags: selectedTags.length > 0 ? selectedTags.join(",") : null,
-      transactionDate: new Date(date).toISOString(),
+      transactionDate: new Date(`${date}T${time}`).toISOString(),
     };
 
     let payload;
@@ -382,6 +386,7 @@ export function AddTransactionModal({
                             (b) => b.accountId === cat.accountId,
                           );
                           if (matching) setSelectedBudget(matching);
+                          else setSelectedBudget(null);
                         }}
                         className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
                           expenseCategory.accountId === cat.accountId &&
@@ -769,17 +774,26 @@ export function AddTransactionModal({
               </>
             )}
 
-            {/* Date */}
+            {/* Date & Time */}
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-1.5">
-                Ngày giao dịch
+              <label className="block text-sm font-semibold text-foreground mb-2">
+                Thời gian giao dịch
               </label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-              />
+              <div className="flex items-center gap-2 bg-background">
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="flex-1 px-4 py-2.5 border border-border bg-transparent text-sm"
+                />
+                <div className="w-px h-6 bg-border" />
+                <input
+                  type="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  className="w-36 px-4 py-2.5 border border-border bg-transparent outline-none text-sm"
+                />
+              </div>
             </div>
 
             {/* Tags */}
