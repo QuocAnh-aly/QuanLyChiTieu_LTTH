@@ -776,24 +776,24 @@ export function AddTransactionModal({
 
             {/* Date & Time */}
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-1.5">
-                Ngày giao dịch
+              <label className="block text-sm font-semibold text-foreground mb-2">
+                Thời gian giao dịch
               </label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-              />
-              <label className="block text-sm font-semibold text-foreground mb-1.5">
-                Giờ giao dịch
-              </label>
-              <input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-              />
+              <div className="flex items-center gap-2 bg-background">
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="flex-1 px-4 py-2.5 border border-border bg-transparent text-sm"
+                />
+                <div className="w-px h-6 bg-border" />
+                <input
+                  type="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  className="w-36 px-4 py-2.5 border border-border bg-transparent outline-none text-sm"
+                />
+              </div>
             </div>
 
             {/* Tags */}
