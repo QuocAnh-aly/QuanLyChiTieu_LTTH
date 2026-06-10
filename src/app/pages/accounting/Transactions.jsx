@@ -269,7 +269,7 @@ export function Transactions() {
     return                    <span className="text-card-foreground">-{fmt(t.totalAmount)}</span>;
   };
 
-  const txBg   = (t) => t.isRepayment ? "bg-red-100" : t.isTransfer ? "bg-blue-50" : t.isIncome ? "bg-green-100" : "bg-red-50";
+  const txBg   = (t) => t.isRepayment ? "bg-red-100" : t.isTransfer ? "bg-blue-100" : t.isIncome ? "bg-green-100" : "bg-red-100";
   const TxIcon = (t) => t.isRepayment ? HandCoins : t.isTransfer ? ArrowLeftRight : t.isIncome ? ArrowUpRight : ArrowDownRight;
   const txIconCls = (t) => t.isRepayment ? "text-red-600" : t.isTransfer ? "text-blue-500" : t.isIncome ? "text-green-600" : "text-red-500";
 
