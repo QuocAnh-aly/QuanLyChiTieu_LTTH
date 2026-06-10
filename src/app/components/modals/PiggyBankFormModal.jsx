@@ -1,6 +1,5 @@
-import { X, PiggyBank, Landmark } from "lucide-react";
+import { X, PiggyBank } from "lucide-react";
 import { useState, useEffect } from "react";
-import { walletApi } from "../../api/walletApi";
 import { useSettings } from "../../context/SettingsContext";
 import { formatVND, parseVND } from "../../utils/formatMoney";
 
@@ -8,13 +7,10 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
   const { fmt, currencies, currency } = useSettings();
   const isEdit = !!goal;
 
-  const [accounts, setAccounts] = useState([]);
-
   // Mandatory
   const [name, setName] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
   const [selectedCurrency, setSelectedCurrency] = useState("");
-  const [selectedAccounts, setSelectedAccounts] = useState([]);
 
   // Optional
   const [targetDate, setTargetDate] = useState("");
@@ -23,18 +19,15 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
   const [monthly, setMonthly] = useState("");
 
   const [returnHere, setReturnHere] = useState(false);
+  const parsedAmount = parseFloat(targetAmount);
+  const canSubmit = name.trim() && parsedAmount > 0;
 
   useEffect(() => {
     if (!isOpen) return;
-    walletApi
-      .getByType(1)
-      .then((data) => setAccounts(data.items || data || []))
-      .catch(() => {});
     if (goal) {
       setName(goal.title ?? "");
       setTargetAmount(String(goal.targetAmount ?? ""));
-      setSelectedCurrency(goal.currency ?? currency);
-      setSelectedAccounts(goal.accountId ? [String(goal.accountId)] : []);
+      setSelectedCurrency(goal.currencyCode ?? goal.currency ?? currency);
       setTargetDate(goal.targetDate ?? "");
       setNotes(goal.notes ?? "");
       setObjectGroup(goal.objectGroup ?? "");
@@ -43,7 +36,6 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
       setName("");
       setTargetAmount("");
       setSelectedCurrency(currency);
-      setSelectedAccounts([]);
       setTargetDate("");
       setNotes("");
       setObjectGroup("");
@@ -53,40 +45,24 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
   }, [isOpen, goal, currency]);
 
   if (!isOpen) return null;
-  const handleAccountChange = (e) => {
-    const options = e.target.options;
-    const values = [];
-    for (let i = 0; i < options.length; i++) {
-      if (options[i].selected) {
-        values.push(options[i].value);
-      }
-    }
-    setSelectedAccounts(values);
-  };
-
-  const canSubmit = name.trim() && targetAmount && selectedAccounts.length > 0;
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!canSubmit) return;
     onSave({
-      accountId: parseInt(selectedAccounts[0]) || (goal?.accountId ?? 0),
       title: name.trim(),
       targetAmount: parseFloat(targetAmount),
       monthlyContribution: parseFloat(monthly) || 0,
       targetDate: targetDate || null,
       notes: notes.trim() || null,
-      currency: selectedCurrency,
-      objectGroup: objectGroup.trim() || null,
+      currencyCode: selectedCurrency,
       iconName: goal?.iconName || "PiggyBank",
       color: goal?.color || "green",
-      returnHere,
     });
     if (returnHere && !isEdit) {
       setName("");
       setTargetAmount("");
       setNotes("");
-      setSelectedAccounts([]);
     }
   };
 
@@ -184,32 +160,22 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">
-                      Lưu vào tài khoản
+                  {/* Piggy Wallet notice */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <label className="sm:w-36 text-sm font-medium text-muted-foreground sm:text-right shrink-0">
+                      Tài khoản
                     </label>
-                    <div className="flex-1">
-                      <select
-                        multiple
-                        size={6}
-                        value={selectedAccounts}
-                        onChange={handleAccountChange}
-                        required
-                        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card"
-                      >
-                        {accounts.map((a) => (
-                          <option
-                            key={a.accountId}
-                            value={a.accountId}
-                            className="py-1 hover:bg-purple-50"
-                          >
-                            {a.name}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Chỉ chấp nhận tài khoản cùng loại tiền tệ.
-                      </p>
+                    <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
+                      <PiggyBank
+                        size={16}
+                        className="text-green-600 shrink-0"
+                      />
+                      <span className="text-sm text-green-700 font-medium">
+                        Piggy Wallet
+                      </span>
+                      <span className="text-xs text-green-600 ml-1">
+                        (Tài khoản hệ thống)
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -287,20 +253,6 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
                       onChange={(e) => setObjectGroup(e.target.value)}
                       className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                       placeholder="Nhóm"
-                    />
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 hidden">
-                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0">
-                      Tiết kiệm hàng tháng
-                    </label>
-                    <input
-                      type="number"
-                      value={monthly}
-                      onChange={(e) => setMonthly(e.target.value)}
-                      min="0"
-                      step="1"
-                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                   </div>
                 </div>

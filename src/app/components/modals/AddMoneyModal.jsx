@@ -1,10 +1,27 @@
-import { X, Plus, PiggyBank } from "lucide-react";
-import { useState } from "react";
+import { X, Plus, PiggyBank, Wallet } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useSettings } from "../../context/SettingsContext";
+import { walletApi } from "../../api/walletApi";
+import { formatVND, parseVND } from "../../utils/formatMoney";
+
 export function AddMoneyModal({ isOpen, onClose, onSave, goal }) {
   const { fmt, currencySymbol } = useSettings();
+
+  const [accounts, setAccounts] = useState([]);
+  const [sourceAccountId, setSourceAccountId] = useState("");
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setSourceAccountId("");
+    setAmount("");
+    setNotes("");
+    walletApi
+      .getByType(1)
+      .then((data) => setAccounts(data.items || data || []))
+      .catch(() => setAccounts([]));
+  }, [isOpen]);
 
   if (!isOpen || !goal) return null;
 
@@ -12,14 +29,20 @@ export function AddMoneyModal({ isOpen, onClose, onSave, goal }) {
     goal.leftToSave ?? Math.max(0, goal.targetAmount - goal.currentAmount);
   const maxAmount = leftToSave;
   const enteredAmount = parseFloat(amount) || 0;
-  const canSubmit = enteredAmount > 0 && enteredAmount <= maxAmount;
+  const canSubmit =
+    enteredAmount > 0 && enteredAmount <= maxAmount && sourceAccountId;
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!canSubmit) return;
-    onSave({ amount: enteredAmount, notes: notes.trim() || null });
+    onSave({
+      amount: enteredAmount,
+      notes: notes.trim() || null,
+      sourceAccountId: parseInt(sourceAccountId),
+    });
     setAmount("");
     setNotes("");
+    setSourceAccountId("");
   };
 
   return (
@@ -58,14 +81,14 @@ export function AddMoneyModal({ isOpen, onClose, onSave, goal }) {
                 {goal.title}
               </p>
               <div className="flex items-center gap-2 mt-0.5">
-                <div className="flex-1 h-1.5 bg-muted rounded-full">
+                <div className="flex-1 h-1.5 bg-background rounded-full">
                   <div
                     className="h-1.5 bg-green-500 rounded-full transition-all"
-                    style={{ width: `${Math.min(goal.percentage, 100)}%` }}
+                    style={{ width: `${Math.min(goal.percentage ?? 0, 100)}%` }}
                   />
                 </div>
                 <span className="text-xs text-muted-foreground shrink-0">
-                  {goal.percentage?.toFixed(1)}%
+                  {(goal.percentage ?? 0).toFixed(1)}%
                 </span>
               </div>
             </div>
@@ -80,6 +103,41 @@ export function AddMoneyModal({ isOpen, onClose, onSave, goal }) {
 
         <form onSubmit={handleSubmit}>
           <div className="px-5 py-4 space-y-4">
+            {/* Luồng tiền */}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+              <Wallet size={13} className="shrink-0" />
+              <span>Ví nguồn</span>
+              <span className="mx-1">→</span>
+              <PiggyBank size={13} className="text-green-600 shrink-0" />
+              <span className="text-green-600 font-medium truncate">
+                {goal.title}
+              </span>
+            </div>
+
+            {/* Chọn ví nguồn */}
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-1.5">
+                Ví nguồn <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={sourceAccountId}
+                onChange={(e) => setSourceAccountId(e.target.value)}
+                required
+                className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-card"
+              >
+                <option value="">Chọn ví...</option>
+                {accounts.map((a) => (
+                  <option key={a.accountId} value={a.accountId}>
+                    {a.name}
+                    {a.balance != null
+                      ? ` — ${Number(a.balance).toLocaleString("vi-VN")} ₫`
+                      : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Số tiền */}
             <div>
               <label className="block text-sm font-semibold text-foreground mb-1.5">
                 Số tiền nạp <span className="text-red-500">*</span>
@@ -90,12 +148,9 @@ export function AddMoneyModal({ isOpen, onClose, onSave, goal }) {
                 </span>
                 <input
                   autoFocus
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  min="1"
-                  step="1"
-                  max={maxAmount}
+                  type="text"
+                  value={formatVND(amount)}
+                  onChange={(e) => setAmount(parseVND(e.target.value))}
                   className={`w-full pl-9 pr-4 py-2.5 border rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 ${
                     enteredAmount > maxAmount
                       ? "border-red-400 focus:ring-red-400"
@@ -107,7 +162,7 @@ export function AddMoneyModal({ isOpen, onClose, onSave, goal }) {
               </div>
               {enteredAmount > maxAmount && (
                 <p className="text-xs text-red-500 mt-1">
-                  Tối đa có thể nạp: {formatVND(fmt(maxAmount))}
+                  Tối đa có thể nạp: {fmt(maxAmount)}
                 </p>
               )}
               <p className="text-xs text-muted-foreground mt-1">
@@ -115,6 +170,7 @@ export function AddMoneyModal({ isOpen, onClose, onSave, goal }) {
               </p>
             </div>
 
+            {/* Ghi chú */}
             <div>
               <label className="block text-sm font-semibold text-foreground mb-1.5">
                 Ghi chú
