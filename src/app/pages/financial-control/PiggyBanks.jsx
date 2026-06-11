@@ -12,7 +12,6 @@ import {
   ArrowUpCircle,
 } from "lucide-react";
 import { piggyBankApi } from "../../api/piggyBankApi";
-import { accountApi } from "../../api/accountApi";
 import { toast } from "sonner";
 import { PiggyBankFormModal } from "../../components/modals/PiggyBankFormModal";
 import { AddMoneyModal } from "../../components/modals/AddMoneyModal";
@@ -71,12 +70,8 @@ export function PiggyBanks() {
   const load = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [gData, aData] = await Promise.all([
-        piggyBankApi.getAll(),
-        accountApi.getByType(1),
-      ]);
+      const gData = await piggyBankApi.getAll();
       setGoals((gData || []).map(mapGoal));
-      setAccounts(aData.items || aData || []);
     } catch {
       toast.error("Không thể tải dữ liệu");
     } finally {

@@ -85,26 +85,26 @@ export function PiggyBankDetail() {
 
   const { addNotification } = useNotifications();
 
-  const handleAddMoney = async ({ amount, notes }) => {
+  const handleAddMoney = async (payload) => {
     try {
-      await piggyBankApi.addMoney(id, { amount, notes });
+      await piggyBankApi.addMoney(id, payload);
       await load();
       setAddOpen(false);
-      toast.success(`Đã nạp ${fmt(amount)}!`);
-      addNotification({ type: 'success', title: 'Đã nạp tiền', message: `${fmt(amount)} đã được nạp vào "${goal?.title}"`, link: `/piggy-banks/${id}` });
+      toast.success(`Đã nạp ${fmt(payload.amount)}!`);
+      addNotification({ type: 'success', title: 'Đã nạp tiền', message: `${fmt(payload.amount)} đã được nạp vào "${goal?.title}"`, link: `/piggy-banks/${id}` });
     } catch {
       toast.error("Không thể nạp tiền");
       addNotification({ type: 'error', title: 'Không thể nạp tiền', message: `Nạp tiền vào "${goal?.title}" thất bại` });
     }
   };
 
-  const handleRemoveMoney = async ({ amount, notes }) => {
+  const handleRemoveMoney = async (payload) => {
     try {
-      await piggyBankApi.removeMoney(id, { amount, notes });
+      await piggyBankApi.removeMoney(id, payload);
       await load();
       setRemoveOpen(false);
-      toast.success(`Đã rút ${fmt(amount)}.`);
-      addNotification({ type: 'warning', title: 'Đã rút tiền', message: `${fmt(amount)} đã được rút từ "${goal?.title}"`, link: `/piggy-banks/${id}` });
+      toast.success(`Đã rút ${fmt(payload.amount)}.`);
+      addNotification({ type: 'warning', title: 'Đã rút tiền', message: `${fmt(payload.amount)} đã được rút từ "${goal?.title}"`, link: `/piggy-banks/${id}` });
     } catch {
       toast.error("Không thể rút tiền");
       addNotification({ type: 'error', title: 'Không thể rút tiền', message: `Rút tiền từ "${goal?.title}" thất bại` });

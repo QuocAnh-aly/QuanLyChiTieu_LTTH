@@ -1,7 +1,7 @@
 import { X, Plus, PiggyBank, Wallet } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSettings } from "../../context/SettingsContext";
-import { walletApi } from "../../api/walletApi";
+import { accountApi } from "../../api/accountApi";
 import { formatVND, parseVND } from "../../utils/formatMoney";
 
 export function AddMoneyModal({ isOpen, onClose, onSave, goal }) {
@@ -17,7 +17,7 @@ export function AddMoneyModal({ isOpen, onClose, onSave, goal }) {
     setSourceAccountId("");
     setAmount("");
     setNotes("");
-    walletApi
+    accountApi
       .getByType(1)
       .then((data) => setAccounts(data.items || data || []))
       .catch(() => setAccounts([]));
