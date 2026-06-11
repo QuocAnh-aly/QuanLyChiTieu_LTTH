@@ -1,34 +1,7 @@
 import { useState } from "react";
-import {
-  Coffee,
-  ShoppingBag,
-  Car,
-  Heart,
-  Zap,
-  Home,
-  Smartphone,
-  GraduationCap,
-  Plane,
-  TrendingUp,
-  Target,
-  Wallet,
-  Pizza,
-  Gift,
-  Music,
-  Dumbbell,
-  Briefcase,
-  BriefcaseBusiness,
-  Star,
-  Tag,
-  DollarSign,
-  Plus,
-  Pencil,
-  Trash2,
-  LayoutList,
-  BadgeDollarSign,
-} from "lucide-react";
 import { toast } from "sonner";
 import { useCategories } from "../../../context/CategoriesContext";
+import { confirmDialog } from "../../../utils/confirmDialog";
 
 // ── Icon & Color config ────────────────────────────────────────────────────────
 import { ICON_MAP, COLOR_MAP } from "../../../utils/icons";
@@ -286,6 +259,7 @@ export function Categories() {
   };
 
   const handleDeleteExpense = async (id, name) => {
+    if (!(await confirmDialog(`Xoá danh mục "${name || "này"}"?`))) return;
     try {
       await deleteExpenseCategory(id);
       toast.success(`Đã xóa "${name}"`);
@@ -316,6 +290,7 @@ export function Categories() {
   };
 
   const handleDeleteIncome = async (id, name) => {
+    if (!(await confirmDialog(`Xóa nguồn thu "${name || "này"}"?`))) return;
     try {
       await deleteIncomeSource(id);
       toast.success(`Đã xóa "${name}"`);
@@ -334,7 +309,7 @@ export function Categories() {
           <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                <LayoutList size={16} className="text-purple-600" />
+                <ICON_MAP.LayoutList size={16} className="text-purple-600" />
               </div>
               <div>
                 <h2 className="font-semibold text-slate-900">
@@ -352,7 +327,7 @@ export function Categories() {
                   setEditExpenseId(null);
                 }}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors font-medium">
-                <Plus size={14} /> Thêm mới
+                <ICON_MAP.Plus size={14} /> Thêm mới
               </button>
             )}
           </div>
@@ -407,14 +382,14 @@ export function Categories() {
                         setShowAddExpense(false);
                       }}
                       className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors">
-                      <Pencil size={13} />
+                      <ICON_MAP.Pencil size={13} />
                     </button>
                     <button
                       onClick={() =>
                         handleDeleteExpense(cat.accountId, cat.name)
                       }
                       className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
-                      <Trash2 size={13} />
+                      <ICON_MAP.Trash2 size={13} />
                     </button>
                   </div>
                 </div>
@@ -428,7 +403,10 @@ export function Categories() {
           <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <BadgeDollarSign size={16} className="text-green-600" />
+                <ICON_MAP.BadgeDollarSign
+                  size={16}
+                  className="text-green-600"
+                />
               </div>
               <div>
                 <h2 className="font-semibold text-slate-900">Nguồn thu nhập</h2>
@@ -444,7 +422,7 @@ export function Categories() {
                   setEditIncomeId(null);
                 }}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors font-medium">
-                <Plus size={14} /> Thêm mới
+                <ICON_MAP.Plus size={14} /> Thêm mới
               </button>
             )}
           </div>
@@ -461,7 +439,7 @@ export function Categories() {
             {/* List */}
             {incomeSources.length === 0 && !showAddIncome && (
               <div className="text-center py-10 text-slate-400">
-                <BadgeDollarSign
+                <ICON_MAP.BadgeDollarSign
                   size={36}
                   className="mx-auto mb-2 opacity-30"
                 />
@@ -501,14 +479,14 @@ export function Categories() {
                         setShowAddIncome(false);
                       }}
                       className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-green-600 hover:bg-green-50 transition-colors">
-                      <Pencil size={13} />
+                      <ICON_MAP.Pencil size={13} />
                     </button>
                     <button
                       onClick={() =>
                         handleDeleteIncome(src.accountId, src.name)
                       }
                       className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
-                      <Trash2 size={13} />
+                      <ICON_MAP.Trash2 size={13} />
                     </button>
                   </div>
                 </div>

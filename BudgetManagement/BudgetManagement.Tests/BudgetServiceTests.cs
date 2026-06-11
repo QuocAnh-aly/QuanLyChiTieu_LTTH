@@ -538,7 +538,6 @@ public class BudgetServiceTests
     {
         var request = new CreateSavingsGoalDto
         {
-            AccountId           = 1,
             Title               = "New Car",
             TargetAmount        = 50000m,
             InitialAmount       = 1000m,
@@ -548,6 +547,15 @@ public class BudgetServiceTests
             Color               = "blue",
         };
 
+        _accountRepoMock
+            .Setup(r => r.CreateAsync(It.Is<Account>(a =>
+                a.TypeId == 1 &&
+                a.UserId == _userId &&
+                a.Name == "Piggy Wallet – New Car" &&
+                a.Balance == 1000m &&
+                a.CurrencyCode == "VND")))
+            .ReturnsAsync((Account a) => { a.AccountId = 100; return a; });
+
         _budgetRepoMock
             .Setup(r => r.CreateAsync(It.Is<Budget>(b =>
                 b.Title == "New Car" &&
@@ -555,7 +563,8 @@ public class BudgetServiceTests
                 b.TargetAmount == 50000m &&
                 b.CurrentAmount == 1000m &&
                 b.MonthlyContribution == 2000m &&
-                b.Deadline == "2027-06-01")))
+                b.Deadline == "2027-06-01" &&
+                b.AccountId == 100)))
             .ReturnsAsync((Budget b) => b);
 
         var result = await _service.CreateSavingsGoalAsync(_userId, request);
@@ -571,10 +580,13 @@ public class BudgetServiceTests
     {
         var request = new CreateSavingsGoalDto
         {
-            AccountId    = 1,
             Title        = "New Car",
             TargetAmount = 50000m,
         };
+
+        _accountRepoMock
+            .Setup(r => r.CreateAsync(It.IsAny<Account>()))
+            .ReturnsAsync((Account a) => { a.AccountId = 100; return a; });
 
         _budgetRepoMock
             .Setup(r => r.CreateAsync(It.Is<Budget>(b => b.CurrentAmount == 0m)))
@@ -620,8 +632,25 @@ public class BudgetServiceTests
     [Fact]
     public async Task AddMoneyAsync_AddsAmountAndUpdatesCurrent()
     {
+        const int sourceAccountId = 99;
+
         var goal = MakeSavingsGoal(1, current: 2000m, target: 10000m);
         _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(goal);
+
+        _accountRepoMock
+            .Setup(r => r.GetByIdAsync(sourceAccountId))
+            .ReturnsAsync(new Account { AccountId = sourceAccountId, UserId = _userId, Name = "Source Wallet", TypeId = 1, IsActive = true });
+        _accountRepoMock
+            .Setup(r => r.GetByIdAsync(goal.AccountId))
+            .ReturnsAsync(new Account { AccountId = goal.AccountId, UserId = _userId, Name = "Piggy Wallet", TypeId = 1, IsActive = true });
+
+        _journalRepoMock
+            .Setup(r => r.CreateWithDetailsAsync(It.IsAny<JournalEntry>(), It.IsAny<IEnumerable<JournalDetail>>()))
+            .ReturnsAsync((JournalEntry entry, IEnumerable<JournalDetail> _) => entry);
+        _accountRepoMock
+            .Setup(r => r.UpdateBalanceAsync(It.IsAny<int>(), It.IsAny<decimal>()))
+            .Returns(Task.CompletedTask);
+
         _budgetRepoMock
             .Setup(r => r.UpdateCurrentAmountAsync(1, 3500m))
             .Returns(Task.CompletedTask);
@@ -632,7 +661,7 @@ public class BudgetServiceTests
         var updatedGoal = MakeSavingsGoal(1, current: 3500m, target: 10000m);
         _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(updatedGoal);
 
-        var result = await _service.AddMoneyAsync(_userId, 1, 1500m, null);
+        var result = await _service.AddMoneyAsync(_userId, 1, 1500m, null, sourceAccountId);
 
         result.CurrentAmount.Should().Be(3500m);
         _budgetRepoMock.Verify(r => r.AddEventAsync(1, 1500m, null), Times.Once);
@@ -641,8 +670,25 @@ public class BudgetServiceTests
     [Fact]
     public async Task AddMoneyAsync_ExceedsTarget_ClampsToTarget()
     {
+        const int sourceAccountId = 99;
+
         var goal = MakeSavingsGoal(1, current: 9000m, target: 10000m);
         _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(goal);
+
+        _accountRepoMock
+            .Setup(r => r.GetByIdAsync(sourceAccountId))
+            .ReturnsAsync(new Account { AccountId = sourceAccountId, UserId = _userId, Name = "Source Wallet", TypeId = 1, IsActive = true });
+        _accountRepoMock
+            .Setup(r => r.GetByIdAsync(goal.AccountId))
+            .ReturnsAsync(new Account { AccountId = goal.AccountId, UserId = _userId, Name = "Piggy Wallet", TypeId = 1, IsActive = true });
+
+        _journalRepoMock
+            .Setup(r => r.CreateWithDetailsAsync(It.IsAny<JournalEntry>(), It.IsAny<IEnumerable<JournalDetail>>()))
+            .ReturnsAsync((JournalEntry entry, IEnumerable<JournalDetail> _) => entry);
+        _accountRepoMock
+            .Setup(r => r.UpdateBalanceAsync(It.IsAny<int>(), It.IsAny<decimal>()))
+            .Returns(Task.CompletedTask);
+
         _budgetRepoMock
             .Setup(r => r.UpdateCurrentAmountAsync(1, 10000m))  // clamped to target
             .Returns(Task.CompletedTask);
@@ -652,7 +698,7 @@ public class BudgetServiceTests
         var updatedGoal = MakeSavingsGoal(1, current: 10000m, target: 10000m);
         _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(updatedGoal);
 
-        var result = await _service.AddMoneyAsync(_userId, 1, 2000m, null);
+        var result = await _service.AddMoneyAsync(_userId, 1, 2000m, null, sourceAccountId);
 
         result.CurrentAmount.Should().Be(10000m);  // should not exceed target
     }
@@ -664,15 +710,32 @@ public class BudgetServiceTests
             .ReturnsAsync((Budget?)null);
 
         await FluentActions.Invoking(() =>
-            _service.AddMoneyAsync(_userId, 999, 100m, null))
+            _service.AddMoneyAsync(_userId, 999, 100m, null, 99))
             .Should().ThrowAsync<KeyNotFoundException>();
     }
 
     [Fact]
     public async Task RemoveMoneyAsync_RemovesAmountAndCreatesEvent()
     {
+        const int destAccountId = 99;
+
         var goal = MakeSavingsGoal(1, current: 5000m, target: 10000m);
         _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(goal);
+
+        _accountRepoMock
+            .Setup(r => r.GetByIdAsync(destAccountId))
+            .ReturnsAsync(new Account { AccountId = destAccountId, UserId = _userId, Name = "Dest Wallet", TypeId = 1, IsActive = true });
+        _accountRepoMock
+            .Setup(r => r.GetByIdAsync(goal.AccountId))
+            .ReturnsAsync(new Account { AccountId = goal.AccountId, UserId = _userId, Name = "Piggy Wallet", TypeId = 1, IsActive = true });
+
+        _journalRepoMock
+            .Setup(r => r.CreateWithDetailsAsync(It.IsAny<JournalEntry>(), It.IsAny<IEnumerable<JournalDetail>>()))
+            .ReturnsAsync((JournalEntry entry, IEnumerable<JournalDetail> _) => entry);
+        _accountRepoMock
+            .Setup(r => r.UpdateBalanceAsync(It.IsAny<int>(), It.IsAny<decimal>()))
+            .Returns(Task.CompletedTask);
+
         _budgetRepoMock
             .Setup(r => r.UpdateCurrentAmountAsync(1, 3000m))
             .Returns(Task.CompletedTask);
@@ -682,29 +745,29 @@ public class BudgetServiceTests
         var updatedGoal = MakeSavingsGoal(1, current: 3000m, target: 10000m);
         _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(updatedGoal);
 
-        var result = await _service.RemoveMoneyAsync(_userId, 1, 2000m, "Emergency");
+        var result = await _service.RemoveMoneyAsync(_userId, 1, 2000m, "Emergency", destAccountId);
 
         result.CurrentAmount.Should().Be(3000m);
         _budgetRepoMock.Verify(r => r.AddEventAsync(1, -2000m, "Emergency"), Times.Once);
     }
 
     [Fact]
-    public async Task RemoveMoneyAsync_MoreThanCurrent_ClampsToZero()
+    public async Task RemoveMoneyAsync_MoreThanCurrent_ThrowsArgumentException()
     {
         var goal = MakeSavingsGoal(1, current: 1000m, target: 10000m);
         _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(goal);
-        _budgetRepoMock
-            .Setup(r => r.UpdateCurrentAmountAsync(1, 0m))  // clamped to 0
-            .Returns(Task.CompletedTask);
-        _budgetRepoMock
-            .Setup(r => r.AddEventAsync(1, -5000m, null))
-            .Returns(Task.CompletedTask);
-        var updatedGoal = MakeSavingsGoal(1, current: 0m, target: 10000m);
-        _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(updatedGoal);
 
-        var result = await _service.RemoveMoneyAsync(_userId, 1, 5000m, null);
+        _accountRepoMock
+            .Setup(r => r.GetByIdAsync(99))
+            .ReturnsAsync(new Account { AccountId = 99, UserId = _userId, Name = "Dest Wallet", TypeId = 1, IsActive = true });
+        _accountRepoMock
+            .Setup(r => r.GetByIdAsync(goal.AccountId))
+            .ReturnsAsync(new Account { AccountId = goal.AccountId, UserId = _userId, Name = "Piggy Wallet", TypeId = 1, IsActive = true });
 
-        result.CurrentAmount.Should().Be(0m);
+        await FluentActions.Invoking(() =>
+            _service.RemoveMoneyAsync(_userId, 1, 5000m, null, 99))
+            .Should().ThrowAsync<ArgumentException>()
+            .WithMessage("Số tiền rút vượt quá số dư hiện tại trong lợn.");
     }
 
     [Fact]
@@ -714,7 +777,7 @@ public class BudgetServiceTests
             .ReturnsAsync((Budget?)null);
 
         await FluentActions.Invoking(() =>
-            _service.RemoveMoneyAsync(_userId, 999, 100m, null))
+            _service.RemoveMoneyAsync(_userId, 999, 100m, null, 99))
             .Should().ThrowAsync<KeyNotFoundException>();
     }
 
@@ -729,12 +792,16 @@ public class BudgetServiceTests
         _budgetRepoMock
             .Setup(r => r.UpdateCurrentAmountAsync(1, 0m))
             .Returns(Task.CompletedTask);
+        _accountRepoMock
+            .Setup(r => r.UpdateBalanceAsync(goal.AccountId, -5000m))
+            .Returns(Task.CompletedTask);
 
         var result = await _service.ResetHistoryAsync(_userId, 1);
 
         result.Should().BeTrue();
         _budgetRepoMock.Verify(r => r.DeleteEventsByBudgetIdAsync(1), Times.Once);
         _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(1, 0m), Times.Once);
+        _accountRepoMock.Verify(r => r.UpdateBalanceAsync(goal.AccountId, -5000m), Times.Once);
     }
 
     [Fact]
