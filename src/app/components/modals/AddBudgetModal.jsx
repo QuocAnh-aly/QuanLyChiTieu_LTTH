@@ -160,9 +160,6 @@ export function AddBudgetModal({ isOpen, onClose, onAdd }) {
                       <option value="">— Chọn danh mục —</option>
                       {validCategories.map((c) => (
                         <option key={getCategoryId(c)} value={getCategoryId(c)}>
-                          {c.iconName && (
-                            <span>{c.iconName} </span>
-                          )}
                           {c.name}
                         </option>
                       ))}

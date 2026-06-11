@@ -112,4 +112,26 @@ public class BillController : BaseController
         catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
         catch (UnauthorizedAccessException)  { return Forbid(); }
     }
+
+    // POST api/bills/{id}/pay
+    [HttpPost("{id:int}/pay")]
+    public async Task<IActionResult> Pay(int id, [FromBody] PayBillDto request)
+    {
+        try
+        {
+            var result = await _billService.PayAsync(GetUserId(), id, request);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)      { return NotFound(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (ArgumentException ex)         { return BadRequest(new { message = ex.Message }); }
+        catch (UnauthorizedAccessException)  { return Forbid(); }
+        catch (DbUpdateException ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            if (msg.Contains("FK") || msg.Contains("REFERENCE") || msg.Contains("conflicted"))
+                return BadRequest(new { message = "Không thể tạo giao dịch vì dữ liệu liên quan không tồn tại." });
+            return StatusCode(500, new { message = "Lỗi cơ sở dữ liệu. Vui lòng thử lại sau." });
+        }
+    }
 }

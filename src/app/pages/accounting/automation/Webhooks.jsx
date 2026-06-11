@@ -108,7 +108,7 @@ export function Webhooks() {
   };
 
   const deleteWebhook = async (w) => {
-    if (!window.confirm(`Xóa webhook "${w.title}"?`)) return;
+    if (!await confirmDialog(`Xóa webhook "${w.title}"?`)) return;
     try { await webhookApi.delete(w.webhook_id); toast.success('Đã xóa'); refresh(); }
     catch (e) { toast.error(errMsg(e)); }
   };

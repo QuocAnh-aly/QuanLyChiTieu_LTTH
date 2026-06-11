@@ -1,6 +1,7 @@
 import { Plus, Users, Building2, Pencil, Trash2, Search, X, Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { confirmDialog } from "../../../utils/confirmDialog";
 import { useCategories } from "../../../context/CategoriesContext";
 
 const EMPTY_FORM = { name: '', type: 'person', role: 'payee', notes: '' };
@@ -46,8 +47,8 @@ export function ObjectGroups() {
     setShowModal(false);
   };
 
-  const handleDelete = (obj) => {
-    if (!window.confirm(`Xóa đối tượng "${obj.name}"?`)) return;
+  const handleDelete = async (obj) => {
+    if (!await confirmDialog(`Xóa đối tượng "${obj.name}"?`)) return;
     deleteObjectGroup(obj.id);
     toast.success(`Đã xóa ${obj.name}`);
   };

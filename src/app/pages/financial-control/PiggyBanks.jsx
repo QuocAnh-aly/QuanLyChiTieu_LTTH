@@ -12,6 +12,7 @@ import {
   ArrowUpCircle,
 } from "lucide-react";
 import { piggyBankApi } from "../../api/piggyBankApi";
+import { accountApi } from "../../api/accountApi";
 import { toast } from "sonner";
 import { PiggyBankFormModal } from "../../components/modals/PiggyBankFormModal";
 import { AddMoneyModal } from "../../components/modals/AddMoneyModal";
@@ -19,6 +20,7 @@ import { RemoveMoneyModal } from "../../components/modals/RemoveMoneyModal";
 import { PageLayout } from "../../components/layout/PageLayout";
 import { useSettings } from "../../context/SettingsContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { confirmDialog } from "../../utils/confirmDialog";
 
 const COLOR_MAP = {
   green: { bg: "bg-green-100", text: "text-green-600", hex: "#22c55e" },
@@ -69,8 +71,12 @@ export function PiggyBanks() {
   const load = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await piggyBankApi.getAll();
-      setGoals((data || []).map(mapGoal));
+      const [gData, aData] = await Promise.all([
+        piggyBankApi.getAll(),
+        accountApi.getByType(1),
+      ]);
+      setGoals((gData || []).map(mapGoal));
+      setAccounts(aData.items || aData || []);
     } catch {
       toast.error("Không thể tải dữ liệu");
     } finally {
@@ -127,8 +133,7 @@ export function PiggyBanks() {
   };
 
   const handleDelete = async (goal) => {
-    if (!window.confirm(`Xóa "${goal.name}"? Toàn bộ lịch sử sẽ bị xóa.`))
-      return;
+    if (!await confirmDialog(`Xóa "${goal.name}"? Toàn bộ lịch sử sẽ bị xóa.`)) return;
     try {
       await piggyBankApi.delete(goal.id);
       await load();

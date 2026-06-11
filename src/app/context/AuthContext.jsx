@@ -74,6 +74,15 @@ export function AuthProvider({ children }) {
     return profile;
   };
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const profile = await authApi.getProfile();
+      setUser(profile);
+    } catch {
+      // silent
+    }
+  }, []);
+
   const register = async (userData) => {
     const data = await authApi.register(userData);
     if (!data?.access_token) throw new Error('Phản hồi đăng ký không hợp lệ.');
@@ -86,7 +95,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

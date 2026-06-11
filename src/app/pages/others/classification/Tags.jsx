@@ -19,6 +19,7 @@ const COLOR_MAP = Object.fromEntries(COLOR_OPTIONS.map(c => [c.value, c]));
 const EMPTY_FORM = { name: '', color: 'blue' };
 
 import { PageLayout } from '../../../components/layout/PageLayout';
+import { confirmDialog } from '../../../utils/confirmDialog';
 
 export function Tags() {
   const { tags, addTag, updateTag, deleteTag } = useCategories();
@@ -62,8 +63,8 @@ export function Tags() {
     setShowModal(false);
   };
 
-  const handleDelete = (tag) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa thẻ #${tag.name}?`)) return;
+  const handleDelete = async (tag) => {
+    if (!await confirmDialog(`Bạn có chắc muốn xóa thẻ #${tag.name}?`)) return;
     deleteTag(tag.id);
     toast.success(`Đã xóa thẻ #${tag.name}`);
   };

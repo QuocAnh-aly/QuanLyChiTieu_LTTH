@@ -158,7 +158,7 @@ export function Deposit() {
     catch { toast.error("Không thể cập nhật"); addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể cập nhật khoản thu' }); }
   };
   const handleDelete = async (id, desc) => {
-    if (!window.confirm(`Xóa giao dịch "${desc || 'này'}"?`)) return;
+    if (!await confirmDialog(`Xóa giao dịch "${desc || 'này'}"?`)) return;
     try { await transactionApi.delete(id); await loadData(true); toast.success("Đã xóa!"); addNotification({ type: 'warning', title: 'Đã xóa', message: `Đã xóa khoản thu "${desc || ''}"` }); }
     catch { toast.error("Không thể xóa"); addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể xóa khoản thu' }); }
   };

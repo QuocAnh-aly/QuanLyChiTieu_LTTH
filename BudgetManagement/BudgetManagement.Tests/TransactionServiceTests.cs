@@ -367,7 +367,7 @@ public class TransactionServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_ExpenseCategory_NotFound_ThrowsArgumentException()
+    public async Task CreateAsync_ExpenseCategory_NotFound_AutoCreatesAccount()
     {
         var request = new CreateTransactionDto
         {
@@ -377,16 +377,41 @@ public class TransactionServiceTests
             ExpenseCategoryName = "NonExistentCategory",
         };
 
-        var creditAccount = MakeAccount(2, typeId: 1, name: "Checking", balance: 500m);
+        var newExpenseAccount = MakeAccount(10, typeId: 5, name: "NonExistentCategory");
+        var creditAccount     = MakeAccount(2, typeId: 1, name: "Checking", balance: 500m);
 
-        // No existing expense account found by name
+        // No existing expense account → will auto-create
         _accountRepoMock
             .Setup(r => r.FindByUserAndNameAsync(_userId, 5, "NonExistentCategory"))
             .ReturnsAsync((Account?)null);
 
-        await FluentActions.Invoking(() => _service.CreateAsync(_userId, request))
-            .Should().ThrowAsync<ArgumentException>()
-            .WithMessage("*chưa tồn tại*");
+        _accountRepoMock
+            .Setup(r => r.CreateAsync(It.Is<Account>(a =>
+                a.TypeId == 5 && a.Name == "NonExistentCategory")))
+            .ReturnsAsync(newExpenseAccount);
+
+        _accountRepoMock.Setup(r => r.GetByIdAsync(10)).ReturnsAsync(newExpenseAccount);
+        _accountRepoMock.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(creditAccount);
+
+        _journalRepoMock
+            .Setup(r => r.CreateWithDetailsAsync(It.IsAny<JournalEntry>(),
+                It.IsAny<IEnumerable<JournalDetail>>()))
+            .ReturnsAsync((JournalEntry e, IEnumerable<JournalDetail> _) =>
+            {
+                e.JournalId = 101;
+                e.JournalDetails = new List<JournalDetail>();
+                return e;
+            });
+
+        var result = await _service.CreateAsync(_userId, request);
+
+        // Should have auto-created the account
+        _accountRepoMock.Verify(r => r.CreateAsync(It.Is<Account>(a =>
+            a.TypeId == 5 && a.Name == "NonExistentCategory")), Times.Once);
+        // Should update budget spent
+        _budgetServiceMock.Verify(r => r.UpdateSpentAmountAsync(10, 100m), Times.Once);
+        result.Should().NotBeNull();
+        result.Description.Should().Be("Groceries");
     }
 
     [Fact]

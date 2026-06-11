@@ -1,5 +1,6 @@
 import { X, PiggyBank } from "lucide-react";
 import { useState, useEffect } from "react";
+import { accountApi } from "../../api/accountApi";
 import { useSettings } from "../../context/SettingsContext";
 import { formatVND, parseVND } from "../../utils/formatMoney";
 
@@ -24,6 +25,10 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
 
   useEffect(() => {
     if (!isOpen) return;
+    accountApi
+      .getByType(1)
+      .then((data) => setAccounts(data.items || data || []))
+      .catch(() => {});
     if (goal) {
       setName(goal.title ?? "");
       setTargetAmount(String(goal.targetAmount ?? ""));

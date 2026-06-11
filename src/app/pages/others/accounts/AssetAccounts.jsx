@@ -39,12 +39,13 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { walletApi } from "../../../api/walletApi";
+import { accountApi } from "../../../api/accountApi";
 import { transactionApi } from "../../../api/transactionApi";
 import { useSettings } from "../../../context/SettingsContext";
 import PaginationBar from "../../../components/ui/navigation/PaginationBar";
 import { PageLayout } from "../../../components/layout/PageLayout";
 import { AccountFormModal } from "../../../components/modals/AccountFormModal";
+import { EditAccountModal } from "../../../components/modals/EditAccountModal";
 
 function mapTransaction(t) {
   const details = t.details || [];
@@ -194,7 +195,7 @@ export function AssetAccounts() {
     try {
       if (!silent) setIsLoading(true);
       else setIsRefreshing(true);
-      const data = await walletApi.getSummary({
+      const data = await accountApi.getSummary({
         page: accountPage,
         pageSize: accountPageSize,
         search: search || undefined,
@@ -236,7 +237,7 @@ export function AssetAccounts() {
 
   const handleCreateAsset = useCallback(async (data) => {
     try {
-      await walletApi.create(data);
+      await accountApi.create(data);
       toast.success("Đã thêm tài sản mới");
       setShowCreateModal(false);
       fetchWallets();
@@ -247,7 +248,7 @@ export function AssetAccounts() {
 
   const handleEditAsset = useCallback(async (id, data) => {
     try {
-      await walletApi.update(id, data);
+      await accountApi.update(id, data);
       toast.success("Đã cập nhật tài sản");
       setEditingAccount(null);
       fetchWallets();
@@ -257,9 +258,9 @@ export function AssetAccounts() {
   }, [fetchWallets]);
 
   const handleDeleteAsset = useCallback(async (id, name) => {
-    if (!window.confirm(`Xóa tài sản "${name}"?\nHành động này không thể hoàn tác.`)) return;
+    if (!await confirmDialog(`Xóa tài sản "${name}"?\nHành động này không thể hoàn tác.`)) return;
     try {
-      await walletApi.delete(id);
+      await accountApi.delete(id);
       toast.success(`Đã xóa "${name}".`);
       fetchWallets();
     } catch (error) {
@@ -738,7 +739,8 @@ export function AssetAccounts() {
               return (
                 <div
                   key={account.id}
-                  className="relative overflow-hidden rounded-2xl p-6 text-white group shadow-md hover:shadow-xl transition-all duration-300"
+                  onClick={() => navigate(`/accounts/${account.id}/detail`)}
+                  className="relative overflow-hidden rounded-2xl p-6 text-white group shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer"
                   style={{
                     background: `linear-gradient(135deg, ${account.gradientFrom} 0%, ${account.gradientTo} 100%)`,
                   }}
@@ -791,6 +793,16 @@ export function AssetAccounts() {
                         {account.cardNumber && <CopyButton text={account.cardNumber} />}
                       </div>
                       <div className="flex items-center gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/accounts/${account.id}/detail`);
+                          }}
+                          className="p-1.5 rounded-lg bg-white/10 hover:bg-white/25 text-white/70 hover:text-white transition-all backdrop-blur-sm"
+                          title="Phân tích"
+                        >
+                          <Activity size={13} />
+                        </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1114,7 +1126,7 @@ export function AssetAccounts() {
 
       {/* ════════════════════ EDIT ASSET MODAL ════════════════════ */}
       {editingAccount && (
-        <AccountFormModal
+        <EditAccountModal
           isOpen={!!editingAccount}
           onClose={() => setEditingAccount(null)}
           onSubmit={(data) => handleEditAsset(editingAccount.id, data)}
