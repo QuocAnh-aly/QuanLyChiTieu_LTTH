@@ -65,6 +65,18 @@ FETCH NEXT FROM budget_cursor INTO @budget_id, @account_id, @old_amount, @period
 
 WHILE @@FETCH_STATUS = 0
 BEGIN
+    -- ⚠ Fix: Nếu period_start trong tương lai, lùi về kỳ trước
+    -- (DATEDIFF đếm số mốc đã vượt qua, không phải số kỳ đã hoàn thành)
+    IF @period_start > @now
+    BEGIN
+        SET @period_start = CASE @period_type
+            WHEN 'weekly'  THEN DATEADD(WEEK,  -1, @period_start)
+            WHEN 'monthly' THEN DATEADD(MONTH, -1, @period_start)
+            WHEN 'yearly'  THEN DATEADD(YEAR,  -1, @period_start)
+            ELSE @period_start
+        END;
+    END
+
     -- Chỉ tính transactions trong kỳ hiện tại và trong budget date range
     DECLARE @new_amount DECIMAL(18,2);
 
