@@ -20,6 +20,11 @@ import {
   Tag,
   DollarSign,
   BriefcaseBusiness,
+  Plus,
+  Pencil,
+  Trash2,
+  LayoutList,
+  BadgeDollarSign,
 } from "lucide-react";
 
 /**
@@ -49,6 +54,11 @@ export const ICON_MAP = {
   Tag,
   DollarSign,
   BriefcaseBusiness,
+  Plus,
+  Pencil,
+  Trash2,
+  LayoutList,
+  BadgeDollarSign,
 };
 
 /**

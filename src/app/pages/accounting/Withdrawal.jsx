@@ -17,6 +17,7 @@ import { AddTransactionModal } from "../../components/modals/AddTransactionModal
 import { EditTransactionModal } from "../../components/modals/EditTransactionModal";
 import { useSettings } from "../../context/SettingsContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { confirmDialog } from "../../utils/confirmDialog"
 
 function mapTx(t) {
   const details       = t.details || [];
