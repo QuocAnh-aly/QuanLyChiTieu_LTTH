@@ -1,6 +1,6 @@
 -- =============================================
 -- MIGRATION: Sync Budget CurrentAmount from transactions
--- Date: 2026-06-11
+-- Date: 2026-06-11 (v2 — fix period filter bug)
 --
 -- Lý do: Trước đây fallback UpdateSpentAmountAsync
 -- cập nhật CurrentAmount của budget khi transaction
@@ -8,9 +8,10 @@
 -- fallback, cần sync lại số liệu đúng với giao dịch
 -- thực tế có BudgetId gắn với budget.
 --
--- Quan trọng: Script tính toán dựa trên period type
--- để chỉ lấy giao dịch trong kỳ hiện tại, tránh
--- inflate số liệu cho budgets đã qua period reset.
+-- ⚠ Quan trọng: Script tính SUM tất cả linked transactions
+-- KHÔNG filter theo period. Period reset được xử lý riêng
+-- bởi ResetExpiredPeriodsAsync trong application code.
+-- Lọc period ở đây gây sai số (UTC vs timezone, daily budgets...)
 -- =============================================
 
 USE BudgetManagement;
@@ -26,26 +27,11 @@ GO
 
 DECLARE @updated INT = 0;
 DECLARE @skipped INT = 0;
-DECLARE @now DATETIME2 = GETUTCDATE();
 
 DECLARE budget_cursor CURSOR FOR
 SELECT 
     b.budget_id,
-    b.account_id,
-    b.current_amount AS old_amount,
-    b.period_type,
-    b.start_date,
-    b.end_date,
-    -- Tính ngày bắt đầu của kỳ hiện tại
-    CASE 
-        WHEN b.period_type = 'weekly' THEN 
-            DATEADD(WEEK, DATEDIFF(WEEK, b.start_date, @now), b.start_date)
-        WHEN b.period_type = 'monthly' THEN 
-            DATEADD(MONTH, DATEDIFF(MONTH, b.start_date, @now), b.start_date)
-        WHEN b.period_type = 'yearly' THEN 
-            DATEADD(YEAR, DATEDIFF(YEAR, b.start_date, @now), b.start_date)
-        ELSE b.start_date  -- daily, custom, NULL → tính từ start_date
-    END AS period_start
+    b.current_amount AS old_amount
 FROM Budgets b
 WHERE b.budget_type = 'expense'
   AND b.is_active = 1;
@@ -54,42 +40,21 @@ OPEN budget_cursor;
 
 DECLARE 
     @budget_id INT,
-    @account_id INT,
-    @old_amount DECIMAL(18,2),
-    @period_type NVARCHAR(20),
-    @start_date DATETIME2,
-    @end_date DATETIME2,
-    @period_start DATETIME2;
+    @old_amount DECIMAL(18,2);
 
-FETCH NEXT FROM budget_cursor INTO @budget_id, @account_id, @old_amount, @period_type, @start_date, @end_date, @period_start;
+FETCH NEXT FROM budget_cursor INTO @budget_id, @old_amount;
 
 WHILE @@FETCH_STATUS = 0
 BEGIN
-    -- ⚠ Fix: Nếu period_start trong tương lai, lùi về kỳ trước
-    -- (DATEDIFF đếm số mốc đã vượt qua, không phải số kỳ đã hoàn thành)
-    IF @period_start > @now
-    BEGIN
-        SET @period_start = CASE @period_type
-            WHEN 'weekly'  THEN DATEADD(WEEK,  -1, @period_start)
-            WHEN 'monthly' THEN DATEADD(MONTH, -1, @period_start)
-            WHEN 'yearly'  THEN DATEADD(YEAR,  -1, @period_start)
-            ELSE @period_start
-        END;
-    END
-
-    -- Chỉ tính transactions trong kỳ hiện tại và trong budget date range
     DECLARE @new_amount DECIMAL(18,2);
 
+    -- Tính SUM tất cả debit từ transactions link budget này
+    -- (Không filter period — period reset đã được xử lý riêng)
     SELECT @new_amount = ISNULL(SUM(jd.debit), 0)
     FROM Journal_Entries je
     INNER JOIN Journal_Details jd ON jd.journal_id = je.journal_id
     WHERE je.budget_id = @budget_id
-      AND jd.account_id = @account_id
-      AND jd.debit > 0
-      AND je.transaction_date >= @period_start
-      AND je.transaction_date >= @start_date
-      AND je.transaction_date <= ISNULL(@end_date, DATEADD(YEAR, 10, @now))
-      AND je.transaction_date <= @now;
+      AND jd.debit > 0;
 
     IF @old_amount != @new_amount
     BEGIN
@@ -98,8 +63,7 @@ BEGIN
         WHERE budget_id = @budget_id;
 
         PRINT '  ✓ Budget ' + CAST(@budget_id AS NVARCHAR(10)) +
-              ' (' + @period_type + '): ' + 
-              CAST(ROUND(@old_amount, 0) AS NVARCHAR(20)) +
+              ': ' + CAST(ROUND(@old_amount, 0) AS NVARCHAR(20)) +
               ' → ' + CAST(ROUND(@new_amount, 0) AS NVARCHAR(20)) +
               ' (chênh lệch ' + CAST(ROUND(@new_amount - @old_amount, 0) AS NVARCHAR(20)) + ')';
         SET @updated = @updated + 1;
@@ -107,12 +71,11 @@ BEGIN
     ELSE
     BEGIN
         PRINT '  – Budget ' + CAST(@budget_id AS NVARCHAR(10)) +
-              ' (' + @period_type + '): không thay đổi (' + 
-              CAST(ROUND(@old_amount, 0) AS NVARCHAR(20)) + ')';
+              ': không thay đổi (' + CAST(ROUND(@old_amount, 0) AS NVARCHAR(20)) + ')';
         SET @skipped = @skipped + 1;
     END
 
-    FETCH NEXT FROM budget_cursor INTO @budget_id, @account_id, @old_amount, @period_type, @start_date, @end_date, @period_start;
+    FETCH NEXT FROM budget_cursor INTO @budget_id, @old_amount;
 END
 
 CLOSE budget_cursor;
