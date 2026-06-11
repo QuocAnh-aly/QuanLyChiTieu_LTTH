@@ -19,6 +19,8 @@ public class BudgetService : IBudgetService
     }
 
     private const int TypeExpenseAccount = 5;
+    private const int TypeSavingsAccount = 1;
+
 
     // ─── Expense Budgets (Budget.jsx) ───────────────────────────────────────
 
@@ -155,10 +157,26 @@ public class BudgetService : IBudgetService
 
     public async Task<SavingsGoalDto> CreateSavingsGoalAsync(int userId, CreateSavingsGoalDto request)
     {
+        var piggyAccount = new Account
+        {
+            UserId         = userId,
+            TypeId         = TypeSavingsAccount,
+            Name           = $"Piggy Wallet – {request.Title}",
+            IconName       = request.IconName ?? "PiggyBank",
+            Color          = request.Color    ?? "green",
+            Balance        = request.InitialAmount ?? 0,
+            InitialBalance = request.InitialAmount ?? 0,
+            CurrencyCode   = request.CurrencyCode ?? "VND",
+            IsActive       = true,
+            CreatedAt      = DateTime.UtcNow
+        };
+
+         var createdAccount = await _accountRepo.CreateAsync(piggyAccount);
+
         var goal = new Budget
         {
             UserId               = userId,
-            AccountId            = request.AccountId,
+            AccountId            = createdAccount.AccountId,
             Title                = request.Title,
             BudgetType           = "savings",
             TargetAmount         = request.TargetAmount,
@@ -193,50 +211,133 @@ public class BudgetService : IBudgetService
         goal.Color               = request.Color               ?? goal.Color;
         goal.IsActive            = request.IsActive            ?? goal.IsActive;
 
+        if ( request.Title is not null && goal.AccountId >0)
+        {
+              var account = await _accountRepo.GetWithDetailsAsync(goal.AccountId);
+            if (account is not null && account.TypeId == TypeSavingsAccount)
+            {
+                account.Name    = $"Piggy Wallet – {request.Title}";
+                account.IconName = request.IconName ?? account.IconName;
+                account.Color   = request.Color    ?? account.Color;
+                await _accountRepo.UpdateAsync(account);
+            }
+        }
         var updated = await _budgetRepo.UpdateAsync(goal);
         return MapToSavingsDto(updated);
     }
 
-    public async Task<SavingsGoalDto> AddMoneyAsync(int userId, int budgetId, decimal amount, string? notes)
+    public async Task<SavingsGoalDto> AddMoneyAsync(int userId, int budgetId, decimal amount, string? notes, int sourceAccountId)
     {
         var goal = await _budgetRepo.GetByIdAsync(budgetId)
                    ?? throw new KeyNotFoundException("Savings goal not found.");
         if (goal.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
         if (amount <= 0) throw new ArgumentException("Amount must be positive.");
 
-        var newAmount = (goal.CurrentAmount ?? 0) + amount;
-        if (newAmount > goal.TargetAmount) newAmount = goal.TargetAmount;   // clamp to target
+        var sourceAccount = await _accountRepo.GetByIdAsync(sourceAccountId)
+                    ?? throw new KeyNotFoundException("Source account not found.");
+        if (sourceAccount.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
 
+        var piggyAccount = await _accountRepo.GetByIdAsync(goal.AccountId)
+                       ?? throw new KeyNotFoundException("Piggy Wallet account not found.");
+    // Tạo Journal: chuyển tiền từ ví nguồn → lợn tiết kiệm
+    //   Debit  Piggy Wallet  (TypeSavings — tăng balance lợn)
+    //   Credit Source Wallet (Assets      — giảm balance ví)
+        var entry = new JournalEntry
+        {
+            UserId          = userId,
+            TransactionDate = DateTime.UtcNow,
+            Description     = $"Nạp tiền vào lợn: {goal.Title}",
+            Notes           = notes,
+            CreatedAt       = DateTime.UtcNow
+        };
+ 
+        var details = new List<JournalDetail>
+        {
+            new() { AccountId = piggyAccount.AccountId,  Debit  = amount, Credit = 0 },
+            new() { AccountId = sourceAccount.AccountId, Credit = amount, Debit  = 0 }
+        };
+ 
+        await _journalRepo.CreateWithDetailsAsync(entry, details);
+ 
+    // Cập nhật balance 2 account
+    //   Piggy Wallet (TypeSavings = Assets-like) → +amount
+    //   Source Wallet (Assets)                   → -amount
+        await _accountRepo.UpdateBalanceAsync(piggyAccount.AccountId, + amount);
+        await _accountRepo.UpdateBalanceAsync(sourceAccount.AccountId, - amount);
+ 
+    // Cập nhật CurrentAmount trên Budget (clamp to target)
+        var newAmount = Math.Min((goal.CurrentAmount ?? 0) + amount, goal.TargetAmount);
         await _budgetRepo.UpdateCurrentAmountAsync(budgetId, newAmount);
         await _budgetRepo.AddEventAsync(budgetId, amount, notes);
-
+ 
         return MapToSavingsDto((await _budgetRepo.GetByIdAsync(budgetId))!);
     }
 
-    public async Task<SavingsGoalDto> RemoveMoneyAsync(int userId, int budgetId, decimal amount, string? notes)
+    public async Task<SavingsGoalDto> RemoveMoneyAsync(int userId, int budgetId, decimal amount, string? notes, int destinationAccountId)
     {
         var goal = await _budgetRepo.GetByIdAsync(budgetId)
-                   ?? throw new KeyNotFoundException("Savings goal not found.");
+               ?? throw new KeyNotFoundException("Savings goal not found.");
         if (goal.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
         if (amount <= 0) throw new ArgumentException("Amount must be positive.");
-
-        var current    = goal.CurrentAmount ?? 0;
-        var newAmount  = Math.Max(0, current - amount);
-
+ 
+        var current = goal.CurrentAmount ?? 0;
+        if (amount > current)
+            throw new ArgumentException("Số tiền rút vượt quá số dư hiện tại trong lợn.");
+ 
+    // Validate ví đích
+        var destinationAccount = await _accountRepo.GetByIdAsync(destinationAccountId)
+                             ?? throw new KeyNotFoundException("Destination account not found.");
+    if (destinationAccount.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
+ 
+        var piggyAccount = await _accountRepo.GetByIdAsync(goal.AccountId)
+                       ?? throw new KeyNotFoundException("Piggy Wallet account not found.");
+ 
+    // Tạo Journal: rút tiền từ lợn → ví đích
+    //   Debit  Destination Wallet (Assets      — tăng balance ví)
+    //   Credit Piggy Wallet       (TypeSavings — giảm balance lợn)
+        var entry = new JournalEntry
+        {
+            UserId          = userId,
+            TransactionDate = DateTime.UtcNow,
+            Description     = $"Rút tiền từ lợn: {goal.Title}",
+            Notes           = notes,
+            CreatedAt       = DateTime.UtcNow
+        };
+ 
+        var details = new List<JournalDetail>
+        {
+            new() { AccountId = destinationAccount.AccountId, Debit  = amount, Credit = 0 },
+            new() { AccountId = piggyAccount.AccountId,       Credit = amount, Debit  = 0 }
+        };
+ 
+        await _journalRepo.CreateWithDetailsAsync(entry, details);
+ 
+    // Cập nhật balance 2 account
+        await _accountRepo.UpdateBalanceAsync(destinationAccount.AccountId, + amount);
+        await _accountRepo.UpdateBalanceAsync(piggyAccount.AccountId, - amount);
+ 
+    // Cập nhật CurrentAmount trên Budget
+        var newAmount = Math.Max(0, current - amount);
         await _budgetRepo.UpdateCurrentAmountAsync(budgetId, newAmount);
-        await _budgetRepo.AddEventAsync(budgetId, -amount, notes);  // negative = remove
-
+        await _budgetRepo.AddEventAsync(budgetId, -amount, notes);
+ 
         return MapToSavingsDto((await _budgetRepo.GetByIdAsync(budgetId))!);
-    }
-
+}
     public async Task<bool> ResetHistoryAsync(int userId, int budgetId)
     {
         var goal = await _budgetRepo.GetByIdAsync(budgetId)
                    ?? throw new KeyNotFoundException("Savings goal not found.");
         if (goal.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
 
+        var current = goal.CurrentAmount ?? 0;
+
         await _budgetRepo.DeleteEventsByBudgetIdAsync(budgetId);
         await _budgetRepo.UpdateCurrentAmountAsync(budgetId, 0);
+
+        if (current >0 && goal.AccountId >0)
+        {
+            await _accountRepo.UpdateBalanceAsync(goal.AccountId, -current);
+        } 
         return true;
     }
 

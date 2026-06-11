@@ -1,25 +1,46 @@
-import { X, Minus, PiggyBank } from "lucide-react";
-import { useState } from "react";
+import { X, Minus, PiggyBank, Wallet } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useSettings } from "../../context/SettingsContext";
+import { walletApi } from "../../api/walletApi";
 import { formatVND, parseVND } from "../../utils/formatMoney";
 
 export function RemoveMoneyModal({ isOpen, onClose, onSave, goal }) {
   const { fmt, currencySymbol } = useSettings();
+
+  const [accounts, setAccounts] = useState([]);
+  const [destinationAccountId, setDestinationAccountId] = useState("");
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setDestinationAccountId("");
+    setAmount("");
+    setNotes("");
+    walletApi
+      .getByType(1)
+      .then((data) => setAccounts(data.items || data || []))
+      .catch(() => setAccounts([]));
+  }, [isOpen]);
 
   if (!isOpen || !goal) return null;
 
   const maxAmount = goal.currentAmount ?? 0;
   const enteredAmount = parseFloat(amount) || 0;
-  const canSubmit = enteredAmount > 0 && enteredAmount <= maxAmount;
+  const canSubmit =
+    enteredAmount > 0 && enteredAmount <= maxAmount && destinationAccountId;
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!canSubmit) return;
-    onSave({ amount: enteredAmount, notes: notes.trim() || null });
+    onSave({
+      amount: enteredAmount,
+      notes: notes.trim() || null,
+      destinationAccountId: parseInt(destinationAccountId),
+    });
     setAmount("");
     setNotes("");
+    setDestinationAccountId("");
   };
 
   return (
@@ -69,6 +90,41 @@ export function RemoveMoneyModal({ isOpen, onClose, onSave, goal }) {
 
         <form onSubmit={handleSubmit}>
           <div className="px-5 py-4 space-y-4">
+            {/* Luồng tiền */}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+              <PiggyBank size={13} className="text-orange-500 shrink-0" />
+              <span className="text-orange-500 font-medium truncate">
+                {goal.title}
+              </span>
+              <span className="mx-1">→</span>
+              <Wallet size={13} className="shrink-0" />
+              <span>Ví đích</span>
+            </div>
+
+            {/* Chọn ví đích */}
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-1.5">
+                Ví nhận tiền <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={destinationAccountId}
+                onChange={(e) => setDestinationAccountId(e.target.value)}
+                required
+                className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 bg-card"
+              >
+                <option value="">Chọn ví...</option>
+                {accounts.map((a) => (
+                  <option key={a.accountId} value={a.accountId}>
+                    {a.name}
+                    {a.balance != null
+                      ? ` — ${Number(a.balance).toLocaleString("vi-VN")} ₫`
+                      : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Số tiền */}
             <div>
               <label className="block text-sm font-semibold text-foreground mb-1.5">
                 Số tiền rút <span className="text-red-500">*</span>
@@ -82,9 +138,6 @@ export function RemoveMoneyModal({ isOpen, onClose, onSave, goal }) {
                   type="text"
                   value={formatVND(amount)}
                   onChange={(e) => setAmount(parseVND(e.target.value))}
-                  min="1"
-                  step="1"
-                  max={maxAmount}
                   className={`w-full pl-9 pr-4 py-2.5 border rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 ${
                     enteredAmount > maxAmount
                       ? "border-red-400 focus:ring-red-400"
@@ -104,6 +157,7 @@ export function RemoveMoneyModal({ isOpen, onClose, onSave, goal }) {
               </p>
             </div>
 
+            {/* Ghi chú */}
             <div>
               <label className="block text-sm font-semibold text-foreground mb-1.5">
                 Ghi chú

@@ -161,8 +161,9 @@ public class BudgetController : BaseController
     [HttpPost("savings")]
     public async Task<IActionResult> CreateSavingsGoal([FromBody] CreateSavingsGoalDto request)
     {
-        var result = await _budgetService.CreateSavingsGoalAsync(GetUserId(), request);
-        return CreatedAtAction(nameof(GetSavingsGoalById), new { id = result.BudgetId }, result);
+            var result = await _budgetService.CreateSavingsGoalAsync(GetUserId(), request);
+            return CreatedAtAction(nameof(GetSavingsGoalById), new { id = result.BudgetId }, result);
+
     }
 
     // POST api/budgets/savings/{id}/add
@@ -171,12 +172,16 @@ public class BudgetController : BaseController
     {
         try
         {
-            var result = await _budgetService.AddMoneyAsync(GetUserId(), id, request.Amount, request.Notes);
+            if (request.SourceAccountId <= 0)
+                return BadRequest(new { message = "Vui lòng chọn ví nguồn để nạp tiền." });
+ 
+            var result = await _budgetService.AddMoneyAsync(
+                GetUserId(), id, request.Amount, request.Notes, request.SourceAccountId);
             return Ok(result);
         }
-        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
-        catch (ArgumentException ex)    { return BadRequest(new { message = ex.Message }); }
-        catch (UnauthorizedAccessException) { return Forbid(); }
+        catch (KeyNotFoundException ex)          { return NotFound(new { message = ex.Message }); }
+        catch (ArgumentException ex)             { return BadRequest(new { message = ex.Message }); }
+        catch (UnauthorizedAccessException)      { return Forbid(); }
     }
 
     // POST api/budgets/savings/{id}/remove
@@ -185,12 +190,16 @@ public class BudgetController : BaseController
     {
         try
         {
-            var result = await _budgetService.RemoveMoneyAsync(GetUserId(), id, request.Amount, request.Notes);
+            if (request.DestinationAccountId <= 0)
+                return BadRequest(new { message = "Vui lòng chọn ví đích để nhận tiền." });
+ 
+            var result = await _budgetService.RemoveMoneyAsync(
+                GetUserId(), id, request.Amount, request.Notes, request.DestinationAccountId);
             return Ok(result);
         }
-        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
-        catch (ArgumentException ex)    { return BadRequest(new { message = ex.Message }); }
-        catch (UnauthorizedAccessException) { return Forbid(); }
+        catch (KeyNotFoundException ex)          { return NotFound(new { message = ex.Message }); }
+        catch (ArgumentException ex)             { return BadRequest(new { message = ex.Message }); }
+        catch (UnauthorizedAccessException)      { return Forbid(); }
     }
 
     // POST api/budgets/savings/{id}/reset
