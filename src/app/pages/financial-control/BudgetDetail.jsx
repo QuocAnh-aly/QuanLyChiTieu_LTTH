@@ -163,7 +163,7 @@ function PieCard({ title, data, total, fmt }) {
   );
 }
 
-function mapTransactionForBudget(t, budgetAccountId) {
+function mapTransactionForBudget(t, _budgetId) {
   const details = t.details || [];
   const debitDetail  = details.find(d => d.debit  > 0);
   const creditDetail = details.find(d => d.credit > 0);
@@ -180,7 +180,7 @@ function mapTransactionForBudget(t, budgetAccountId) {
     destAccount:     debitDetail?.accountName  || "—",
     isIncome,
     isTransfer,
-    matchesBudget:   details.some(d => d.accountId === budgetAccountId),
+    matchesBudget:   t.budgetId === _budgetId,
   };
 }
 
@@ -234,21 +234,21 @@ export function BudgetDetail() {
         }
       }
 
-      if (data?.accountId) {
+      if (data?.budgetId) {
         try {
           // Use budget date range, or fall back to a wide window
           const from = data.startDate ? startOfDay(parseISO(data.startDate)) : startOfDay(new Date(2026, 0, 1));
           const to   = data.endDate   ? endOfDay(parseISO(data.endDate))     : endOfDay(new Date(2099, 11, 31));
           let txs = [];
           if (from && to) {
-            // Dùng API filter theo accountId để query đúng ngay từ database
-            txs = await transactionApi.getByRangeAndAccount(data.accountId, from.toISOString(), to.toISOString());
+            // Dùng API filter theo budgetId để chỉ lấy giao dịch thuộc budget này
+            txs = await transactionApi.getByRangeAndBudget(data.budgetId, from.toISOString(), to.toISOString());
           } else {
             const res = await transactionApi.getAll({ page: 1, pageSize: 200 });
             txs = res.items || res || [];
           }
           const mapped = (txs || [])
-            .map(t => mapTransactionForBudget(t, data.accountId))
+            .map(t => mapTransactionForBudget(t, data.budgetId))
             .filter(t => t.matchesBudget);
           setTransactions(mapped);
         } catch {

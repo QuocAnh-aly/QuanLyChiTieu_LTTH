@@ -206,6 +206,7 @@ export function AddTransactionModal({
         debitAccountId: expenseCategory.accountId,
         creditAccountId: parseInt(walletId),
         expenseCategoryName: expenseCategory.name.trim() || "Chưa phân loại",
+        budgetId: selectedBudget?.budgetId ?? null,
       };
     } else if (txType === "income") {
       payload = {

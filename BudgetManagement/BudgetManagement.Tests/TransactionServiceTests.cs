@@ -324,6 +324,7 @@ public class TransactionServiceTests
 
         result.JournalId.Should().Be(99);
         result.Description.Should().Be("Payment");
+        result.BudgetId.Should().BeNull();
         _accountRepoMock.Verify(r => r.UpdateBalanceAsync(1, 500m), Times.Once);
         _accountRepoMock.Verify(r => r.UpdateBalanceAsync(2, 500m), Times.Once);
     }
@@ -333,6 +334,7 @@ public class TransactionServiceTests
     {
         var request = new CreateTransactionDto
         {
+            DebitAccountId      = 10,   // Existing expense account ID
             CreditAccountId     = 2,
             Amount              = 100m,
             Description         = "Groceries",
@@ -342,10 +344,7 @@ public class TransactionServiceTests
         var expenseAccount = MakeAccount(10, typeId: 5, name: "Groceries");
         var creditAccount  = MakeAccount(2, typeId: 1, name: "Checking", balance: 500m);
 
-        // Existing expense account found by name
-        _accountRepoMock
-            .Setup(r => r.FindByUserAndNameAsync(_userId, 5, "Groceries"))
-            .ReturnsAsync(expenseAccount);
+        // Existing expense account found by ID (primary lookup: GetByIdAsync)
         _accountRepoMock.Setup(r => r.GetByIdAsync(10)).ReturnsAsync(expenseAccount);
         _accountRepoMock.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(creditAccount);
         _journalRepoMock
@@ -360,10 +359,46 @@ public class TransactionServiceTests
 
         var result = await _service.CreateAsync(_userId, request);
 
-        // Should NOT auto-create a new account
+        // Should NOT auto-create a new account (found by ID)
         _accountRepoMock.Verify(r => r.CreateAsync(It.IsAny<Account>()), Times.Never);
-        // Should update budget spent for expense account
+        // Should update budget spent for expense account (fallback, no BudgetId)
         _budgetServiceMock.Verify(r => r.UpdateSpentAmountAsync(10, 100m), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ExpenseWithBudgetId_UsesSpecificBudget()
+    {
+        var request = new CreateTransactionDto
+        {
+            DebitAccountId      = 10,
+            CreditAccountId     = 2,
+            Amount              = 200m,
+            Description         = "Lunch",
+            ExpenseCategoryName = "Ăn uống",
+            BudgetId            = 42,   // Specific budget selected
+        };
+
+        var expenseAccount = MakeAccount(10, typeId: 5, name: "Ăn uống");
+        var creditAccount  = MakeAccount(2, typeId: 1, name: "Cash", balance: 500m);
+
+        _accountRepoMock.Setup(r => r.GetByIdAsync(10)).ReturnsAsync(expenseAccount);
+        _accountRepoMock.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(creditAccount);
+        _journalRepoMock
+            .Setup(r => r.CreateWithDetailsAsync(It.IsAny<JournalEntry>(),
+                It.IsAny<IEnumerable<JournalDetail>>()))
+            .ReturnsAsync((JournalEntry e, IEnumerable<JournalDetail> _) =>
+            {
+                e.JournalId = 200;
+                e.JournalDetails = new List<JournalDetail>();
+                return e;
+            });
+
+        var result = await _service.CreateAsync(_userId, request);
+
+        result.JournalId.Should().Be(200);
+        // Should update SPECIFIC budget, not fallback
+        _budgetServiceMock.Verify(r => r.UpdateBudgetSpentAsync(42, 200m), Times.Once);
+        _budgetServiceMock.Verify(r => r.UpdateSpentAmountAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
     }
 
     [Fact]
@@ -498,6 +533,176 @@ public class TransactionServiceTests
             .Should().ThrowAsync<KeyNotFoundException>();
     }
 
+    [Fact]
+    public async Task UpdateAsync_WithAmountChange_UpdatesBalanceAndBudget()
+    {
+        var existing = MakeExpenseEntry(1, amount: 500m, expenseAccId: 5);  // old amount = 500
+        existing.BudgetId = 42;  // tied to budget 42
+        _journalRepoMock.Setup(r => r.GetWithDetailsAsync(1)).ReturnsAsync(existing);
+        _journalRepoMock
+            .Setup(r => r.UpdateEntryAsync(1, null, null, null, It.IsAny<DateTime>()))
+            .ReturnsAsync(true);
+        _journalRepoMock
+            .Setup(r => r.UpdateEntryAmountAsync(1, 800m))
+            .ReturnsAsync(true);
+        _journalRepoMock
+            .Setup(r => r.GetWithDetailsAsync(1))
+            .ReturnsAsync(existing);
+        _accountRepoMock
+            .Setup(r => r.GetByIdAsync(5))
+            .ReturnsAsync(MakeAccount(5, typeId: 5, name: "Groceries"));
+        _accountRepoMock
+            .Setup(r => r.GetByIdAsync(1))
+            .ReturnsAsync(MakeAccount(1, typeId: 1, name: "Checking", balance: 1000m));
+
+        // Frontend luôn gửi budgetId (giữ nguyên 42) → không đổi budget
+        var request = new UpdateTransactionDto
+        {
+            Amount   = 800m,  // delta = +300
+            BudgetId = 42,    // same as existing → no budget change
+        };
+
+        var result = await _service.UpdateAsync(_userId, 1, request);
+
+        // Should adjust budget by delta (+300)
+        _budgetServiceMock.Verify(r => r.UpdateBudgetSpentAsync(42, 300m), Times.Once);
+        // Should NOT call fallback
+        _budgetServiceMock.Verify(r => r.UpdateSpentAmountAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ChangeBudget_SubtractsFromOld_AddsToNew()
+    {
+        // Transaction with old amount 500, tied to budget 1
+        var existing = MakeExpenseEntry(1, amount: 500m, expenseAccId: 5);
+        existing.BudgetId = 1;
+        _journalRepoMock.Setup(r => r.GetWithDetailsAsync(1)).ReturnsAsync(existing);
+        _journalRepoMock
+            .Setup(r => r.UpdateEntryAsync(1, null, null, null, It.IsAny<DateTime>()))
+            .ReturnsAsync(true);
+        _journalRepoMock
+            .Setup(r => r.GetWithDetailsAsync(1))
+            .ReturnsAsync(existing);
+        _accountRepoMock
+            .Setup(r => r.GetByIdAsync(5))
+            .ReturnsAsync(MakeAccount(5, typeId: 5, name: "Groceries"));
+        _accountRepoMock
+            .Setup(r => r.GetByIdAsync(1))
+            .ReturnsAsync(MakeAccount(1, typeId: 1, name: "Checking"));
+
+        var request = new UpdateTransactionDto
+        {
+            BudgetId = 2,  // Change from budget 1 to budget 2
+        };
+
+        await _service.UpdateAsync(_userId, 1, request);
+
+        // Should remove 500 from old budget
+        _budgetServiceMock.Verify(r => r.UpdateBudgetSpentAsync(1, -500m), Times.Once);
+        // Should add 500 to new budget
+        _budgetServiceMock.Verify(r => r.UpdateBudgetSpentAsync(2, 500m), Times.Once);
+        // Should update stored BudgetId
+        _journalRepoMock.Verify(r => r.UpdateEntryAsync(1, null, null, null, null, 2), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ChangeAmountAndBudget_AdjustsBothCorrectly()
+    {
+        // Transaction with old amount 500, tied to budget 1
+        var existing = MakeExpenseEntry(1, amount: 500m, expenseAccId: 5);
+        existing.BudgetId = 1;
+        _journalRepoMock.Setup(r => r.GetWithDetailsAsync(1)).ReturnsAsync(existing);
+        _journalRepoMock
+            .Setup(r => r.UpdateEntryAsync(1, null, null, null, It.IsAny<DateTime>()))
+            .ReturnsAsync(true);
+        _journalRepoMock
+            .Setup(r => r.UpdateEntryAmountAsync(1, 700m))
+            .ReturnsAsync(true);
+        _journalRepoMock
+            .Setup(r => r.GetWithDetailsAsync(1))
+            .ReturnsAsync(existing);
+        _accountRepoMock
+            .Setup(r => r.GetByIdAsync(5))
+            .ReturnsAsync(MakeAccount(5, typeId: 5, name: "Groceries"));
+        _accountRepoMock
+            .Setup(r => r.GetByIdAsync(1))
+            .ReturnsAsync(MakeAccount(1, typeId: 1, name: "Checking"));
+
+        var request = new UpdateTransactionDto
+        {
+            Amount   = 700m,   // delta = +200
+            BudgetId = 2,      // Change from budget 1 to budget 2
+        };
+
+        await _service.UpdateAsync(_userId, 1, request);
+
+        // Amount change: +200 to old budget (budget 1)
+        _budgetServiceMock.Verify(r => r.UpdateBudgetSpentAsync(1, 200m), Times.Once);
+        // Budget change: remove effectiveAmount (700) from old budget
+        _budgetServiceMock.Verify(r => r.UpdateBudgetSpentAsync(1, -700m), Times.Once);
+        // Budget change: add 700 to new budget
+        _budgetServiceMock.Verify(r => r.UpdateBudgetSpentAsync(2, 700m), Times.Once);
+        // Net on old budget: +200 - 700 = -500 (correctly removed original amount)
+    }
+
+    [Fact]
+    public async Task UpdateAsync_RemoveBudgetSelection_FallsBackToDefault()
+    {
+        // Transaction with old amount 500, tied to budget 1
+        var existing = MakeExpenseEntry(1, amount: 500m, expenseAccId: 5);
+        existing.BudgetId = 1;
+        _journalRepoMock.Setup(r => r.GetWithDetailsAsync(1)).ReturnsAsync(existing);
+        _journalRepoMock
+            .Setup(r => r.UpdateEntryAsync(1, null, null, null, It.IsAny<DateTime>()))
+            .ReturnsAsync(true);
+        _journalRepoMock
+            .Setup(r => r.GetWithDetailsAsync(1))
+            .ReturnsAsync(existing);
+        _accountRepoMock
+            .Setup(r => r.GetByIdAsync(5))
+            .ReturnsAsync(MakeAccount(5, typeId: 5, name: "Groceries"));
+        _accountRepoMock
+            .Setup(r => r.GetByIdAsync(1))
+            .ReturnsAsync(MakeAccount(1, typeId: 1, name: "Checking"));
+
+        var request = new UpdateTransactionDto
+        {
+            BudgetId = null,  // Remove budget selection
+        };
+
+        await _service.UpdateAsync(_userId, 1, request);
+
+        // Should remove 500 from old budget
+        _budgetServiceMock.Verify(r => r.UpdateBudgetSpentAsync(1, -500m), Times.Once);
+        // Should fallback to account-based budget for adding
+        _budgetServiceMock.Verify(r => r.UpdateSpentAmountAsync(5, 500m), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_NoAmountNoBudgetChange_OnlyUpdatesMetadata()
+    {
+        var existing = MakeEntry(1);
+        _journalRepoMock.Setup(r => r.GetWithDetailsAsync(1)).ReturnsAsync(existing);
+        _journalRepoMock
+            .Setup(r => r.UpdateEntryAsync(1, "New desc", null, null, It.IsAny<DateTime>()))
+            .ReturnsAsync(true);
+        _journalRepoMock
+            .Setup(r => r.GetWithDetailsAsync(1))
+            .ReturnsAsync(MakeEntry(1, desc: "New desc"));
+
+        var request = new UpdateTransactionDto
+        {
+            Description = "New desc",
+        };
+
+        var result = await _service.UpdateAsync(_userId, 1, request);
+
+        result.Description.Should().Be("New desc");
+        // No budget or amount changes
+        _budgetServiceMock.Verify(r => r.UpdateBudgetSpentAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
+        _budgetServiceMock.Verify(r => r.UpdateSpentAmountAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
+    }
+
     // ─── DeleteAsync ────────────────────────────────────────────────────────
 
     [Fact]
@@ -513,6 +718,42 @@ public class TransactionServiceTests
 
         result.Should().BeTrue();
         _journalRepoMock.Verify(r => r.DeleteAsync(1), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ExpenseWithBudgetId_ReversesSpecificBudget()
+    {
+        var entry = MakeExpenseEntry(1, amount: 500m, expenseAccId: 5);
+        entry.BudgetId = 42;  // stored budget ID
+        _journalRepoMock.Setup(r => r.GetWithDetailsAsync(1)).ReturnsAsync(entry);
+        _journalRepoMock.Setup(r => r.DeleteAsync(1)).ReturnsAsync(true);
+        _accountRepoMock.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(MakeAccount(5, typeId: 5));
+        _accountRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(MakeAccount(1, typeId: 1));
+
+        var result = await _service.DeleteAsync(_userId, 1);
+
+        result.Should().BeTrue();
+        // Should reverse budget 42 by the amount
+        _budgetServiceMock.Verify(r => r.UpdateBudgetSpentAsync(42, -500m), Times.Once);
+        // Should NOT use fallback
+        _budgetServiceMock.Verify(r => r.UpdateSpentAmountAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ExpenseWithoutBudget_FallsBackToDefault()
+    {
+        var entry = MakeExpenseEntry(1, amount: 300m, expenseAccId: 5);
+        entry.BudgetId = null;  // no budget stored
+        _journalRepoMock.Setup(r => r.GetWithDetailsAsync(1)).ReturnsAsync(entry);
+        _journalRepoMock.Setup(r => r.DeleteAsync(1)).ReturnsAsync(true);
+        _accountRepoMock.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(MakeAccount(5, typeId: 5));
+        _accountRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(MakeAccount(1, typeId: 1));
+
+        var result = await _service.DeleteAsync(_userId, 1);
+
+        result.Should().BeTrue();
+        // Should fallback to account-based budget reversal
+        _budgetServiceMock.Verify(r => r.UpdateSpentAmountAsync(5, -300m), Times.Once);
     }
 
     [Fact]
@@ -636,5 +877,29 @@ public class TransactionServiceTests
         var result = await _service.GetByIdAsync(_userId, 7);
 
         result.TotalAmount.Should().Be(1000m);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_Dto_IncludesBudgetId()
+    {
+        var entry = MakeEntry(7);
+        entry.BudgetId = 99;  // mapped to budget 99
+        _journalRepoMock.Setup(r => r.GetWithDetailsAsync(7)).ReturnsAsync(entry);
+
+        var result = await _service.GetByIdAsync(_userId, 7);
+
+        result.BudgetId.Should().Be(99);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_Dto_BudgetIdIsNullWhenNotSet()
+    {
+        var entry = MakeEntry(7);
+        entry.BudgetId = null;
+        _journalRepoMock.Setup(r => r.GetWithDetailsAsync(7)).ReturnsAsync(entry);
+
+        var result = await _service.GetByIdAsync(_userId, 7);
+
+        result.BudgetId.Should().BeNull();
     }
 }

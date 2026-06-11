@@ -48,6 +48,17 @@ public class TransactionController : BaseController
         return Ok(result);
     }
 
+    // GET api/transactions/range/budget?budgetId=X&from=...&to=...
+    [HttpGet("range/budget")]
+    public async Task<IActionResult> GetByDateRangeAndBudget(
+        [FromQuery] int budgetId,
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to)
+    {
+        var result = await _transactionService.GetByDateRangeAndBudgetAsync(GetUserId(), from, to, budgetId);
+        return Ok(result);
+    }
+
     // GET api/transactions/{id}
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)

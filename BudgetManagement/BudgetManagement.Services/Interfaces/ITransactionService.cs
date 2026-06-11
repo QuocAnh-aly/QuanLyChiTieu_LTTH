@@ -18,6 +18,10 @@ public interface ITransactionService
     Task<TransactionDto> UpdateAsync(int userId, int journalId, UpdateTransactionDto request);
     Task<bool> DeleteAsync(int userId, int journalId);
 
+    // Lấy giao dịch theo budgetId
+    Task<IEnumerable<TransactionDto>> GetByDateRangeAndBudgetAsync(
+        int userId, DateTime from, DateTime to, int budgetId);
+
     // Dashboard
     Task<CashFlowSummaryDto> GetCashFlowAsync(int userId, DateTime from, DateTime to);
 }

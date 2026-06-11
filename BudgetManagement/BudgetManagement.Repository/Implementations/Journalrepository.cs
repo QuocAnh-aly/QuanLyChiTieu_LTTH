@@ -78,7 +78,7 @@ public class JournalRepository : BaseRepository<JournalEntry>, IJournalRepositor
         }
     }
 
-    public async Task<bool> UpdateEntryAsync(int journalId, string? description, string? notes, string? tags, DateTime? transactionDate)
+    public async Task<bool> UpdateEntryAsync(int journalId, string? description, string? notes, string? tags, DateTime? transactionDate, int? budgetId = null)
     {
         var entry = await _context.JournalEntries.FindAsync(journalId);
         if (entry is null) return false;
@@ -87,6 +87,7 @@ public class JournalRepository : BaseRepository<JournalEntry>, IJournalRepositor
         if (notes       is not null)  entry.Notes           = notes;
         if (tags        is not null)  entry.Tags            = tags;
         if (transactionDate.HasValue) entry.TransactionDate = transactionDate.Value;
+        if (budgetId.HasValue)        entry.BudgetId        = budgetId;
 
         await _context.SaveChangesAsync();
         return true;
@@ -119,4 +120,16 @@ public class JournalRepository : BaseRepository<JournalEntry>, IJournalRepositor
 
     public async Task<bool> HasDetailsForAccountAsync(int accountId)
         => await _context.JournalDetails.AnyAsync(d => d.AccountId == accountId);
+
+    public async Task<IEnumerable<JournalEntry>> GetByDateRangeAndBudgetAsync(
+        int userId, DateTime from, DateTime to, int budgetId)
+        => await _context.JournalEntries
+            .Where(e => e.UserId == userId
+                     && e.BudgetId == budgetId
+                     && e.TransactionDate >= from
+                     && e.TransactionDate <= to)
+            .Include(e => e.JournalDetails)
+                .ThenInclude(d => d.Account)
+            .OrderByDescending(e => e.TransactionDate)
+            .ToListAsync();
 }

@@ -44,6 +44,13 @@ public class TransactionService : ITransactionService
         return entries.Select(MapToDto);
     }
 
+    public async Task<IEnumerable<TransactionDto>> GetByDateRangeAndBudgetAsync(
+        int userId, DateTime from, DateTime to, int budgetId)
+    {
+        var entries = await _journalRepo.GetByDateRangeAndBudgetAsync(userId, from, to, budgetId);
+        return entries.Select(MapToDto);
+    }
+
     public async Task<TransactionDto> GetByIdAsync(int userId, int journalId)
     {
         var entry = await _journalRepo.GetWithDetailsAsync(journalId)
@@ -113,6 +120,7 @@ public class TransactionService : ITransactionService
             Notes           = request.Notes,
             Tags            = request.Tags,
             BillId          = request.BillId,
+            BudgetId        = request.BudgetId,   // Lưu budget được chọn
             CreatedAt       = DateTime.UtcNow
         };
 
@@ -132,7 +140,12 @@ public class TransactionService : ITransactionService
 
         // Nếu debit account là Expense → cập nhật budget spent
         if (debitAccount.TypeId == TypeExpense)
-            await _budgetService.UpdateSpentAmountAsync(debitAccount.AccountId, request.Amount);
+        {
+            if (request.BudgetId.HasValue)
+                await _budgetService.UpdateBudgetSpentAsync(request.BudgetId.Value, request.Amount);
+            else
+                await _budgetService.UpdateSpentAmountAsync(debitAccount.AccountId, request.Amount);
+        }
 
         return MapToDto(created);
     }
@@ -145,39 +158,83 @@ public class TransactionService : ITransactionService
         if (entry.UserId != userId)
             throw new UnauthorizedAccessException("Access denied.");
 
+        // Tính số tiền hiện tại trước khi update
+        var oldAmount = entry.JournalDetails
+            .Where(d => d.Debit > 0)
+            .Sum(d => d.Debit ?? 0);
+
         // Cập nhật metadata trước
         await _journalRepo.UpdateEntryAsync(journalId, request.Description, request.Notes, request.Tags, request.TransactionDate);
 
         // Nếu có thay đổi số tiền → cập nhật cả details, balance và budget
-        if (request.Amount.HasValue)
+        if (request.Amount.HasValue && Math.Abs(request.Amount.Value - oldAmount) > 0.01m)
         {
-            var oldAmount = entry.JournalDetails
-                .Where(d => d.Debit > 0)
-                .Sum(d => d.Debit ?? 0);
+            var delta = request.Amount.Value - oldAmount;
 
-            if (Math.Abs(request.Amount.Value - oldAmount) > 0.01m)
+            // Cập nhật số tiền trong JournalDetails
+            await _journalRepo.UpdateEntryAmountAsync(journalId, request.Amount.Value);
+
+            // Điều chỉnh balance 2 tài khoản
+            foreach (var detail in entry.JournalDetails)
             {
-                var delta = request.Amount.Value - oldAmount;
+                var account = await _accountRepo.GetByIdAsync(detail.AccountId);
+                if (account is null) continue;
 
-                // Cập nhật số tiền trong JournalDetails
-                await _journalRepo.UpdateEntryAmountAsync(journalId, request.Amount.Value);
+                if (detail.Debit > 0)
+                    await UpdateAccountBalanceAsync(account, delta);
+                else if (detail.Credit > 0)
+                    await UpdateAccountBalanceAsync(account, -delta);
 
-                // Điều chỉnh balance 2 tài khoản
-                foreach (var detail in entry.JournalDetails)
+                // Điều chỉnh budget nếu là Expense
+                if (detail.Account?.TypeId == TypeExpense && detail.Debit > 0)
                 {
-                    var account = await _accountRepo.GetByIdAsync(detail.AccountId);
-                    if (account is null) continue;
-
-                    if (detail.Debit > 0)
-                        await UpdateAccountBalanceAsync(account, delta);
-                    else if (detail.Credit > 0)
-                        await UpdateAccountBalanceAsync(account, -delta);
-
-                    // Điều chỉnh budget nếu là Expense
-                    if (detail.Account?.TypeId == TypeExpense && detail.Debit > 0)
+                    if (entry.BudgetId.HasValue)
+                        await _budgetService.UpdateBudgetSpentAsync(entry.BudgetId.Value, delta);
+                    else
                         await _budgetService.UpdateSpentAmountAsync(detail.AccountId, delta);
                 }
             }
+        }
+
+        // Số tiền sau cùng (sau khi đã cập nhật amount nếu có)
+        var effectiveAmount = request.Amount ?? oldAmount;
+
+        // Kiểm tra nếu budget thay đổi
+        var oldBudgetId = entry.BudgetId;
+        var newBudgetId = request.BudgetId;
+
+        if (newBudgetId != oldBudgetId)
+        {
+            // Tìm expense detail để biết AccountId (fallback khi không có budget cụ thể)
+            var expenseDetail = entry.JournalDetails
+                .FirstOrDefault(d => d.Account?.TypeId == TypeExpense && (d.Debit ?? 0) > 0);
+            var expenseAccountId = expenseDetail?.AccountId;
+
+            // 1. Nếu có old budget: xoá số tiền khỏi budget cũ
+            //    (đã cộng delta vào đây ở bước trên nếu amount thay đổi)
+            if (oldBudgetId.HasValue)
+            {
+                await _budgetService.UpdateBudgetSpentAsync(oldBudgetId.Value, -effectiveAmount);
+            }
+            else if (expenseAccountId.HasValue)
+            {
+                // Fallback: tìm budget active đầu tiên và xoá
+                await _budgetService.UpdateSpentAmountAsync(expenseAccountId.Value, -effectiveAmount);
+            }
+
+            // 2. Nếu có new budget: cộng số tiền vào budget mới
+            if (newBudgetId.HasValue)
+            {
+                await _budgetService.UpdateBudgetSpentAsync(newBudgetId.Value, effectiveAmount);
+            }
+            else if (expenseAccountId.HasValue)
+            {
+                // Fallback: tìm budget active đầu tiên
+                await _budgetService.UpdateSpentAmountAsync(expenseAccountId.Value, effectiveAmount);
+            }
+
+            // 3. Cập nhật BudgetId đã lưu
+            await _journalRepo.UpdateEntryAsync(journalId, null, null, null, null, newBudgetId);
         }
 
         var updated = await _journalRepo.GetWithDetailsAsync(journalId);
@@ -197,7 +254,10 @@ public class TransactionService : ITransactionService
         {
             if (detail.Account?.TypeId == TypeExpense && (detail.Debit ?? 0) > 0)
             {
-                await _budgetService.UpdateSpentAmountAsync(detail.AccountId, -(detail.Debit ?? 0));
+                if (entry.BudgetId.HasValue)
+                    await _budgetService.UpdateBudgetSpentAsync(entry.BudgetId.Value, -(detail.Debit ?? 0));
+                else
+                    await _budgetService.UpdateSpentAmountAsync(detail.AccountId, -(detail.Debit ?? 0));
             }
         }
 
@@ -266,6 +326,7 @@ public class TransactionService : ITransactionService
         Description     = e.Description,
         Notes           = e.Notes,
         Tags            = e.Tags,
+        BudgetId        = e.BudgetId,
         CreatedAt       = e.CreatedAt,
         Details         = e.JournalDetails.Select(d => new JournalDetailDto
         {

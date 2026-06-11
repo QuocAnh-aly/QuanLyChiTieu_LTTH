@@ -4,11 +4,14 @@ import {
   ArrowDownRight,
   ArrowLeftRight,
   Tag,
+  Coffee,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { useSettings } from "../../context/SettingsContext";
 import { useCategories } from "../../context/CategoriesContext";
+import { budgetApi } from "../../api/budgetApi";
+import { ICON_MAP } from "../../utils/icons";
 
 const TAG_COLORS = {
   blue: "bg-blue-100    text-blue-700    border-blue-300",
@@ -31,6 +34,8 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedTags, setSelectedTags] = useState([]);
+  const [budgets, setBudgets] = useState([]);
+  const [selectedBudget, setSelectedBudget] = useState(null);
 
   useEffect(() => {
     if (!isOpen || !transaction) return;
@@ -55,6 +60,30 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
             .filter(Boolean)
         : [],
     );
+    // Fetch budgets for expense transactions
+    const isExpenseTx = !transaction.isIncome && !transaction.isTransfer;
+    if (isExpenseTx) {
+      budgetApi
+        .getExpenseBudgets({ page: 1, pageSize: 50 })
+        .then((data) => {
+          const items = data.items || data || [];
+          const active = items.filter((b) => b.isActive !== false);
+          setBudgets(active);
+          // Set current budget from transaction.budgetId
+          if (transaction.budgetId) {
+            const current = active.find(
+              (b) => b.budgetId === transaction.budgetId,
+            );
+            setSelectedBudget(current || null);
+          } else {
+            setSelectedBudget(null);
+          }
+        })
+        .catch(() => {});
+    } else {
+      setBudgets([]);
+      setSelectedBudget(null);
+    }
   }, [isOpen, transaction]);
 
   if (!isOpen || !transaction) return null;
@@ -110,6 +139,7 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
       tags: selectedTags.length > 0 ? selectedTags.join(",") : null,
       transactionDate: new Date(`${date}T${time}`).toISOString(),
       amount: isNaN(parsed) || parsed <= 0 ? undefined : parsed,
+      budgetId: selectedBudget?.budgetId ?? null,
     });
   };
 
@@ -205,6 +235,63 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
                 />
               </div>
             </div>
+
+            {/* Budget section (chỉ hiển thị cho chi tiêu) */}
+            {isExpense && budgets.length > 0 && (
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
+                  Danh mục ngân sách{" "}
+                  <span className="text-muted-foreground font-normal">
+                    (không bắt buộc)
+                  </span>
+                </label>
+                <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-0.5">
+                  {budgets.map((b) => {
+                    const isSel =
+                      selectedBudget?.budgetId === b.budgetId;
+                    const pct = Math.min(b.percentage ?? 0, 100);
+                    const BudgetIcon = ICON_MAP[b.iconName] || Coffee;
+                    return (
+                      <button
+                        key={b.budgetId}
+                        type="button"
+                        onClick={() => {
+                          if (isSel) setSelectedBudget(null);
+                          else setSelectedBudget(b);
+                        }}
+                        className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
+                          isSel
+                            ? "border-purple-400 bg-purple-50 text-purple-700"
+                            : "border-border hover:border-slate-300 text-muted-foreground"
+                        }`}>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <BudgetIcon size={13} />
+                          <span className="truncate font-semibold">
+                            {b.title}
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-1.5 mb-1">
+                          <div
+                            className={`h-1.5 rounded-full transition-all ${
+                              pct >= 100
+                                ? "bg-red-500"
+                                : pct >= 80
+                                  ? "bg-amber-400"
+                                  : "bg-purple-500"
+                            }`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          {fmt(b.currentAmount ?? 0)} /{" "}
+                          {fmt(b.targetAmount ?? 0)}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-semibold text-foreground mb-2">

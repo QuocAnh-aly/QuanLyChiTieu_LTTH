@@ -16,6 +16,7 @@ public class JournalEntry
     public DateTime? CreatedAt { get; set; }
 
     public int? BillId { get; set; }
+    public int? BudgetId { get; set; }   // Budget được chọn khi tạo giao dịch (nếu có)
 
     public User User { get; set; } = null!;
     public Bill? Bill { get; set; }

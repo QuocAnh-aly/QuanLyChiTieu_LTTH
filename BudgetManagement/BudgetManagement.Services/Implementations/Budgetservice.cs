@@ -263,6 +263,13 @@ public class BudgetService : IBudgetService
             await _budgetRepo.UpdateCurrentAmountAsync(budget.BudgetId, (budget.CurrentAmount ?? 0) + delta);
     }
 
+    public async Task UpdateBudgetSpentAsync(int budgetId, decimal delta)
+    {
+        var budget = await _budgetRepo.GetByIdAsync(budgetId);
+        if (budget is null) return;
+        await _budgetRepo.UpdateCurrentAmountAsync(budget.BudgetId, (budget.CurrentAmount ?? 0) + delta);
+    }
+
     // ─── Private helpers ────────────────────────────────────────────────────
 
     private static int CalculatePeriodsElapsed(DateTime startDate, string periodType, DateTime now)

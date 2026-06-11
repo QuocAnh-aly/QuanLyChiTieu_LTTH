@@ -14,6 +14,7 @@ public class CreateTransactionDto
     public string?  IncomeCategoryName  { get; set; }   // Thu nhập: backend tìm Revenue account có sẵn, không tự tạo
     public string?  ExpenseCategoryName { get; set; }   // Chi tiêu: backend tìm Expense account có sẵn, không tự tạo
     public int?     BillId              { get; set; }   // Gắn giao dịch vào hóa đơn định kỳ (khi "Trả ngay")
+    public int?     BudgetId            { get; set; }   // Budget được chọn (nếu có) — tiền sẽ cộng vào budget này
 }
 
 // ─── Response ────────────────────────────────────────────────────────────────
@@ -25,6 +26,7 @@ public class TransactionDto
     public string?  Description     { get; set; }
     public string?  Notes           { get; set; }
     public string?  Tags            { get; set; }
+    public int?     BudgetId        { get; set; }   // Budget được chọn khi tạo giao dịch (nếu có)
     public DateTime? CreatedAt      { get; set; }
     public List<JournalDetailDto> Details { get; set; } = [];
 
@@ -52,6 +54,7 @@ public class UpdateTransactionDto
     public string?   Tags            { get; set; }
     public DateTime? TransactionDate { get; set; }
     public decimal?  Amount          { get; set; }   // null = không đổi, có giá trị = cập nhật số tiền
+    public int?      BudgetId        { get; set; }   // null = không đổi, có giá trị = chuyển sang budget khác
 }
 
 public class CashFlowSummaryDto

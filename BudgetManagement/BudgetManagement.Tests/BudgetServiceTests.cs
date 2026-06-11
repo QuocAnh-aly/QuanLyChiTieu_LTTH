@@ -387,18 +387,444 @@ public class BudgetServiceTests
             .Should().ThrowAsync<KeyNotFoundException>();
     }
 
-    // ─── GetSavingsGoalsAsync ──────────────────────────────────────────────
+    // ─── UpdateSpentAmountAsync (accountId-based) ────────────────────────────
+
+    [Fact]
+    public async Task UpdateSpentAmountAsync_FindsActiveBudgetAndUpdates()
+    {
+        var budget = MakeBudget(42, current: 1000m);
+        _budgetRepoMock.Setup(r => r.GetActiveByAccountIdAsync(42)).ReturnsAsync(budget);
+        _budgetRepoMock
+            .Setup(r => r.UpdateCurrentAmountAsync(42, 1200m))
+            .Returns(Task.CompletedTask);
+
+        await _service.UpdateSpentAmountAsync(42, 200m);
+
+        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(42, 1200m), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateSpentAmountAsync_NegativeDelta_DecreasesCurrentAmount()
+    {
+        var budget = MakeBudget(42, current: 1000m);
+        _budgetRepoMock.Setup(r => r.GetActiveByAccountIdAsync(42)).ReturnsAsync(budget);
+        _budgetRepoMock
+            .Setup(r => r.UpdateCurrentAmountAsync(42, 700m))
+            .Returns(Task.CompletedTask);
+
+        await _service.UpdateSpentAmountAsync(42, -300m);
+
+        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(42, 700m), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateSpentAmountAsync_NoActiveBudget_DoesNothing()
+    {
+        _budgetRepoMock.Setup(r => r.GetActiveByAccountIdAsync(999))
+            .ReturnsAsync((Budget?)null);
+
+        await _service.UpdateSpentAmountAsync(999, 200m);
+
+        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
+    }
+
+    // ─── UpdateBudgetSpentAsync (budgetId-based, new) ─────────────────────────
+
+    [Fact]
+    public async Task UpdateBudgetSpentAsync_AddsDeltaToSpecificBudget()
+    {
+        var budget = MakeBudget(42, current: 500m);
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(42)).ReturnsAsync(budget);
+        _budgetRepoMock
+            .Setup(r => r.UpdateCurrentAmountAsync(42, 800m))
+            .Returns(Task.CompletedTask);
+
+        await _service.UpdateBudgetSpentAsync(42, 300m);
+
+        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(42, 800m), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateBudgetSpentAsync_SubtractsDeltaCorrectly()
+    {
+        var budget = MakeBudget(42, current: 1000m);
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(42)).ReturnsAsync(budget);
+        _budgetRepoMock
+            .Setup(r => r.UpdateCurrentAmountAsync(42, 600m))
+            .Returns(Task.CompletedTask);
+
+        await _service.UpdateBudgetSpentAsync(42, -400m);
+
+        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(42, 600m), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateBudgetSpentAsync_NonExistentBudget_DoesNothing()
+    {
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Budget?)null);
+
+        await _service.UpdateBudgetSpentAsync(999, 200m);
+
+        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateBudgetSpentAsync_ZeroCurrentAmount_AddsCorrectly()
+    {
+        var budget = MakeBudget(42, current: 0m);
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(42)).ReturnsAsync(budget);
+        _budgetRepoMock
+            .Setup(r => r.UpdateCurrentAmountAsync(42, 500m))
+            .Returns(Task.CompletedTask);
+
+        await _service.UpdateBudgetSpentAsync(42, 500m);
+
+        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(42, 500m), Times.Once);
+    }
+
+    // ─── Savings Goals ────────────────────────────────────────────────────────
+
+    private static Budget MakeSavingsGoal(int budgetId = 1, int userId = 1,
+        string title = "Vacation", decimal target = 10000m, decimal current = 2000m,
+        decimal monthly = 500m)
+    {
+        var account = new Account
+        {
+            AccountId = budgetId,
+            UserId    = userId,
+            TypeId    = 1,
+            Name      = "Savings Account",
+            IsActive  = true,
+        };
+
+        return new Budget
+        {
+            BudgetId             = budgetId,
+            UserId               = userId,
+            AccountId            = budgetId,
+            Account              = account,
+            Title                = title,
+            BudgetType           = "savings",
+            TargetAmount         = target,
+            CurrentAmount        = current,
+            MonthlyContribution  = monthly,
+            PeriodType           = "monthly",
+            StartDate            = new DateTime(2026, 1, 1),
+            IsActive             = true,
+            Deadline             = "2026-12-31",
+        };
+    }
 
     [Fact]
     public async Task GetSavingsGoalsAsync_ReturnsSavingsGoals()
     {
-        var goals = new[] { MakeBudget(1, title: "Vacation", target: 10000m) };
-        goals[0].BudgetType = "savings";
+        var goals = new[] { MakeSavingsGoal(1) };
         _budgetRepoMock.Setup(r => r.GetSavingsGoalsAsync(_userId)).ReturnsAsync(goals);
 
         var result = await _service.GetSavingsGoalsAsync(_userId);
 
         result.Should().ContainSingle().Which.Title.Should().Be("Vacation");
+    }
+
+    [Fact]
+    public async Task GetSavingsGoalsAsync_Empty_ReturnsEmpty()
+    {
+        _budgetRepoMock.Setup(r => r.GetSavingsGoalsAsync(_userId))
+            .ReturnsAsync(Array.Empty<Budget>());
+
+        var result = await _service.GetSavingsGoalsAsync(_userId);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetSavingsGoalByIdAsync_OwnGoal_ReturnsDto()
+    {
+        var goal = MakeSavingsGoal(42);
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(42)).ReturnsAsync(goal);
+
+        var result = await _service.GetSavingsGoalByIdAsync(_userId, 42);
+
+        result.BudgetId.Should().Be(42);
+        result.Title.Should().Be("Vacation");
+        result.TargetAmount.Should().Be(10000m);
+        result.CurrentAmount.Should().Be(2000m);
+        result.SavePerMonth.Should().Be(500m);
+        result.TargetDate.Should().Be("2026-12-31");
+    }
+
+    [Fact]
+    public async Task GetSavingsGoalByIdAsync_OtherUser_ThrowsUnauthorized()
+    {
+        var goal = MakeSavingsGoal(1, userId: 99);
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(goal);
+
+        await FluentActions.Invoking(() => _service.GetSavingsGoalByIdAsync(_userId, 1))
+            .Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
+    public async Task GetSavingsGoalByIdAsync_NonExistent_ThrowsKeyNotFound()
+    {
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Budget?)null);
+
+        await FluentActions.Invoking(() => _service.GetSavingsGoalByIdAsync(_userId, 999))
+            .Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public async Task CreateSavingsGoalAsync_CreatesAndReturnsDto()
+    {
+        var request = new CreateSavingsGoalDto
+        {
+            AccountId           = 1,
+            Title               = "New Car",
+            TargetAmount        = 50000m,
+            InitialAmount       = 1000m,
+            MonthlyContribution = 2000m,
+            TargetDate          = "2027-06-01",
+            IconName            = "Car",
+            Color               = "blue",
+        };
+
+        _budgetRepoMock
+            .Setup(r => r.CreateAsync(It.Is<Budget>(b =>
+                b.Title == "New Car" &&
+                b.BudgetType == "savings" &&
+                b.TargetAmount == 50000m &&
+                b.CurrentAmount == 1000m &&
+                b.MonthlyContribution == 2000m &&
+                b.Deadline == "2027-06-01")))
+            .ReturnsAsync((Budget b) => b);
+
+        var result = await _service.CreateSavingsGoalAsync(_userId, request);
+
+        result.Title.Should().Be("New Car");
+        result.TargetAmount.Should().Be(50000m);
+        result.CurrentAmount.Should().Be(1000m);
+        result.SavePerMonth.Should().Be(2000m);
+    }
+
+    [Fact]
+    public async Task CreateSavingsGoalAsync_NoInitialAmount_DefaultsToZero()
+    {
+        var request = new CreateSavingsGoalDto
+        {
+            AccountId    = 1,
+            Title        = "New Car",
+            TargetAmount = 50000m,
+        };
+
+        _budgetRepoMock
+            .Setup(r => r.CreateAsync(It.Is<Budget>(b => b.CurrentAmount == 0m)))
+            .ReturnsAsync((Budget b) => b);
+
+        var result = await _service.CreateSavingsGoalAsync(_userId, request);
+
+        result.CurrentAmount.Should().Be(0m);
+    }
+
+    [Fact]
+    public async Task UpdateSavingsGoalAsync_OwnGoal_UpdatesFields()
+    {
+        var existing = MakeSavingsGoal(1);
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(existing);
+        _budgetRepoMock
+            .Setup(r => r.UpdateAsync(It.IsAny<Budget>()))
+            .ReturnsAsync((Budget b) => b);
+
+        var request = new UpdateSavingsGoalDto
+        {
+            Title        = "Bigger Vacation",
+            TargetAmount = 20000m,
+        };
+
+        var result = await _service.UpdateSavingsGoalAsync(_userId, 1, request);
+
+        result.Title.Should().Be("Bigger Vacation");
+        result.TargetAmount.Should().Be(20000m);
+    }
+
+    [Fact]
+    public async Task UpdateSavingsGoalAsync_OtherUser_ThrowsUnauthorized()
+    {
+        var existing = MakeSavingsGoal(1, userId: 99);
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(existing);
+
+        await FluentActions.Invoking(() =>
+            _service.UpdateSavingsGoalAsync(_userId, 1, new UpdateSavingsGoalDto()))
+            .Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
+    public async Task AddMoneyAsync_AddsAmountAndUpdatesCurrent()
+    {
+        var goal = MakeSavingsGoal(1, current: 2000m, target: 10000m);
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(goal);
+        _budgetRepoMock
+            .Setup(r => r.UpdateCurrentAmountAsync(1, 3500m))
+            .Returns(Task.CompletedTask);
+        _budgetRepoMock
+            .Setup(r => r.AddEventAsync(1, 1500m, null))
+            .Returns(Task.CompletedTask);
+        // GetByIdAsync called again after update to return fresh data
+        var updatedGoal = MakeSavingsGoal(1, current: 3500m, target: 10000m);
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(updatedGoal);
+
+        var result = await _service.AddMoneyAsync(_userId, 1, 1500m, null);
+
+        result.CurrentAmount.Should().Be(3500m);
+        _budgetRepoMock.Verify(r => r.AddEventAsync(1, 1500m, null), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddMoneyAsync_ExceedsTarget_ClampsToTarget()
+    {
+        var goal = MakeSavingsGoal(1, current: 9000m, target: 10000m);
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(goal);
+        _budgetRepoMock
+            .Setup(r => r.UpdateCurrentAmountAsync(1, 10000m))  // clamped to target
+            .Returns(Task.CompletedTask);
+        _budgetRepoMock
+            .Setup(r => r.AddEventAsync(1, 2000m, null))
+            .Returns(Task.CompletedTask);
+        var updatedGoal = MakeSavingsGoal(1, current: 10000m, target: 10000m);
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(updatedGoal);
+
+        var result = await _service.AddMoneyAsync(_userId, 1, 2000m, null);
+
+        result.CurrentAmount.Should().Be(10000m);  // should not exceed target
+    }
+
+    [Fact]
+    public async Task AddMoneyAsync_NonExistent_ThrowsKeyNotFound()
+    {
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Budget?)null);
+
+        await FluentActions.Invoking(() =>
+            _service.AddMoneyAsync(_userId, 999, 100m, null))
+            .Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public async Task RemoveMoneyAsync_RemovesAmountAndCreatesEvent()
+    {
+        var goal = MakeSavingsGoal(1, current: 5000m, target: 10000m);
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(goal);
+        _budgetRepoMock
+            .Setup(r => r.UpdateCurrentAmountAsync(1, 3000m))
+            .Returns(Task.CompletedTask);
+        _budgetRepoMock
+            .Setup(r => r.AddEventAsync(1, -2000m, "Emergency"))
+            .Returns(Task.CompletedTask);
+        var updatedGoal = MakeSavingsGoal(1, current: 3000m, target: 10000m);
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(updatedGoal);
+
+        var result = await _service.RemoveMoneyAsync(_userId, 1, 2000m, "Emergency");
+
+        result.CurrentAmount.Should().Be(3000m);
+        _budgetRepoMock.Verify(r => r.AddEventAsync(1, -2000m, "Emergency"), Times.Once);
+    }
+
+    [Fact]
+    public async Task RemoveMoneyAsync_MoreThanCurrent_ClampsToZero()
+    {
+        var goal = MakeSavingsGoal(1, current: 1000m, target: 10000m);
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(goal);
+        _budgetRepoMock
+            .Setup(r => r.UpdateCurrentAmountAsync(1, 0m))  // clamped to 0
+            .Returns(Task.CompletedTask);
+        _budgetRepoMock
+            .Setup(r => r.AddEventAsync(1, -5000m, null))
+            .Returns(Task.CompletedTask);
+        var updatedGoal = MakeSavingsGoal(1, current: 0m, target: 10000m);
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(updatedGoal);
+
+        var result = await _service.RemoveMoneyAsync(_userId, 1, 5000m, null);
+
+        result.CurrentAmount.Should().Be(0m);
+    }
+
+    [Fact]
+    public async Task RemoveMoneyAsync_NonExistent_ThrowsKeyNotFound()
+    {
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Budget?)null);
+
+        await FluentActions.Invoking(() =>
+            _service.RemoveMoneyAsync(_userId, 999, 100m, null))
+            .Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public async Task ResetHistoryAsync_ResetsCurrentAmountAndDeletesEvents()
+    {
+        var goal = MakeSavingsGoal(1, current: 5000m);
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(goal);
+        _budgetRepoMock
+            .Setup(r => r.DeleteEventsByBudgetIdAsync(1))
+            .Returns(Task.CompletedTask);
+        _budgetRepoMock
+            .Setup(r => r.UpdateCurrentAmountAsync(1, 0m))
+            .Returns(Task.CompletedTask);
+
+        var result = await _service.ResetHistoryAsync(_userId, 1);
+
+        result.Should().BeTrue();
+        _budgetRepoMock.Verify(r => r.DeleteEventsByBudgetIdAsync(1), Times.Once);
+        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(1, 0m), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetEventsAsync_ReturnsEvents()
+    {
+        var goal = MakeSavingsGoal(1);
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(goal);
+
+        var events = new[]
+        {
+            new PiggyBankEvent
+            {
+                EventId   = 1,
+                BudgetId  = 1,
+                Amount    = 1000m,
+                EventDate = new DateTime(2026, 6, 1),
+                Notes     = "Deposit"
+            },
+            new PiggyBankEvent
+            {
+                EventId   = 2,
+                BudgetId  = 1,
+                Amount    = -200m,
+                EventDate = new DateTime(2026, 6, 5),
+                Notes     = "Withdrawal"
+            }
+        };
+        _budgetRepoMock
+            .Setup(r => r.GetEventsByBudgetIdAsync(1))
+            .ReturnsAsync(events);
+
+        var result = (await _service.GetEventsAsync(_userId, 1)).ToList();
+
+        result.Should().HaveCount(2);
+        result[0].Amount.Should().Be(1000m);
+        result[0].IsAdd.Should().BeTrue();
+        result[1].Amount.Should().Be(-200m);
+        result[1].IsAdd.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetEventsAsync_OtherUser_ThrowsUnauthorized()
+    {
+        var goal = MakeSavingsGoal(1, userId: 99);
+        _budgetRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(goal);
+
+        await FluentActions.Invoking(() =>
+            _service.GetEventsAsync(_userId, 1))
+            .Should().ThrowAsync<UnauthorizedAccessException>();
     }
 
     // ─── ResetExpiredPeriodsAsync ────────────────────────────────────────────

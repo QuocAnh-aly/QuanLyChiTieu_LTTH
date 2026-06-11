@@ -56,9 +56,9 @@ BudgetManagement/BudgetManagement.AuthService/appsettings.json
 
 # ─── Bash scripts (whitelist specific ones) ──────────────────────
 *.sh
-!run.sh
-!kill.sh
-
+run.sh
+kill.sh
+run-dbtester.sh
 # ─── Test & Coverage ─────────────────────────────────────────────
 test-results/
 test_*.png
