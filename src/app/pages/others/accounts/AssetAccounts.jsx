@@ -46,6 +46,7 @@ import PaginationBar from "../../../components/ui/navigation/PaginationBar";
 import { PageLayout } from "../../../components/layout/PageLayout";
 import { AccountFormModal } from "../../../components/modals/AccountFormModal";
 import { EditAccountModal } from "../../../components/modals/EditAccountModal";
+import { confirmDialog } from "../../../utils/confirmDialog";
 
 function mapTransaction(t) {
   const details = t.details || [];

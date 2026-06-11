@@ -19,8 +19,8 @@ public interface IBudgetService
     Task<SavingsGoalDto> UpdateSavingsGoalAsync(int userId, int budgetId, UpdateSavingsGoalDto request);
 
     // Piggy bank actions
-    Task<SavingsGoalDto> AddMoneyAsync(int userId, int budgetId, decimal amount, string? notes);
-    Task<SavingsGoalDto> RemoveMoneyAsync(int userId, int budgetId, decimal amount, string? notes);
+    Task<SavingsGoalDto> AddMoneyAsync(int userId, int budgetId, decimal amount, string? notes, int sourceAccountId);
+    Task<SavingsGoalDto> RemoveMoneyAsync(int userId, int budgetId, decimal amount, string? notes, int destinationAccountId);
     Task<bool> ResetHistoryAsync(int userId, int budgetId);
     Task<IEnumerable<PiggyBankEventDto>> GetEventsAsync(int userId, int budgetId);
 
