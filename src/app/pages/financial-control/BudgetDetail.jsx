@@ -171,6 +171,7 @@ function mapTransactionForBudget(t, _budgetId) {
   const revenueDetail = details.find(d => d.typeId === 4 && d.credit > 0);
   const isTransfer = !expenseDetail && !revenueDetail;
   const isIncome   = !!revenueDetail;
+  const isUntracked = t.budgetId === null || t.budgetId === undefined;
   return {
     journalId:       t.journalId,
     transactionDate: t.transactionDate,
@@ -181,6 +182,7 @@ function mapTransactionForBudget(t, _budgetId) {
     isIncome,
     isTransfer,
     matchesBudget:   t.budgetId === _budgetId,
+    isUntracked,
   };
 }
 
@@ -192,6 +194,7 @@ export function BudgetDetail() {
   const [budget,       setBudget]       = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [isLoading,    setIsLoading]    = useState(true);
+  const [assigningId,  setAssigningId]  = useState(null);
   const [editOpen,     setEditOpen]     = useState(false);
 
   const load = useCallback(async () => {
@@ -234,22 +237,23 @@ export function BudgetDetail() {
         }
       }
 
-      if (data?.budgetId) {
+      if (data?.budgetId && data?.accountId) {
         try {
           // Use budget date range, or fall back to a wide window
           const from = data.startDate ? startOfDay(parseISO(data.startDate)) : startOfDay(new Date(2026, 0, 1));
           const to   = data.endDate   ? endOfDay(parseISO(data.endDate))     : endOfDay(new Date(2099, 11, 31));
           let txs = [];
           if (from && to) {
-            // Dùng API filter theo budgetId để chỉ lấy giao dịch thuộc budget này
-            txs = await transactionApi.getByRangeAndBudget(data.budgetId, from.toISOString(), to.toISOString());
+            // Dùng API mới: lấy cả giao dịch tracked + untracked cùng category
+            txs = await transactionApi.getByRangeAndBudgetWithUntracked(
+              data.budgetId, data.accountId, from.toISOString(), to.toISOString());
           } else {
             const res = await transactionApi.getAll({ page: 1, pageSize: 200 });
             txs = res.items || res || [];
           }
           const mapped = (txs || [])
             .map(t => mapTransactionForBudget(t, data.budgetId))
-            .filter(t => t.matchesBudget);
+            .filter(t => t.matchesBudget || t.isUntracked);
           setTransactions(mapped);
         } catch {
           setTransactions([]);
@@ -276,6 +280,19 @@ export function BudgetDetail() {
     } catch {
       toast.error("Không thể cập nhật ngân sách");
       addNotification({ type: 'error', title: 'Lỗi cập nhật ngân sách', message: 'Không thể cập nhật ngân sách' });
+    }
+  };
+
+  const handleAssignBudget = async (journalId) => {
+    setAssigningId(journalId);
+    try {
+      await transactionApi.update(journalId, { budgetId: budget.budgetId });
+      toast.success("Đã thêm vào ngân sách!");
+      await load();
+    } catch {
+      toast.error("Không thể thêm vào ngân sách");
+    } finally {
+      setAssigningId(null);
     }
   };
 
@@ -591,8 +608,25 @@ export function BudgetDetail() {
                       </td>
                       <td className="px-4 md:px-6 py-3 text-sm text-muted-foreground hidden md:table-cell">{t.sourceAccount}</td>
                       <td className="px-4 md:px-6 py-3 text-sm text-muted-foreground hidden md:table-cell">{t.destAccount}</td>
-                      <td className={`px-4 md:px-6 py-3 text-sm font-bold text-right ${amtCls}`}>
-                        {t.isIncome ? "+" : t.isTransfer ? "" : "-"}{fmt(t.totalAmount)}
+                      <td className={`px-4 md:px-6 py-3 text-sm text-right whitespace-nowrap`}>
+                        {t.isUntracked ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500">
+                              Chưa theo dõi
+                            </span>
+                            <button
+                              onClick={() => handleAssignBudget(t.journalId)}
+                              disabled={assigningId === t.journalId}
+                              className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-purple-100 text-purple-700 hover:bg-purple-200 disabled:opacity-50 transition-colors"
+                            >
+                              {assigningId === t.journalId ? "..." : "+ Theo dõi"}
+                            </button>
+                          </div>
+                        ) : (
+                          <span className={`font-bold ${amtCls}`}>
+                            {t.isIncome ? "+" : t.isTransfer ? "" : "-"}{fmt(t.totalAmount)}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );

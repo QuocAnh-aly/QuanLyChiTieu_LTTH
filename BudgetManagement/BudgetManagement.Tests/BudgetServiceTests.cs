@@ -387,48 +387,7 @@ public class BudgetServiceTests
             .Should().ThrowAsync<KeyNotFoundException>();
     }
 
-    // ─── UpdateSpentAmountAsync (accountId-based) ────────────────────────────
-
-    [Fact]
-    public async Task UpdateSpentAmountAsync_FindsActiveBudgetAndUpdates()
-    {
-        var budget = MakeBudget(42, current: 1000m);
-        _budgetRepoMock.Setup(r => r.GetActiveByAccountIdAsync(42)).ReturnsAsync(budget);
-        _budgetRepoMock
-            .Setup(r => r.UpdateCurrentAmountAsync(42, 1200m))
-            .Returns(Task.CompletedTask);
-
-        await _service.UpdateSpentAmountAsync(42, 200m);
-
-        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(42, 1200m), Times.Once);
-    }
-
-    [Fact]
-    public async Task UpdateSpentAmountAsync_NegativeDelta_DecreasesCurrentAmount()
-    {
-        var budget = MakeBudget(42, current: 1000m);
-        _budgetRepoMock.Setup(r => r.GetActiveByAccountIdAsync(42)).ReturnsAsync(budget);
-        _budgetRepoMock
-            .Setup(r => r.UpdateCurrentAmountAsync(42, 700m))
-            .Returns(Task.CompletedTask);
-
-        await _service.UpdateSpentAmountAsync(42, -300m);
-
-        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(42, 700m), Times.Once);
-    }
-
-    [Fact]
-    public async Task UpdateSpentAmountAsync_NoActiveBudget_DoesNothing()
-    {
-        _budgetRepoMock.Setup(r => r.GetActiveByAccountIdAsync(999))
-            .ReturnsAsync((Budget?)null);
-
-        await _service.UpdateSpentAmountAsync(999, 200m);
-
-        _budgetRepoMock.Verify(r => r.UpdateCurrentAmountAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
-    }
-
-    // ─── UpdateBudgetSpentAsync (budgetId-based, new) ─────────────────────────
+    // ─── UpdateBudgetSpentAsync (budgetId-based) ──────────────────────────────
 
     [Fact]
     public async Task UpdateBudgetSpentAsync_AddsDeltaToSpecificBudget()

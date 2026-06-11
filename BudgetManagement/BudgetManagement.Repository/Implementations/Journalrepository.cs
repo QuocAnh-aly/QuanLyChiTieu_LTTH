@@ -78,7 +78,7 @@ public class JournalRepository : BaseRepository<JournalEntry>, IJournalRepositor
         }
     }
 
-    public async Task<bool> UpdateEntryAsync(int journalId, string? description, string? notes, string? tags, DateTime? transactionDate, int? budgetId = null)
+    public async Task<bool> UpdateEntryAsync(int journalId, string? description, string? notes, string? tags, DateTime? transactionDate)
     {
         var entry = await _context.JournalEntries.FindAsync(journalId);
         if (entry is null) return false;
@@ -87,7 +87,17 @@ public class JournalRepository : BaseRepository<JournalEntry>, IJournalRepositor
         if (notes       is not null)  entry.Notes           = notes;
         if (tags        is not null)  entry.Tags            = tags;
         if (transactionDate.HasValue) entry.TransactionDate = transactionDate.Value;
-        if (budgetId.HasValue)        entry.BudgetId        = budgetId;
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> SetBudgetIdAsync(int journalId, int? budgetId)
+    {
+        var entry = await _context.JournalEntries.FindAsync(journalId);
+        if (entry is null) return false;
+
+        entry.BudgetId = budgetId;  // always set, including null to clear
 
         await _context.SaveChangesAsync();
         return true;
@@ -132,4 +142,38 @@ public class JournalRepository : BaseRepository<JournalEntry>, IJournalRepositor
                 .ThenInclude(d => d.Account)
             .OrderByDescending(e => e.TransactionDate)
             .ToListAsync();
+
+    public async Task<IEnumerable<JournalEntry>> GetByDateRangeAndBudgetWithUntrackedAsync(
+        int userId, DateTime from, DateTime to, int budgetId, int accountId)
+    {
+        // 1. Tracked transactions (BudgetId = budgetId)
+        var tracked = await _context.JournalEntries
+            .Where(e => e.UserId == userId
+                     && e.BudgetId == budgetId
+                     && e.TransactionDate >= from
+                     && e.TransactionDate <= to)
+            .Include(e => e.JournalDetails)
+                .ThenInclude(d => d.Account)
+            .ToListAsync();
+
+        // 2. Untracked transactions (BudgetId = null, cùng category)
+        var untracked = await _context.JournalEntries
+            .Where(e => e.UserId == userId
+                     && e.BudgetId == null
+                     && e.TransactionDate >= from
+                     && e.TransactionDate <= to
+                     && e.JournalDetails.Any(d => d.AccountId == accountId
+                                               && d.Debit > 0
+                                               && d.Account!.TypeId == 5))
+            .Include(e => e.JournalDetails)
+                .ThenInclude(d => d.Account)
+            .ToListAsync();
+
+        // Merge: tracked trước, untracked sau, sắp xếp theo ngày giảm dần
+        var result = tracked.Concat(untracked)
+            .OrderByDescending(e => e.TransactionDate)
+            .ToList();
+
+        return result;
+    }
 }

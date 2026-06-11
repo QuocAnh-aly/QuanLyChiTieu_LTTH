@@ -59,6 +59,19 @@ public class TransactionController : BaseController
         return Ok(result);
     }
 
+    // GET api/transactions/range/budget/untracked?budgetId=X&accountId=Y&from=...&to=...
+    [HttpGet("range/budget/untracked")]
+    public async Task<IActionResult> GetByDateRangeAndBudgetWithUntracked(
+        [FromQuery] int budgetId,
+        [FromQuery] int accountId,
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to)
+    {
+        var result = await _transactionService.GetByDateRangeAndBudgetWithUntrackedAsync(
+            GetUserId(), from, to, budgetId, accountId);
+        return Ok(result);
+    }
+
     // GET api/transactions/{id}
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)

@@ -9,7 +9,10 @@ public interface IJournalRepository : IBaseRepository<JournalEntry>
     Task<IEnumerable<JournalEntry>> GetByDateRangeAndAccountAsync(int userId, DateTime from, DateTime to, int accountId);
     Task<JournalEntry?> GetWithDetailsAsync(int journalId); // include JournalDetails + Accounts
     Task<JournalEntry> CreateWithDetailsAsync(JournalEntry entry, IEnumerable<JournalDetail> details);
-    Task<bool> UpdateEntryAsync(int journalId, string? description, string? notes, string? tags, DateTime? transactionDate, int? budgetId = null);
+    Task<bool> UpdateEntryAsync(int journalId, string? description, string? notes, string? tags, DateTime? transactionDate);
+
+    // Luôn set BudgetId (kể cả null để xoá budget khỏi giao dịch)
+    Task<bool> SetBudgetIdAsync(int journalId, int? budgetId);
     Task<bool> HasTransaction (int accountId);
     Task<bool> UpdateEntryAmountAsync(int journalId, decimal newAmount);
     Task<bool> HasDetailsForAccountAsync(int accountId);
@@ -17,4 +20,8 @@ public interface IJournalRepository : IBaseRepository<JournalEntry>
     // Lấy giao dịch theo budgetId (đã lưu trong JournalEntry.BudgetId)
     Task<IEnumerable<JournalEntry>> GetByDateRangeAndBudgetAsync(
         int userId, DateTime from, DateTime to, int budgetId);
+
+    // Lấy giao dịch của budget + giao dịch chưa gán (BudgetId=null) cùng category
+    Task<IEnumerable<JournalEntry>> GetByDateRangeAndBudgetWithUntrackedAsync(
+        int userId, DateTime from, DateTime to, int budgetId, int accountId);
 }

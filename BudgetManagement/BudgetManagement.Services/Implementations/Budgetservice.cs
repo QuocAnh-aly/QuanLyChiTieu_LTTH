@@ -256,13 +256,6 @@ public class BudgetService : IBudgetService
         });
     }
 
-    public async Task UpdateSpentAmountAsync(int accountId, decimal delta)
-    {
-        var budget = await _budgetRepo.GetActiveByAccountIdAsync(accountId);
-        if (budget is not null)
-            await _budgetRepo.UpdateCurrentAmountAsync(budget.BudgetId, (budget.CurrentAmount ?? 0) + delta);
-    }
-
     public async Task UpdateBudgetSpentAsync(int budgetId, decimal delta)
     {
         var budget = await _budgetRepo.GetByIdAsync(budgetId);

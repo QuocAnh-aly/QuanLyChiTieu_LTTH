@@ -22,6 +22,10 @@ public interface ITransactionService
     Task<IEnumerable<TransactionDto>> GetByDateRangeAndBudgetAsync(
         int userId, DateTime from, DateTime to, int budgetId);
 
+    // Lấy giao dịch của budget + giao dịch chưa gán (BudgetId=null) cùng category
+    Task<IEnumerable<TransactionDto>> GetByDateRangeAndBudgetWithUntrackedAsync(
+        int userId, DateTime from, DateTime to, int budgetId, int accountId);
+
     // Dashboard
     Task<CashFlowSummaryDto> GetCashFlowAsync(int userId, DateTime from, DateTime to);
 }

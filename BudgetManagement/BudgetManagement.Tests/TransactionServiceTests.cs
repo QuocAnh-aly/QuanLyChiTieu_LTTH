@@ -361,8 +361,8 @@ public class TransactionServiceTests
 
         // Should NOT auto-create a new account (found by ID)
         _accountRepoMock.Verify(r => r.CreateAsync(It.IsAny<Account>()), Times.Never);
-        // Should update budget spent for expense account (fallback, no BudgetId)
-        _budgetServiceMock.Verify(r => r.UpdateSpentAmountAsync(10, 100m), Times.Once);
+        // No BudgetId selected → KHÔNG cập nhật budget nào
+        _budgetServiceMock.Verify(r => r.UpdateBudgetSpentAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
     }
 
     [Fact]
@@ -398,7 +398,6 @@ public class TransactionServiceTests
         result.JournalId.Should().Be(200);
         // Should update SPECIFIC budget, not fallback
         _budgetServiceMock.Verify(r => r.UpdateBudgetSpentAsync(42, 200m), Times.Once);
-        _budgetServiceMock.Verify(r => r.UpdateSpentAmountAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
     }
 
     [Fact]
@@ -443,8 +442,8 @@ public class TransactionServiceTests
         // Should have auto-created the account
         _accountRepoMock.Verify(r => r.CreateAsync(It.Is<Account>(a =>
             a.TypeId == 5 && a.Name == "NonExistentCategory")), Times.Once);
-        // Should update budget spent
-        _budgetServiceMock.Verify(r => r.UpdateSpentAmountAsync(10, 100m), Times.Once);
+        // No BudgetId selected → KHÔNG cập nhật budget nào
+        _budgetServiceMock.Verify(r => r.UpdateBudgetSpentAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
         result.Should().NotBeNull();
         result.Description.Should().Be("Groceries");
     }
@@ -566,8 +565,6 @@ public class TransactionServiceTests
 
         // Should adjust budget by delta (+300)
         _budgetServiceMock.Verify(r => r.UpdateBudgetSpentAsync(42, 300m), Times.Once);
-        // Should NOT call fallback
-        _budgetServiceMock.Verify(r => r.UpdateSpentAmountAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
     }
 
     [Fact]
@@ -602,7 +599,7 @@ public class TransactionServiceTests
         // Should add 500 to new budget
         _budgetServiceMock.Verify(r => r.UpdateBudgetSpentAsync(2, 500m), Times.Once);
         // Should update stored BudgetId
-        _journalRepoMock.Verify(r => r.UpdateEntryAsync(1, null, null, null, null, 2), Times.Once);
+        _journalRepoMock.Verify(r => r.SetBudgetIdAsync(1, 2), Times.Once);
     }
 
     [Fact]
@@ -646,7 +643,7 @@ public class TransactionServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsync_RemoveBudgetSelection_FallsBackToDefault()
+    public async Task UpdateAsync_RemoveBudgetSelection_SubtractsFromOldOnly()
     {
         // Transaction with old amount 500, tied to budget 1
         var existing = MakeExpenseEntry(1, amount: 500m, expenseAccId: 5);
@@ -674,8 +671,10 @@ public class TransactionServiceTests
 
         // Should remove 500 from old budget
         _budgetServiceMock.Verify(r => r.UpdateBudgetSpentAsync(1, -500m), Times.Once);
-        // Should fallback to account-based budget for adding
-        _budgetServiceMock.Verify(r => r.UpdateSpentAmountAsync(5, 500m), Times.Once);
+        // KHÔNG thêm vào budget nào (vì newBudgetId = null)
+        _budgetServiceMock.Verify(r => r.UpdateBudgetSpentAsync(It.IsAny<int>(), It.Is<decimal>(d => d > 0)), Times.Never);
+        // Should clear BudgetId in DB
+        _journalRepoMock.Verify(r => r.SetBudgetIdAsync(1, null), Times.Once);
     }
 
     [Fact]
@@ -700,7 +699,6 @@ public class TransactionServiceTests
         result.Description.Should().Be("New desc");
         // No budget or amount changes
         _budgetServiceMock.Verify(r => r.UpdateBudgetSpentAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
-        _budgetServiceMock.Verify(r => r.UpdateSpentAmountAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
     }
 
     // ─── DeleteAsync ────────────────────────────────────────────────────────
@@ -735,12 +733,10 @@ public class TransactionServiceTests
         result.Should().BeTrue();
         // Should reverse budget 42 by the amount
         _budgetServiceMock.Verify(r => r.UpdateBudgetSpentAsync(42, -500m), Times.Once);
-        // Should NOT use fallback
-        _budgetServiceMock.Verify(r => r.UpdateSpentAmountAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
     }
 
     [Fact]
-    public async Task DeleteAsync_ExpenseWithoutBudget_FallsBackToDefault()
+    public async Task DeleteAsync_ExpenseWithoutBudget_DoesNotReverseAnyBudget()
     {
         var entry = MakeExpenseEntry(1, amount: 300m, expenseAccId: 5);
         entry.BudgetId = null;  // no budget stored
@@ -752,8 +748,8 @@ public class TransactionServiceTests
         var result = await _service.DeleteAsync(_userId, 1);
 
         result.Should().BeTrue();
-        // Should fallback to account-based budget reversal
-        _budgetServiceMock.Verify(r => r.UpdateSpentAmountAsync(5, -300m), Times.Once);
+        // Không có BudgetId → không hoàn trả budget nào
+        _budgetServiceMock.Verify(r => r.UpdateBudgetSpentAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
     }
 
     [Fact]

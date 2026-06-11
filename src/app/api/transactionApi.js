@@ -21,6 +21,11 @@ export const transactionApi = {
     return axiosClient.get(url, { params: { budgetId, from, to } });
   },
 
+  getByRangeAndBudgetWithUntracked(budgetId, accountId, from, to) {
+    const url = '/api/transactions/range/budget/untracked';
+    return axiosClient.get(url, { params: { budgetId, accountId, from, to } });
+  },
+
   getById(id) {
     const url = `/api/transactions/${id}`;
     return axiosClient.get(url);
