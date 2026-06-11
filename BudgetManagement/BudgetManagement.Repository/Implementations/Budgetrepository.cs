@@ -107,13 +107,6 @@ public class BudgetRepository : BaseRepository<Budget>, IBudgetRepository
         };
     }
 
-    public async Task<Budget?> GetActiveByAccountIdAsync(int accountId)
-        => await _dbSet
-            .Where(b => b.AccountId == accountId
-                     && b.BudgetType == "expense"
-                     && b.IsActive == true)
-            .FirstOrDefaultAsync();
-
     public async Task UpdateCurrentAmountAsync(int budgetId, decimal amount)
         => await _dbSet
             .Where(b => b.BudgetId == budgetId)

@@ -168,7 +168,7 @@ npm run dev
 
 ```bash
 cd BudgetManagement && dotnet test BudgetManagement.Tests/BudgetManagement.Tests.csproj
-# 168 tests total
+# 368 tests total
 ```
 
 ### URLs
@@ -190,6 +190,9 @@ cd BudgetManagement && dotnet test BudgetManagement.Tests/BudgetManagement.Tests
 | **[improvement.md](./improvement.md)** | Detailed log of all improvements, fixes, and features added |
 | **[migration_fix.sql](./migration_fix.sql)** | Database migration script (9 missing tables, 3 missing columns) |
 | **[csdl_sqlserver.sql](./csdl_sqlserver.sql)** | Complete SQL Server schema |
+| **[seed_demo_2026.sql](./seed_demo_2026.sql)** | Seed data — user `demo2026` / `Demo@2026`, 12 tháng dữ liệu mẫu |
+| **[seed_full_user.sql](./seed_full_user.sql)** | Seed data — user `nguyenvana` / `Abc@123456`, đầy đủ accounts/budgets/bills/rules/webhooks/attachments |
+| **[SETUP.md](./SETUP.md)** | Hướng dẫn setup chi tiết từ A-Z |
 | **[guidelines/Guidelines.md](./guidelines/Guidelines.md)** | Project coding guidelines |
 
 ### Key API Endpoints
@@ -218,7 +221,7 @@ cd BudgetManagement && dotnet test BudgetManagement.Tests/BudgetManagement.Tests
 
 ## 🧪 Testing
 
-**168 unit tests** using **xUnit + Moq + FluentAssertions**:
+**368 unit tests** using **xUnit + Moq + FluentAssertions**:
 
 | Test File | Tests | Coverage |
 |-----------|-------|----------|
