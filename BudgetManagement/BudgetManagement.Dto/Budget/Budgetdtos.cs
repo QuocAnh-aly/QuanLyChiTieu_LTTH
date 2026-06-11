@@ -58,23 +58,22 @@ public class BudgetDto
 
 public class CreateSavingsGoalDto
 {
-    [Range(1, int.MaxValue, ErrorMessage = "Phải chọn tài khoản đích")]
-    public int      AccountId           { get; set; }
-
+    // AccountId đã bỏ — backend tự tạo Piggy Wallet account
+ 
     [Required(ErrorMessage = "Tên mục tiêu không được để trống")]
     public string   Title               { get; set; } = null!;
-
+ 
     [Range(0.01, double.MaxValue, ErrorMessage = "Số tiền mục tiêu phải lớn hơn 0")]
     public decimal  TargetAmount        { get; set; }
-
+ 
     public decimal? InitialAmount       { get; set; }
     public decimal? MonthlyContribution { get; set; }
-    public string?  TargetDate          { get; set; }   // ISO date string, e.g. "2026-12-31"
+    public string?  TargetDate          { get; set; }
+    public string?  CurrencyCode        { get; set; }  // thêm mới — mặc định "VND" nếu null
     public string?  Notes               { get; set; }
     public string?  IconName            { get; set; }
     public string?  Color               { get; set; }
 }
-
 public class UpdateSavingsGoalDto
 {
     public string?   Title               { get; set; }
@@ -106,7 +105,7 @@ public class SavingsGoalDto
     public string?  Color               { get; set; }
     public bool     IsActive            { get; set; }
     public int?     MonthsRemaining     { get; set; }
-    public List<PiggyBankEventDto> Events { get; set; } = [];
+    public List<PiggyBankEventDto> Events { get; set; }= new List<PiggyBankEventDto>();
 }
 
 // ─── Piggy Bank Events ────────────────────────────────────────────────────────
@@ -124,5 +123,11 @@ public class AddRemoveMoneyDto
 {
     public decimal Amount { get; set; }
     public string? Notes  { get; set; }
+ 
+    //Add: ví nguồn bị trừ tiền khi nạp vào lợn.
+    public int SourceAccountId      { get; set; }
+ 
+    /// Remove: ví đích nhận tiền khi rút từ lợn.
+    public int DestinationAccountId { get; set; }
 }
 

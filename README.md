@@ -1,59 +1,59 @@
 # Quản Lý Chi Tiêu — Personal Finance Management
 
-> **Full-stack personal finance management system** inspired by Firefly III, built with a Vietnamese UI.
+> **Hệ thống quản lý tài chính cá nhân full-stack** giao diện tiếng Việt.
 > Tech Stack: .NET 10 (C#) microservices + React 18 (Vite) + SQL Server
 
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev/)
-[![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite)](https://vitejs.dev/)
+[![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vitejs.dev/)
 [![SQL Server](https://img.shields.io/badge/SQL_Server-2022-CC2927?logo=microsoft-sql-server)](https://www.microsoft.com/en-us/sql-server/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 ---
 
-## ✨ Features
+## ✨ Tính năng
 
-### Financial Management
-- **Multi-currency wallets** — Manage accounts with VND, USD, EUR, JPY
-- **Transaction recording** — Income, expenses, and transfers with double-entry accounting
-- **Budgets** — Set spending limits with real-time progress tracking and warnings at >80% / >100%
-- **Savings goals** — Piggy bank-style savings tracking with target amounts
-- **Recurring transactions** — Auto-generated journal entries on schedule
-- **Bills management** — Track and manage recurring bills
-- **Pagination** — Server-side paginated responses with PaginatedResult DTO + UI controls (prev/next, page numbers, page size selector)
-- **Server-side search/sort** — Search and sort accounts/budgets on backend
-- **Source Account** — Link debt creation to bank accounts or create assets by transferring from existing accounts
-- **Modal design** — All forms use consistent shadcn/ui design system with purple accent
+### Quản lý tài chính
+- **Ví đa tiền tệ** — Quản lý tài khoản với VND, USD, EUR, JPY…
+- **Ghi nhận giao dịch** — Thu / chi / chuyển khoản theo hạch toán kép (double-entry)
+- **Ngân sách (Budgets)** — Đặt hạn mức chi tiêu, theo dõi tiến độ realtime, cảnh báo khi vượt 80% / 100%
+- **Lợn tiết kiệm (Piggy Banks)** — Mục tiêu tiết kiệm với số tiền đích, nạp/rút tiền từ ví, biểu đồ tích lũy
+- **Hóa đơn định kỳ (Subscriptions / Bills)** — Theo dõi và thanh toán các hóa đơn lặp lại
+- **Giao dịch định kỳ (Recurring)** — Tự sinh bút toán theo lịch
+- **Phân trang phía server** — `PaginatedResult` DTO + điều khiển UI (trước/sau, số trang, chọn cỡ trang)
+- **Tìm kiếm / sắp xếp phía server** — Cho tài khoản, ngân sách…
+- **Source Account** — Tạo tài sản/nợ bằng cách chuyển từ tài khoản hiện có
 
-### Automation
-- **Rules engine** — Create if-then rules with triggers and actions
-- **Webhooks** — Send transaction data to external services
-- **Recurring journals** — Automated recurring entry generation
+### Tự động hóa
+- **Rules engine** — Tạo quy tắc if-then với trigger và action
+- **Webhooks** — Gửi dữ liệu giao dịch tới dịch vụ ngoài
+- **Recurring journals** — Tự động sinh bút toán định kỳ
 
-### Analytics & Insights
-- **Dashboard** — Summary cards, charts, recent transactions
-- **Monthly reports** — Income vs expense breakdown
-- **Cash flow analysis** — Track money movement over time
-- **Export** — CSV, Excel data export
+### Phân tích & Báo cáo
+- **Dashboard** — Thẻ tổng quan, biểu đồ, giao dịch gần đây
+- **Báo cáo tháng** — Đối chiếu thu nhập vs chi tiêu
+- **Phân tích dòng tiền** — Theo dõi luồng tiền theo thời gian
+- **Xuất dữ liệu** — CSV / Excel
 
-### System
-- **User authentication** — JWT-based with auto-refresh
-- **Multi-currency** — Full currency management + exchange rates
-- **Notifications** — In-app notification center + toast alerts
-- **Search** — Full-text search across transactions
+### Hệ thống
+- **Xác thực người dùng** — JWT có tự động refresh token
+- **Đa tiền tệ** — Quản lý tiền tệ + tỷ giá hối đoái
+- **Thông báo** — Trung tâm thông báo trong app + toast
+- **Phân loại** — Danh mục (Categories), thẻ (Tags), nhóm đối tượng (Object Groups)
+- **Giao diện** — shadcn/ui (Radix) với accent tím, hỗ trợ **Dark mode** (next-themes)
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ Kiến trúc
 
 ```
              ┌──────────────────┐
-             │   Frontend       │  React 18 + Vite
+             │   Frontend       │  React 18 + Vite 6
              │ localhost:5173   │
              └────────┬─────────┘
                       │
              ┌────────▼─────────┐
-             │   API Gateway    │  Ocelot at localhost:5229
+             │   API Gateway    │  Ocelot @ localhost:5229
              │  (reverse proxy) │
              └───┬────────┬─────┘
                   │        │
@@ -65,90 +65,114 @@
          └───────────┘  └─────────────┘
                 │
          ┌──────▼──────┐
-         │   SQL       │
-         │   Server    │
-         │  Docker     │
-         │  :1434      │
+         │   SQL        │
+         │   Server     │
+         │  (Docker)    │
+         │  :1434       │
          └─────────────┘
 ```
 
 ### Services
 
-| Service | Port | Description |
-|---------|------|-------------|
+| Service | Port | Mô tả |
+|---------|------|-------|
 | **Frontend** | `:5173` | React SPA (Vite) |
 | **API Gateway** | `:5229` | Ocelot reverse proxy |
 | **API Service** | `:5133` | Business logic + CRUD |
-| **Auth Service** | `:5134` | Authentication + JWT |
-| **SQL Server** | `:1434` | Database (Docker) |
+| **Auth Service** | `:5134` | Xác thực + JWT |
+| **SQL Server** | `:1434` | Cơ sở dữ liệu (Docker) |
 
-### Project Structure
+### Cấu trúc dự án
 
 ```
-QuanLyChiTieu_LTTH/
+Budget Management/
 ├── BudgetManagement/                 # .NET 10 solution
 │   ├── BudgetManagement.APIGateway/  # Ocelot gateway
 │   ├── BudgetManagement.APIService/  # Business API
 │   ├── BudgetManagement.AuthService/ # Auth API
+│   ├── BudgetManagement.LogService/  # Logging service
 │   ├── BudgetManagement.Entities/    # EF Core entity models
-│   ├── BudgetManagement.Dto/         # DTOs with validation
+│   ├── BudgetManagement.Dto/         # DTOs + validation
 │   ├── BudgetManagement.Services/    # Business logic
 │   ├── BudgetManagement.Repository/  # Data access (EF Core)
-│   ├── BudgetManagement.Common/      # Shared utilities
-│   └── BudgetManagement.Tests/       # xUnit tests (168 tests)
+│   ├── BudgetManagement.Common/      # Tiện ích dùng chung
+│   ├── BudgetManagement.Tests/       # xUnit tests
+│   └── DbTester/                     # Công cụ kiểm tra kết nối DB
 ├── src/                              # React frontend
 │   ├── app/
 │   │   ├── api/                      # Axios API modules
 │   │   ├── components/               # UI, layout, modals
-│   │   ├── context/                  # Auth, Settings, Notifications
-│   │   └── pages/                    # Route-based pages
+│   │   ├── context/                  # Auth, Settings, Categories, Notifications
+│   │   ├── pages/                    # Trang theo route
+│   │   └── utils/                    # Helper (format tiền, icons…)
 │   └── styles/                       # Tailwind + theme
-├── csdl_sqlserver.sql                # Database schema
-├── migration_fix.sql                 # Schema migration fix
-├── AI_GUIDE.md                       # AI agent onboarding guide
-├── improvement.md                    # Improvement log
-└── run.sh                            # Start all services
+├── data/
+│   ├── csdl_sqlserver.sql            # Schema CSDL
+│   ├── migration_fix.sql             # Migration bổ sung
+│   └── seed_demo_2026.sql            # Dữ liệu demo (tài khoản demo2026)
+├── guidelines/Guidelines.md          # Quy ước code
+├── run.sh                            # Khởi động toàn bộ services
+├── run-dbtester.sh                   # Chạy công cụ test kết nối DB
+└── kill.sh                           # Dừng toàn bộ services
 ```
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Bắt đầu nhanh
 
-### Prerequisites
+### Yêu cầu
 
 - Node.js 18+
 - .NET 10 SDK
-- Docker (for SQL Server)
+- Docker (cho SQL Server)
 
-### Setup
+### Cài đặt
 
 ```bash
-# 1. Start SQL Server
-chmod +x run.sh
-./run.sh
-
-# Or manually:
+# 1. Khởi động SQL Server (Docker)
 docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=Hoangphuc@040505" \
   -p 1434:1433 --name sqlserver_2022 -d mcr.microsoft.com/mssql/server:2022-latest
 
-# 2. Create database + apply schema
+# 2. Tạo database + áp schema
 docker exec -i sqlserver_2022 /opt/mssql-tools18/bin/sqlcmd \
   -S localhost -U sa -P 'Hoangphuc@040505' -C -Q "CREATE DATABASE BudgetManagement"
 
 docker exec -i sqlserver_2022 /opt/mssql-tools18/bin/sqlcmd \
-  -S localhost -U sa -P 'Hoangphuc@040505' -C -d BudgetManagement -i csdl_sqlserver.sql
+  -S localhost -U sa -P 'Hoangphuc@040505' -C -d BudgetManagement -i data/csdl_sqlserver.sql
 
 docker exec -i sqlserver_2022 /opt/mssql-tools18/bin/sqlcmd \
-  -S localhost -U sa -P 'Hoangphuc@040505' -C -d BudgetManagement -i migration_fix.sql
+  -S localhost -U sa -P 'Hoangphuc@040505' -C -d BudgetManagement -i data/migration_fix.sql
 
-# 3. Start all services
+# 3. (Tùy chọn) Nạp dữ liệu demo — phủ mọi chức năng, 12 tháng giao dịch
+docker exec -i sqlserver_2022 /opt/mssql-tools18/bin/sqlcmd \
+  -S localhost -U sa -P 'Hoangphuc@040505' -C -d BudgetManagement -i data/seed_demo_2026.sql
+
+# 4. Cài dependencies frontend
+npm install
+
+# 5. Khởi động toàn bộ services
+chmod +x run.sh
 ./run.sh
 ```
 
-The `run.sh` script starts all 4 services with real-time logging and graceful shutdown.
-Press `Ctrl+C` to stop all services.
+`run.sh` khởi động cả 4 services với health-check và tự mở trình duyệt. Nhấn `Ctrl+C` để dừng tất cả.
 
-### Manual Start (individual terminals)
+```bash
+./run.sh                 # Chạy tất cả services
+./run.sh --frontend-only # Chỉ frontend (Vite dev server)
+./run.sh --backend-only  # Chỉ backend (API, Auth, Gateway)
+./run.sh --no-browser    # Không tự mở trình duyệt
+```
+
+### Tài khoản demo
+
+Sau khi nạp `data/seed_demo_2026.sql`:
+
+| Tài khoản | Mật khẩu |
+|-----------|----------|
+| `demo2026` | `Demo@2026` |
+
+### Chạy thủ công (mỗi terminal một service)
 
 ```bash
 # Terminal 1 — API Service
@@ -164,7 +188,13 @@ cd BudgetManagement/BudgetManagement.APIGateway && dotnet run --launch-profile h
 npm run dev
 ```
 
-### Run Tests
+### Build frontend (production)
+
+```bash
+npm run build      # Xuất ra thư mục dist/
+```
+
+### Chạy test (backend)
 
 ```bash
 cd BudgetManagement && dotnet test BudgetManagement.Tests/BudgetManagement.Tests.csproj
@@ -175,47 +205,65 @@ cd BudgetManagement && dotnet test BudgetManagement.Tests/BudgetManagement.Tests
 
 | Service | URL |
 |---------|-----|
-| Frontend | [http://localhost:5173](http://localhost:5173) |
-| API Gateway | [http://localhost:5229](http://localhost:5229) |
-| API Service Swagger | [http://localhost:5133/swagger](http://localhost:5133/swagger) |
-| Auth Service Swagger | [http://localhost:5134/swagger](http://localhost:5134/swagger) |
+| Frontend | http://localhost:5173 |
+| API Gateway | http://localhost:5229 |
+| API Service Swagger | http://localhost:5133/swagger |
+| Auth Service Swagger | http://localhost:5134/swagger |
 
 ---
 
-## 📖 Documentation
+## 🗺️ Bản đồ route (Frontend)
 
-| Document | Description |
-|----------|-------------|
-| **[AI_GUIDE.md](./AI_GUIDE.md)** | Comprehensive onboarding guide for AI agents — architecture, routes, API, workflows, conventions |
+| Route | Trang |
+|-------|-------|
+| `/` | Dashboard |
+| `/budgets`, `/budgets/:id` | Ngân sách + chi tiết |
+| `/piggy-banks`, `/piggy-banks/:id` | Lợn tiết kiệm + chi tiết |
+| `/subscriptions`, `/subscriptions/:id` | Hóa đơn định kỳ + chi tiết |
+| `/transactions/{all,deposit,withdrawal,transfers}` | Giao dịch |
+| `/rules`, `/recurring`, `/webhooks` | Tự động hóa |
+| `/accounts/{asset,expense,income,liabilities}` | Tài khoản |
+| `/categories`, `/tags`, `/object-groups` | Phân loại |
+| `/reports`, `/export` | Báo cáo & xuất dữ liệu |
+| `/notifications` | Trung tâm thông báo |
+| `/profile`, `/preferences`, `/currencies`, `/exchange-rates`, `/administrations` | Tùy chọn |
+
+---
+
+## 📖 Tài liệu
+
+| Tài liệu | Mô tả |
+|----------|-------|
+| **[AI_GUIDE.md](./AI_GUIDE.md)** | Comprehensive onboarding guide cho AI agents — architecture, routes, API, workflows, conventions |
 | **[improvement.md](./improvement.md)** | Detailed log of all improvements, fixes, and features added |
-| **[migration_fix.sql](./migration_fix.sql)** | Database migration script (9 missing tables, 3 missing columns) |
-| **[csdl_sqlserver.sql](./csdl_sqlserver.sql)** | Complete SQL Server schema |
-| **[seed_demo_2026.sql](./seed_demo_2026.sql)** | Seed data — user `demo2026` / `Demo@2026`, 12 tháng dữ liệu mẫu |
-| **[seed_full_user.sql](./seed_full_user.sql)** | Seed data — user `nguyenvana` / `Abc@123456`, đầy đủ accounts/budgets/bills/rules/webhooks/attachments |
+| **[guidelines/Guidelines.md](./guidelines/Guidelines.md)** | Quy ước code của dự án |
 | **[SETUP.md](./SETUP.md)** | Hướng dẫn setup chi tiết từ A-Z |
-| **[guidelines/Guidelines.md](./guidelines/Guidelines.md)** | Project coding guidelines |
+| **[data/csdl_sqlserver.sql](./data/csdl_sqlserver.sql)** | Schema SQL Server đầy đủ |
+| **[data/migration_fix.sql](./data/migration_fix.sql)** | Script migration bổ sung |
+| **[data/seed_demo_2026.sql](./data/seed_demo_2026.sql)** | Dữ liệu demo (tài khoản `demo2026`) |
+| **[data/seed_full_user.sql](./data/seed_full_user.sql)** | Seed data user `nguyenvana` / `Abc@123456` |
 
-### Key API Endpoints
+### Một số API endpoint chính
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/signin` | Login |
-| POST | `/api/auth/signup` | Register |
-| GET | `/api/accounts?page=1&pageSize=50` | List accounts (paginated) |
-| GET | `/api/accounts/type/{typeId}?page=1&pageSize=50` | Filter by type (1=Asset, 4=Revenue, 5=Expense) — paginated |
-| GET | `/api/accounts/wallet-summary?search=&sortBy=balance-desc&page=1&pageSize=5` | Balance summary (server-side search/sort) |
-| GET/POST/PUT/DELETE | `/api/accounts/{id}` | Account CRUD |
-| POST | `/api/accounts` | Create account (optional `SourceAccountId` for source transactions) |
-| GET/POST/PUT/DELETE | `/api/transactions/{id}` | Transaction CRUD |
-| GET | `/api/budgets/expense?page=1&pageSize=50&search=&filterStatus=all&sortBy=name` | List expense budgets (paginated + server-side search/filter/sort) |
-| GET | `/api/budgets/savings` | List savings goals |
-| GET | `/api/bills?page=1&pageSize=50` | List bills (paginated) |
-| GET | `/api/recurring?page=1&pageSize=50` | List recurring transactions (paginated) |
-| GET | `/api/dashboard/summary` | Dashboard summary |
-| GET | `/api/dashboard/monthly-report` | Monthly report |
+> Mọi request đi qua API Gateway tại `http://localhost:5229`. Route auth dùng `/api/auth/*`, route nghiệp vụ dùng `/api/*`.
 
-> **Note:** All requests go through the API Gateway at `http://localhost:5229`.  
-> Auth routes use `/api/auth/*`, business routes use `/api/*`.
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| POST | `/api/auth/signin` | Đăng nhập |
+| POST | `/api/auth/signup` | Đăng ký |
+| POST | `/api/auth/refresh` | Làm mới access token |
+| GET | `/api/accounts?page=1&pageSize=50` | Danh sách tài khoản (phân trang) |
+| GET | `/api/accounts/type/{typeId}` | Lọc theo loại (1=Asset, 4=Revenue, 5=Expense) |
+| GET | `/api/accounts/wallet-summary` | Tổng quan số dư (search/sort phía server) |
+| GET/POST/PUT/DELETE | `/api/accounts/{id}` | CRUD tài khoản |
+| GET/POST/PUT/DELETE | `/api/transactions/{id}` | CRUD giao dịch |
+| GET | `/api/budgets/expense` | Ngân sách chi tiêu (phân trang + search/filter/sort) |
+| GET | `/api/budgets/savings` | Danh sách lợn tiết kiệm |
+| POST | `/api/budgets/savings/{id}/add` · `/remove` | Nạp / rút tiền lợn tiết kiệm |
+| GET | `/api/bills?page=1&pageSize=50` | Danh sách hóa đơn (phân trang) |
+| GET | `/api/recurring?page=1&pageSize=50` | Giao dịch định kỳ (phân trang) |
+| GET | `/api/dashboard/summary` | Tổng quan dashboard |
+| GET | `/api/dashboard/monthly-report` | Báo cáo tháng |
 
 ---
 
@@ -250,40 +298,40 @@ cd BudgetManagement && dotnet test BudgetManagement.Tests/BudgetManagement.Tests
 - Swagger / OpenAPI
 
 ### Frontend (React 18)
-- Vite 5 build tool
-- React Router DOM v6
-- Axios (with JWT auto-refresh interceptor)
-- Tailwind CSS
-- shadcn/ui (Radix-based, local components)
-- Recharts for charts
-- React Hook Form + Zod
-- Sonner toasts + custom notification system
-- date-fns, Lucide React, TanStack Table
+- Vite 6 (build tool)
+- React Router DOM v7
+- Axios (interceptor tự refresh JWT)
+- Tailwind CSS v4
+- shadcn/ui (Radix-based, component cục bộ) + Lucide React icons
+- Recharts (biểu đồ)
+- React Hook Form (form)
+- next-themes (dark mode) · Sonner (toast) · Motion (animation)
+- date-fns
 
 ### DevOps
 - Docker (SQL Server)
-- Shell scripts for service orchestration
+- Shell scripts orchestration (`run.sh`, `run-dbtester.sh`, `kill.sh`)
 
 ---
 
-## 🤝 Contributing
+## 🤝 Đóng góp
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+1. Fork repository
+2. Tạo nhánh tính năng (`git checkout -b feature/amazing-feature`)
+3. Commit thay đổi (`git commit -m 'Add some amazing feature'`)
+4. Push lên nhánh (`git push origin feature/amazing-feature`)
+5. Mở Pull Request
 
 ---
 
 ## 📝 License
 
-This project is for educational purposes. Original design by [Figma Community](https://www.figma.com/design/asc5PkB2YXy8pmseQgS2Tl/Budget-Management-Website).
+Dự án phục vụ mục đích học tập. Thiết kế gốc từ [Figma Community](https://www.figma.com/design/asc5PkB2YXy8pmseQgS2Tl/Budget-Management-Website).
 
 ---
 
-## 🙏 Acknowledgments
+## 🙏 Ghi nhận
 
-- Inspired by [Firefly III](https://www.firefly-iii.org/) — an excellent open-source personal finance manager
-- UI design from Figma Community
-- All contributors and team members
+- Lấy cảm hứng từ [Firefly III](https://www.firefly-iii.org/) — phần mềm quản lý tài chính cá nhân mã nguồn mở
+- Giao diện thiết kế từ Figma Community
+- Toàn thể thành viên nhóm

@@ -26,7 +26,7 @@ export function PayBillModal({ isOpen, onClose, onPay, bill }) {
   useEffect(() => {
     if (!isOpen) return;
     fetchCategories();
-    walletApi
+    accountApi
       .getByType(1)
       .then((res) => setWallets(res.items ?? res ?? []))
       .catch(() => setWallets([]));
