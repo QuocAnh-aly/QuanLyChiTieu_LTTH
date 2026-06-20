@@ -75,6 +75,15 @@ public class AccountController : BaseController
         return Ok(result);
     }
 
+    // POST api/accounts/reconcile?repair=false
+    // Đối soát số dư ví với sổ cái. repair=true sẽ sửa các số dư bị lệch.
+    [HttpPost("reconcile")]
+    public async Task<IActionResult> Reconcile([FromQuery] bool repair = false)
+    {
+        var result = await _accountService.ReconcileBalancesAsync(GetUserId(), repair);
+        return Ok(result);
+    }
+
     // POST api/accounts
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateAccountDto request)

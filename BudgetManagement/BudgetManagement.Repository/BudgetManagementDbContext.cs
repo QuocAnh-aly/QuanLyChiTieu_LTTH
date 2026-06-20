@@ -61,6 +61,23 @@ public class BudgetManagementDbContext : DbContext
             }
         }
 
+        // ─── Decimal precision ────────────────────────────────────────────────────
+        // Cố định precision cho mọi cột tiền tệ thành (19,4) — đủ cho số tiền có
+        // quy đổi ngoại tệ, tránh để EF ngầm mặc định (18,2) gây nhập nhằng/cảnh báo.
+        foreach (var entity in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entity.GetProperties())
+            {
+                if (property.ClrType == typeof(decimal) || property.ClrType == typeof(decimal?))
+                {
+                    property.SetPrecision(19);
+                    property.SetScale(4);
+                }
+            }
+        }
+        // Tỷ giá hối đoái cần nhiều chữ số lẻ hơn số tiền.
+        modelBuilder.Entity<ExchangeRate>().Property(r => r.Rate).HasPrecision(18, 8);
+
         // Special mapping for tables with underscores in SQL script
         modelBuilder.Entity<AccountType>().ToTable("Account_Types");
         modelBuilder.Entity<PiggyBankEvent>().ToTable("Piggy_Bank_Events");

@@ -149,7 +149,11 @@ export function Deposit() {
   }, [filtered]);
 
   const handleAdd = async (data) => {
-    try { await transactionApi.create(data); await loadData(true); toast.success("Đã thêm giao dịch!"); addNotification({ type: 'success', title: 'Khoản thu mới', message: 'Đã thêm giao dịch thu nhập', link: '/transactions/deposit' }); }
+    try {
+      const res = await transactionApi.create(data);
+      if (res?.__offline) { toast.success("Đã lưu offline — sẽ đồng bộ khi có mạng"); return; }
+      await loadData(true); toast.success("Đã thêm giao dịch!"); addNotification({ type: 'success', title: 'Khoản thu mới', message: 'Đã thêm giao dịch thu nhập', link: '/transactions/deposit' });
+    }
     catch { toast.error("Không thể thêm giao dịch"); addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể thêm giao dịch thu nhập' }); }
   };
   const handleSaveEdit = async (data) => {

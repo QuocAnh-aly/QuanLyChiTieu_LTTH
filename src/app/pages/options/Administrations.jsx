@@ -1,11 +1,37 @@
 import { useState } from "react";
-import { Database, AlertTriangle, Shield, HardDrive, Download, UploadCloud, RotateCcw } from "lucide-react";
+import { Database, AlertTriangle, Shield, HardDrive, Download, UploadCloud, RotateCcw, Scale, CheckCircle2, Wrench } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageLayout } from "../../components/layout/PageLayout";
+import { accountApi } from "../../api/accountApi";
+import { useSettings } from "../../context/SettingsContext";
 
 export function Administrations() {
+  const { fmt } = useSettings();
   const [isBackingUp, setIsBackingUp] = useState(false);
+  const [reconciling, setReconciling] = useState(false);
+  const [reconcileResult, setReconcileResult] = useState(null);
+
+  const errMsg = (e) => e?.response?.data?.message || e?.message || "Lỗi không xác định";
+
+  const runReconcile = async (repair) => {
+    setReconciling(true);
+    try {
+      const res = await accountApi.reconcile(repair);
+      setReconcileResult(res);
+      if (repair && res?.mismatchCount > 0) {
+        toast.success(`Đã sửa ${res.mismatchCount} số dư bị lệch.`);
+      } else if (res?.mismatchCount > 0) {
+        toast.warning(`Phát hiện ${res.mismatchCount} số dư bị lệch.`);
+      } else {
+        toast.success(`Đã kiểm tra ${res?.checked ?? 0} ví — không có sai lệch.`);
+      }
+    } catch (e) {
+      toast.error(errMsg(e));
+    } finally {
+      setReconciling(false);
+    }
+  };
 
   const handleBackup = () => {
     setIsBackingUp(true);
@@ -106,6 +132,71 @@ export function Administrations() {
                   <span className="font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded">Production</span>
                 </li>
               </ul>
+            </div>
+          </div>
+
+          {/* Balance Reconciliation */}
+          <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+            <div className="p-6 border-b border-border bg-muted/50 flex items-center gap-3">
+              <Scale size={20} className="text-emerald-600" />
+              <h2 className="text-lg font-bold text-card-foreground">Đối soát số dư</h2>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-muted-foreground mb-6">
+                Tính lại số dư từng ví trực tiếp từ sổ cái (bút toán kép) và so với
+                số dư đang lưu. Dùng để phát hiện và sửa sai lệch nếu có.
+              </p>
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => runReconcile(false)}
+                  disabled={reconciling}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors font-semibold text-card-foreground disabled:opacity-70"
+                >
+                  {reconciling ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Scale size={16} />}
+                  Kiểm tra
+                </button>
+                <button
+                  onClick={() => runReconcile(true)}
+                  disabled={reconciling}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors font-semibold disabled:opacity-70"
+                >
+                  <Wrench size={16} />
+                  Kiểm tra & Sửa
+                </button>
+              </div>
+
+              {reconcileResult && (
+                <div className="mt-6">
+                  {reconcileResult.mismatchCount === 0 ? (
+                    <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 rounded-lg p-3">
+                      <CheckCircle2 size={18} />
+                      Đã kiểm tra {reconcileResult.checked} ví — tất cả khớp với sổ cái.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-card-foreground">
+                        {reconcileResult.repaired ? "Đã sửa" : "Phát hiện"} {reconcileResult.mismatchCount}/{reconcileResult.checked} ví lệch:
+                      </p>
+                      <div className="border border-border rounded-lg divide-y divide-border overflow-hidden">
+                        {reconcileResult.mismatches.map((m) => (
+                          <div key={m.accountId} className="flex items-center justify-between px-3 py-2 text-sm">
+                            <span className="font-medium text-card-foreground truncate">{m.name}</span>
+                            <span className="text-muted-foreground">
+                              {fmt(m.storedBalance)} → <span className="text-card-foreground font-semibold">{fmt(m.computedBalance)}</span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      {!reconcileResult.repaired && (
+                        <p className="text-xs text-muted-foreground">
+                          Bấm <strong>Kiểm tra &amp; Sửa</strong> để cập nhật số dư về giá trị đúng từ sổ cái.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

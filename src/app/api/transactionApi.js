@@ -1,9 +1,14 @@
 import axiosClient from './axiosClient';
+import { readThrough, isNetworkError } from '../offline/offlineCache';
+import { enqueueMutation } from '../sync/syncQueue';
 
 export const transactionApi = {
   getAll(params) {
     const url = '/api/transactions';
-    return axiosClient.get(url, { params });
+    return readThrough(
+      `transactions:getAll:${JSON.stringify(params ?? {})}`,
+      () => axiosClient.get(url, { params }),
+    );
   },
 
   getByRange(from, to) {
@@ -26,9 +31,18 @@ export const transactionApi = {
     return axiosClient.get(url, { params: { from, to } });
   },
 
-  create(data) {
+  async create(data) {
     const url = '/api/transactions';
-    return axiosClient.post(url, data);
+    try {
+      return await axiosClient.post(url, data);
+    } catch (err) {
+      // Offline / mất mạng → đưa vào hàng đợi, đồng bộ sau khi có mạng.
+      if (isNetworkError(err)) {
+        await enqueueMutation({ method: 'post', url, data });
+        return { __offline: true };
+      }
+      throw err;
+    }
   },
 
   update(id, data) {

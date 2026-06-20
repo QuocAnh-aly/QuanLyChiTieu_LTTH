@@ -201,6 +201,44 @@ public class AccountService : IAccountService
         };
     }
 
+    public async Task<ReconcileResultDto> ReconcileBalancesAsync(int userId, bool repair)
+    {
+        var accounts = (await _accountRepo.GetAllByUserAsync(userId)).ToList();
+        var sums = await _accountRepo.GetLedgerSumsAsync(userId);
+
+        var result = new ReconcileResultDto { Repaired = repair };
+
+        foreach (var a in accounts)
+        {
+            result.Checked++;
+
+            // Cùng quy ước với TransactionService: 1/2/5 → +1, 3/4 → −1.
+            var factor = a.TypeId is TypeAssets or TypeLiabilities or TypeExpense ? 1 : -1;
+            var ledger = sums.TryGetValue(a.AccountId, out var s) ? s : 0m;
+            var computed = (a.InitialBalance ?? 0) + factor * ledger;
+            var stored = a.Balance ?? 0;
+            var diff = stored - computed;
+
+            if (diff == 0) continue;
+
+            result.MismatchCount++;
+            result.Mismatches.Add(new ReconcileItemDto
+            {
+                AccountId       = a.AccountId,
+                Name            = a.Name,
+                TypeId          = a.TypeId,
+                StoredBalance   = stored,
+                ComputedBalance = computed,
+                Difference      = diff,
+            });
+
+            if (repair)
+                await _accountRepo.UpdateBalanceAsync(a.AccountId, computed - stored);
+        }
+
+        return result;
+    }
+
     // ─── Private helpers ────────────────────────────────────────────────────
 
     private static AccountDto MapToDto(Account a) => new()

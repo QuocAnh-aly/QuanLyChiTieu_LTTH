@@ -49,6 +49,29 @@ public class AccountDto
     public DateTime? CreatedAt      { get; set; }
 }
 
+// ─── Đối soát số dư (Balance reconciliation) ─────────────────────────────────
+
+public class ReconcileItemDto
+{
+    public int     AccountId       { get; set; }
+    public string  Name            { get; set; } = null!;
+    public int     TypeId          { get; set; }
+    /// <summary>Số dư đang lưu ở cột Balance.</summary>
+    public decimal StoredBalance   { get; set; }
+    /// <summary>Số dư tính lại từ sổ cái: InitialBalance + factor·Σ(Debit−Credit).</summary>
+    public decimal ComputedBalance { get; set; }
+    /// <summary>StoredBalance − ComputedBalance (khác 0 = lệch).</summary>
+    public decimal Difference      { get; set; }
+}
+
+public class ReconcileResultDto
+{
+    public int    Checked       { get; set; }
+    public int    MismatchCount { get; set; }
+    public bool   Repaired      { get; set; }
+    public List<ReconcileItemDto> Mismatches { get; set; } = [];
+}
+
 public class WalletSummaryDto
 {
     public decimal            TotalAssets      { get; set; }

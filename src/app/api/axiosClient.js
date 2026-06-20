@@ -1,7 +1,16 @@
 import axios from "axios";
+import {
+  getAccessToken,
+  setAccessToken,
+  clearAccessToken,
+  clearSession,
+  hasSession,
+} from "./tokenStore";
 
 const axiosClient = axios.create({
   baseURL: "http://localhost:5229", // APIGateway URL
+  // Gửi kèm cookie HttpOnly (refresh token) trong các request tới /api/auth/*.
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
@@ -22,14 +31,51 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
-// ─── Interceptor: attach access token to every request except signin/signup ─
+// Xóa toàn bộ dấu vết phiên ở client (access token trong RAM + cache không bí mật).
+const purgeSession = () => {
+  clearAccessToken();
+  clearSession();
+  localStorage.removeItem("user_id");
+  localStorage.removeItem("app_tags");
+  localStorage.removeItem("app_object_groups");
+};
+
+// Bootstrap access token vào RAM từ cookie refresh khi đang có phiên nhưng chưa
+// có token (vd ngay sau khi tải lại trang). Gộp các lời gọi đồng thời vào 1 lần
+// refresh để tránh đua/spam 401 khi nhiều context cùng fetch lúc khởi động.
+let bootstrapPromise = null;
+async function ensureAccessToken() {
+  if (getAccessToken() || !hasSession()) return;
+  if (!bootstrapPromise) {
+    bootstrapPromise = (async () => {
+      try {
+        const { authApi } = await import("./authApi");
+        const data = await authApi.refresh();
+        if (data?.access_token) setAccessToken(data.access_token);
+      } catch {
+        purgeSession();
+        window.dispatchEvent(new Event("auth:logout"));
+      } finally {
+        bootstrapPromise = null;
+      }
+    })();
+  }
+  return bootstrapPromise;
+}
+
+// ─── Interceptor: attach in-memory access token to every request ────────────
 axiosClient.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    const url = config.url || "";
     const isPublicAuth =
-      config.url?.startsWith("/api/auth/signin") ||
-      config.url?.startsWith("/api/auth/signup");
-    if (!isPublicAuth) {
-      const token = localStorage.getItem("access_token");
+      url.startsWith("/api/auth/signin") || url.startsWith("/api/auth/signup");
+    const isRefresh = url.includes("/api/auth/refresh");
+    if (!isPublicAuth && !isRefresh) {
+      // Nếu chưa có token mà vẫn còn phiên → nạp token trước khi gửi.
+      if (!getAccessToken() && hasSession()) {
+        await ensureAccessToken();
+      }
+      const token = getAccessToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -55,11 +101,7 @@ axiosClient.interceptors.response.use(
     // Don't try to refresh if the failing request WAS the refresh call
     if (originalRequest?.url?.includes("/api/auth/refresh")) {
       // Refresh failed — clear credentials
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-      localStorage.removeItem("user_id");
-      localStorage.removeItem("app_tags");
-      localStorage.removeItem("app_object_groups");
+      purgeSession();
       window.dispatchEvent(new Event("auth:logout"));
       return Promise.reject(error);
     }
@@ -77,21 +119,13 @@ axiosClient.interceptors.response.use(
     originalRequest._retry = true;
     isRefreshing = true;
 
-    const refreshToken = localStorage.getItem("refresh_token");
-    if (!refreshToken) {
-      isRefreshing = false;
-      window.dispatchEvent(new Event("auth:logout"));
-      return Promise.reject(error);
-    }
-
     try {
-      const { default: authApi } = await import("./authApi");
-      const data = await authApi.refresh(refreshToken);
+      // Refresh token đi kèm tự động qua cookie HttpOnly — không cần body.
+      const { authApi } = await import("./authApi");
+      const data = await authApi.refresh();
 
       if (data?.access_token) {
-        localStorage.setItem("access_token", data.access_token);
-        localStorage.setItem("refresh_token", data.refresh_token);
-
+        setAccessToken(data.access_token);
         processQueue(null, data.access_token);
 
         originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
@@ -101,11 +135,7 @@ axiosClient.interceptors.response.use(
       throw new Error("No access_token in refresh response");
     } catch (refreshError) {
       processQueue(refreshError, null);
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-      localStorage.removeItem("user_id");
-      localStorage.removeItem("app_tags");
-      localStorage.removeItem("app_object_groups");
+      purgeSession();
       window.dispatchEvent(new Event("auth:logout"));
       return Promise.reject(refreshError);
     } finally {
