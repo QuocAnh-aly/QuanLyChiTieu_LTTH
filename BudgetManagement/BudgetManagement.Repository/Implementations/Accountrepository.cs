@@ -90,4 +90,22 @@ public class AccountRepository : BaseRepository<Account>, IAccountRepository
                 s.SetProperty(a => a.Balance, a => (a.Balance ?? 0) + delta)
             );
     }
+
+    public async Task<IEnumerable<Account>> GetAllByUserAsync(int userId)
+        => await _dbSet.Where(a => a.UserId == userId).ToListAsync();
+
+    // Tổng (Debit − Credit) theo từng account, tính trực tiếp từ Journal_Details.
+    public async Task<Dictionary<int, decimal>> GetLedgerSumsAsync(int userId)
+    {
+        var sums = await _context.Set<JournalDetail>()
+            .Where(d => d.Account.UserId == userId)
+            .GroupBy(d => d.AccountId)
+            .Select(g => new
+            {
+                AccountId = g.Key,
+                Sum = g.Sum(d => (d.Debit ?? 0) - (d.Credit ?? 0)),
+            })
+            .ToListAsync();
+        return sums.ToDictionary(x => x.AccountId, x => x.Sum);
+    }
 }

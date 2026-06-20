@@ -38,4 +38,9 @@ export const accountApi = {
   delete(id) {
     return axiosClient.delete(`/api/accounts/${id}`);
   },
+
+  // Đối soát số dư ví với sổ cái. repair=true sẽ sửa các số dư bị lệch.
+  reconcile(repair = false) {
+    return axiosClient.post(`/api/accounts/reconcile?repair=${repair}`);
+  },
 };

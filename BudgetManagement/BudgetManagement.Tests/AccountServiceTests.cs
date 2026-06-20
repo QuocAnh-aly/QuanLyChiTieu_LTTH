@@ -478,4 +478,74 @@ public class AccountServiceTests
         result.NetWorth.Should().Be(0);
         result.Accounts.Should().BeEmpty();
     }
+
+    // ─── ReconcileBalancesAsync ─────────────────────────────────────────────
+
+    [Fact]
+    public async Task ReconcileBalancesAsync_BalanceMatchesLedger_NoMismatch()
+    {
+        // Assets: computed = InitialBalance(1000) + (+1)·Σ(200) = 1200 = stored.
+        var acct = MakeAccount(accountId: 1, typeId: 1, balance: 1000m);
+        acct.Balance = 1200m;  // khớp với sổ cái
+        _repoMock.Setup(r => r.GetAllByUserAsync(_userId)).ReturnsAsync(new[] { acct });
+        _repoMock.Setup(r => r.GetLedgerSumsAsync(_userId))
+            .ReturnsAsync(new Dictionary<int, decimal> { [1] = 200m });
+
+        var result = await _service.ReconcileBalancesAsync(_userId, repair: false);
+
+        result.Checked.Should().Be(1);
+        result.MismatchCount.Should().Be(0);
+        result.Mismatches.Should().BeEmpty();
+        _repoMock.Verify(r => r.UpdateBalanceAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ReconcileBalancesAsync_Mismatch_NoRepair_ReportsButDoesNotFix()
+    {
+        // computed = 1000 + 200 = 1200; stored = 1000 → diff = -200.
+        var acct = MakeAccount(accountId: 1, typeId: 1, balance: 1000m); // Balance=InitialBalance=1000
+        _repoMock.Setup(r => r.GetAllByUserAsync(_userId)).ReturnsAsync(new[] { acct });
+        _repoMock.Setup(r => r.GetLedgerSumsAsync(_userId))
+            .ReturnsAsync(new Dictionary<int, decimal> { [1] = 200m });
+
+        var result = await _service.ReconcileBalancesAsync(_userId, repair: false);
+
+        result.MismatchCount.Should().Be(1);
+        var item = result.Mismatches.Single();
+        item.StoredBalance.Should().Be(1000m);
+        item.ComputedBalance.Should().Be(1200m);
+        item.Difference.Should().Be(-200m);
+        result.Repaired.Should().BeFalse();
+        _repoMock.Verify(r => r.UpdateBalanceAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ReconcileBalancesAsync_Mismatch_Repair_AppliesCorrectingDelta()
+    {
+        var acct = MakeAccount(accountId: 1, typeId: 1, balance: 1000m);
+        _repoMock.Setup(r => r.GetAllByUserAsync(_userId)).ReturnsAsync(new[] { acct });
+        _repoMock.Setup(r => r.GetLedgerSumsAsync(_userId))
+            .ReturnsAsync(new Dictionary<int, decimal> { [1] = 200m });
+
+        var result = await _service.ReconcileBalancesAsync(_userId, repair: true);
+
+        result.Repaired.Should().BeTrue();
+        result.MismatchCount.Should().Be(1);
+        // delta = computed(1200) - stored(1000) = +200.
+        _repoMock.Verify(r => r.UpdateBalanceAsync(1, 200m), Times.Once);
+    }
+
+    [Fact]
+    public async Task ReconcileBalancesAsync_LiabilityFactor_IsApplied()
+    {
+        // Liability (type 2): factor +1. InitialBalance(-500) + (+1)·Σ(-300) = -800.
+        var acct = MakeAccount(accountId: 9, typeId: 2, balance: -500m); // Balance=InitialBalance=-500
+        _repoMock.Setup(r => r.GetAllByUserAsync(_userId)).ReturnsAsync(new[] { acct });
+        _repoMock.Setup(r => r.GetLedgerSumsAsync(_userId))
+            .ReturnsAsync(new Dictionary<int, decimal> { [9] = -300m });
+
+        var result = await _service.ReconcileBalancesAsync(_userId, repair: false);
+
+        result.Mismatches.Single().ComputedBalance.Should().Be(-800m);
+    }
 }
