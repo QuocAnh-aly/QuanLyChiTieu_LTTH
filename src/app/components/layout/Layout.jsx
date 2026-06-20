@@ -30,8 +30,10 @@ import {
   KeyRound,
   SlidersHorizontal,
   Menu,
+  Lock,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { useAppLock } from "../../context/AppLockContext";
 import { toast } from "sonner";
 import { NotificationBell } from "../notifications/NotificationBell";
 import {
@@ -151,6 +153,7 @@ function Divider() {
 // ──────────────────────────────────────────────
 function SidebarContent({ onNavClick }) {
   const { user, logout } = useAuth();
+  const { hasPin, lock } = useAppLock();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -415,6 +418,15 @@ function SidebarContent({ onNavClick }) {
               {user?.email || ""}
             </p>
           </div>
+          {hasPin && (
+            <button
+              onClick={lock}
+              className="text-muted-foreground hover:text-purple-600 transition-colors p-1 rounded-md hover:bg-purple-50"
+              title="Khóa ngay"
+            >
+              <Lock size={16} />
+            </button>
+          )}
           <button
             onClick={handleLogout}
             className="text-muted-foreground hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50"

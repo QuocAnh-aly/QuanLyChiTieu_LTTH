@@ -6,19 +6,25 @@ import { AuthProvider } from './context/AuthContext';
 import { CategoriesProvider } from './context/CategoriesContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { AppLockProvider } from './context/AppLockContext';
+import { LockGate } from './components/security/LockGate';
 
 export default function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
       <AuthProvider>
-        <SettingsProvider>
-          <CategoriesProvider>
-            <NotificationProvider>
-              <RouterProvider router={router} />
-              <Toaster position="top-right" richColors />
-            </NotificationProvider>
-          </CategoriesProvider>
-        </SettingsProvider>
+        <AppLockProvider>
+          <SettingsProvider>
+            <CategoriesProvider>
+              <NotificationProvider>
+                <LockGate>
+                  <RouterProvider router={router} />
+                </LockGate>
+                <Toaster position="top-right" richColors />
+              </NotificationProvider>
+            </CategoriesProvider>
+          </SettingsProvider>
+        </AppLockProvider>
       </AuthProvider>
     </ThemeProvider>
   );

@@ -5,6 +5,7 @@ import { useTheme } from "next-themes";
 
 import { PageLayout } from "../../components/layout/PageLayout";
 import { useSettings } from "../../context/SettingsContext";
+import { SecuritySettingsCard } from "../../components/security/SecuritySettingsCard";
 
 const NUMBER_FORMATS = [
   { value: "vi-VN", label: "1.000.000,00 (Việt Nam)" },
@@ -209,6 +210,9 @@ export function Preferences() {
 
           </div>
         </div>
+
+        {/* Security — App Lock PIN */}
+        <SecuritySettingsCard />
 
       </div>
     </PageLayout>
