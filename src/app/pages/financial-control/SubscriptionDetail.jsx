@@ -14,6 +14,7 @@ import { vi } from "date-fns/locale";
 import { billApi } from "../../api/billApi";
 import { toast } from "sonner";
 import { useNotifications } from "../../context/NotificationContext";
+import { ReceiptAttachments } from "../../components/attachments/ReceiptAttachments";
 import { SubscriptionFormModal } from "../../components/modals/SubscriptionFormModal";
 import { PayBillModal } from "../../components/modals/PayBillModal";
 import { useSettings } from "../../context/SettingsContext";
@@ -354,6 +355,11 @@ export function SubscriptionDetail() {
           </table>
           </div>
         )}
+      </div>
+
+      {/* Receipt attachments */}
+      <div className="bg-card rounded-2xl border border-border shadow-sm p-6 mt-6">
+        <ReceiptAttachments type="bill" id={id} />
       </div>
 
       {/* Edit modal */}

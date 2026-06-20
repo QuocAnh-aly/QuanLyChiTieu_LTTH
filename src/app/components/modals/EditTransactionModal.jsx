@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { useSettings } from "../../context/SettingsContext";
 import { useCategories } from "../../context/CategoriesContext";
+import { ReceiptAttachments } from "../attachments/ReceiptAttachments";
 
 const TAG_COLORS = {
   blue: "bg-blue-100    text-blue-700    border-blue-300",
@@ -267,6 +268,11 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
                 className="w-full px-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                 placeholder="Thêm ghi chú chi tiết..."
               />
+            </div>
+
+            {/* Receipt attachments */}
+            <div className="pt-2 border-t border-border">
+              <ReceiptAttachments type="transaction" id={transaction.journalId} />
             </div>
           </div>
 

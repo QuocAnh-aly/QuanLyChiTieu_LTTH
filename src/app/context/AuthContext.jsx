@@ -55,10 +55,8 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      // Bootstrap access token mới từ cookie refresh (RAM trống sau khi reload).
-      const data = await authApi.refresh();
-      if (!data?.access_token) throw new Error('No access token');
-      setAccessToken(data.access_token);
+      // axiosClient tự bootstrap access token từ cookie refresh khi gọi API
+      // được bảo vệ (RAM trống sau khi reload) — chỉ cần lấy hồ sơ.
       const profile = await authApi.getProfile();
       setUser(profile);
     } catch {

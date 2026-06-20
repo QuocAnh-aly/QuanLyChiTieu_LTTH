@@ -4,6 +4,7 @@ import {
   setAccessToken,
   clearAccessToken,
   clearSession,
+  hasSession,
 } from "./tokenStore";
 
 const axiosClient = axios.create({
@@ -39,13 +40,41 @@ const purgeSession = () => {
   localStorage.removeItem("app_object_groups");
 };
 
+// Bootstrap access token vào RAM từ cookie refresh khi đang có phiên nhưng chưa
+// có token (vd ngay sau khi tải lại trang). Gộp các lời gọi đồng thời vào 1 lần
+// refresh để tránh đua/spam 401 khi nhiều context cùng fetch lúc khởi động.
+let bootstrapPromise = null;
+async function ensureAccessToken() {
+  if (getAccessToken() || !hasSession()) return;
+  if (!bootstrapPromise) {
+    bootstrapPromise = (async () => {
+      try {
+        const { authApi } = await import("./authApi");
+        const data = await authApi.refresh();
+        if (data?.access_token) setAccessToken(data.access_token);
+      } catch {
+        purgeSession();
+        window.dispatchEvent(new Event("auth:logout"));
+      } finally {
+        bootstrapPromise = null;
+      }
+    })();
+  }
+  return bootstrapPromise;
+}
+
 // ─── Interceptor: attach in-memory access token to every request ────────────
 axiosClient.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    const url = config.url || "";
     const isPublicAuth =
-      config.url?.startsWith("/api/auth/signin") ||
-      config.url?.startsWith("/api/auth/signup");
-    if (!isPublicAuth) {
+      url.startsWith("/api/auth/signin") || url.startsWith("/api/auth/signup");
+    const isRefresh = url.includes("/api/auth/refresh");
+    if (!isPublicAuth && !isRefresh) {
+      // Nếu chưa có token mà vẫn còn phiên → nạp token trước khi gửi.
+      if (!getAccessToken() && hasSession()) {
+        await ensureAccessToken();
+      }
       const token = getAccessToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -92,7 +121,7 @@ axiosClient.interceptors.response.use(
 
     try {
       // Refresh token đi kèm tự động qua cookie HttpOnly — không cần body.
-      const { default: authApi } = await import("./authApi");
+      const { authApi } = await import("./authApi");
       const data = await authApi.refresh();
 
       if (data?.access_token) {
