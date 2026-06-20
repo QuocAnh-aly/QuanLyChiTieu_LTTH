@@ -7,6 +7,7 @@ import { CategoriesProvider } from './context/CategoriesContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { AppLockProvider } from './context/AppLockContext';
+import { SyncProvider } from './context/SyncContext';
 import { LockGate } from './components/security/LockGate';
 
 export default function App() {
@@ -17,10 +18,12 @@ export default function App() {
           <SettingsProvider>
             <CategoriesProvider>
               <NotificationProvider>
-                <LockGate>
-                  <RouterProvider router={router} />
-                </LockGate>
-                <Toaster position="top-right" richColors />
+                <SyncProvider>
+                  <LockGate>
+                    <RouterProvider router={router} />
+                  </LockGate>
+                  <Toaster position="top-right" richColors />
+                </SyncProvider>
               </NotificationProvider>
             </CategoriesProvider>
           </SettingsProvider>

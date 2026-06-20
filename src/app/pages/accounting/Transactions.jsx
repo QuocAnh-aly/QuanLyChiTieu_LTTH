@@ -198,7 +198,8 @@ export function Transactions() {
 
   const handleAddTransaction = async (data) => {
     try {
-      await transactionApi.create(data);
+      const res = await transactionApi.create(data);
+      if (res?.__offline) { toast.success("Đã lưu offline — sẽ đồng bộ khi có mạng"); return; }
       await loadData(true);
       toast.success("Đã thêm giao dịch!");
       addNotification({ type: 'success', title: 'Giao dịch mới', message: 'Đã thêm giao dịch thành công', link: '/transactions/all' });

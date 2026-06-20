@@ -31,9 +31,14 @@ import {
   SlidersHorizontal,
   Menu,
   Lock,
+  WifiOff,
+  RefreshCw,
+  CloudUpload,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useAppLock } from "../../context/AppLockContext";
+import { useSync } from "../../context/SyncContext";
+import { useOnlineStatus } from "../../hooks/useOnlineStatus";
 import { toast } from "sonner";
 import { NotificationBell } from "../notifications/NotificationBell";
 import {
@@ -154,6 +159,7 @@ function Divider() {
 function SidebarContent({ onNavClick }) {
   const { user, logout } = useAuth();
   const { hasPin, lock } = useAppLock();
+  const { pendingCount, syncing, syncNow } = useSync();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -404,6 +410,24 @@ function SidebarContent({ onNavClick }) {
         </CollapsibleMenu>
       </nav>
 
+      {/* ── Sync bar (chỉ hiện khi có mục chờ đồng bộ) ── */}
+      {pendingCount > 0 && (
+        <div className="px-3 pt-3">
+          <button
+            onClick={syncNow}
+            disabled={syncing}
+            className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors text-sm font-medium disabled:opacity-70"
+            title="Đồng bộ ngay"
+          >
+            <span className="flex items-center gap-2">
+              <CloudUpload size={16} />
+              {pendingCount} mục chờ đồng bộ
+            </span>
+            <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
+          </button>
+        </div>
+      )}
+
       {/* ── User Footer ── */}
       <div className="p-3 border-t border-sidebar-border">
         <div className="flex items-center gap-3 px-2 py-2">
@@ -447,6 +471,7 @@ export function Layout() {
   const location = useLocation();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
+  const online = useOnlineStatus();
 
   // Scroll to top on route change (pairs with page transition animation)
   useEffect(() => {
@@ -479,6 +504,13 @@ export function Layout() {
 
       {/* ── Main Content ── */}
       <main className="flex-1 overflow-auto flex flex-col">
+        {/* Offline banner */}
+        {!online && (
+          <div className="flex items-center justify-center gap-2 px-4 py-2 bg-amber-500 text-white text-sm font-medium sticky top-0 z-20">
+            <WifiOff size={16} />
+            <span>Đang ngoại tuyến — thay đổi sẽ được lưu và đồng bộ khi có mạng.</span>
+          </div>
+        )}
         {/* Mobile header bar */}
         <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card sticky top-0 z-10">
           <div className="flex items-center gap-3">

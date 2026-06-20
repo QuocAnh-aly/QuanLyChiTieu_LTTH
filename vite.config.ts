@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 
 
 function figmaAssetResolver() {
@@ -23,6 +24,34 @@ export default defineConfig({
     // Tailwind is not being actively used – do not remove them
     react(),
     tailwindcss(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      injectRegister: 'auto',
+      includeAssets: ['pwa-icon.svg'],
+      manifest: {
+        name: 'MoneyFlow — Quản lý chi tiêu',
+        short_name: 'MoneyFlow',
+        description: 'Ứng dụng quản lý chi tiêu cá nhân',
+        theme_color: '#9333ea',
+        background_color: '#ffffff',
+        display: 'standalone',
+        start_url: '/',
+        scope: '/',
+        lang: 'vi',
+        icons: [
+          { src: 'pwa-icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },
+        ],
+      },
+      workbox: {
+        // Chỉ precache app shell (asset đã build). KHÔNG cache /api/ để tránh
+        // lưu dữ liệu tài chính dạng plaintext trong Cache Storage.
+        globPatterns: ['**/*.{js,css,html,svg,woff2}'],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api/],
+        // Không khai báo runtimeCaching cho API — request tới gateway (origin
+        // khác) sẽ đi thẳng ra mạng, không qua service worker.
+      },
+    }),
   ],
   resolve: {
     alias: {

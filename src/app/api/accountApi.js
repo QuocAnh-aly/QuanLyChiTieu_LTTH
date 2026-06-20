@@ -1,12 +1,19 @@
 import axiosClient from './axiosClient';
+import { readThrough } from '../offline/offlineCache';
 
 export const accountApi = {
   getAll(params = {}) {
-    return axiosClient.get('/api/accounts', { params });
+    return readThrough(
+      `accounts:getAll:${JSON.stringify(params)}`,
+      () => axiosClient.get('/api/accounts', { params }),
+    );
   },
 
   getByType(typeId, params = {}) {
-    return axiosClient.get(`/api/accounts/type/${typeId}`, { params });
+    return readThrough(
+      `accounts:getByType:${typeId}:${JSON.stringify(params)}`,
+      () => axiosClient.get(`/api/accounts/type/${typeId}`, { params }),
+    );
   },
 
   getById(id) {
@@ -14,7 +21,10 @@ export const accountApi = {
   },
 
   getSummary(params = {}) {
-    return axiosClient.get('/api/accounts/wallet-summary', { params });
+    return readThrough(
+      `accounts:getSummary:${JSON.stringify(params)}`,
+      () => axiosClient.get('/api/accounts/wallet-summary', { params }),
+    );
   },
 
   create(data) {

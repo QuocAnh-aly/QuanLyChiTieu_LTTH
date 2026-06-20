@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi } from '../api/authApi';
 import { setAccessToken, clearAccessToken, markSession, clearSession, hasSession } from '../api/tokenStore';
+import { clearOfflineCache } from '../offline/offlineCache';
+import { resetOfflineKey } from '../security/keyHolder';
 
 const AuthContext = createContext(null);
 
@@ -27,6 +29,9 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('income_sources');
     localStorage.removeItem('app_tags');
     localStorage.removeItem('app_object_groups');
+    // Dọn dữ liệu offline + khóa giải mã để tài khoản sau không đọc được.
+    clearOfflineCache();
+    resetOfflineKey();
     setUser(null);
   }, []);
 
