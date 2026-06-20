@@ -7,6 +7,7 @@ import {
 } from "react";
 import { currencyApi } from "../api/currencyApi";
 import { exchangeRateApi } from "../api/exchangeRateApi";
+import { hasSession } from "../api/tokenStore";
 
 // Fallback used while the API call is still in flight on first mount,
 // or when the user is not yet authenticated.
@@ -78,15 +79,14 @@ export function SettingsProvider({ children }) {
 
   // First mount + every time the token changes (storage event from login/logout)
   useEffect(() => {
-    const isLoggedIn = !!localStorage.getItem("access_token");
-    if (!isLoggedIn) return;
+    if (!hasSession()) return;
     setIsLoading(true);
     Promise.all([refreshCurrencies(), refreshRates()]).finally(() =>
       setIsLoading(false),
     );
 
     const onStorage = (e) => {
-      if (e.key === "access_token") {
+      if (e.key === "app_session") {
         refreshCurrencies();
         refreshRates();
       }
