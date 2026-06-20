@@ -11,9 +11,15 @@ export const authApi = {
     return axiosClient.post(url, { account, password, user_name: userName, email });
   },
 
-  refresh(refreshToken) {
+  refresh() {
+    // Refresh token gửi tự động qua cookie HttpOnly (withCredentials).
     const url = '/api/auth/refresh';
-    return axiosClient.post(url, { refresh_token: refreshToken });
+    return axiosClient.post(url);
+  },
+
+  logout() {
+    const url = '/api/auth/logout';
+    return axiosClient.post(url);
   },
 
   getProfile() {

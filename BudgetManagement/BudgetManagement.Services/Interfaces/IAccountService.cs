@@ -15,4 +15,7 @@ public interface IAccountService
 
     // Dashboard summary — with optional server-side search & sort
     Task<WalletSummaryDto> GetWalletSummaryAsync(int userId, int page = 1, int pageSize = 50, string? search = null, string? sortBy = null);
+
+    // Đối soát số dư với sổ cái. repair=true thì sửa cột Balance về giá trị đúng.
+    Task<ReconcileResultDto> ReconcileBalancesAsync(int userId, bool repair);
 }

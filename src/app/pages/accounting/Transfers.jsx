@@ -110,7 +110,11 @@ export function Transfers() {
   }, [filtered]);
 
   const handleAdd = async (data) => {
-    try { await transactionApi.create(data); await loadData(true); toast.success("Đã chuyển tiền!"); addNotification({ type: 'success', title: 'Chuyển khoản', message: 'Đã thực hiện chuyển tiền giữa các ví', link: '/transactions/transfers' }); }
+    try {
+      const res = await transactionApi.create(data);
+      if (res?.__offline) { toast.success("Đã lưu offline — sẽ đồng bộ khi có mạng"); return; }
+      await loadData(true); toast.success("Đã chuyển tiền!"); addNotification({ type: 'success', title: 'Chuyển khoản', message: 'Đã thực hiện chuyển tiền giữa các ví', link: '/transactions/transfers' });
+    }
     catch { toast.error("Không thể thực hiện chuyển khoản"); addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể thực hiện chuyển khoản' }); }
   };
   const handleSaveEdit = async (data) => {

@@ -1,14 +1,18 @@
 import axiosClient from './axiosClient';
+import { readThrough } from '../offline/offlineCache';
 
 export const dashboardApi = {
   getSummary() {
     const url = '/api/dashboard';
-    return axiosClient.get(url);
+    return readThrough('dashboard:getSummary', () => axiosClient.get(url));
   },
 
   getRecentTransactions(count = 5) {
     const url = '/api/dashboard/recent';
-    return axiosClient.get(url, { params: { count } });
+    return readThrough(
+      `dashboard:recent:${count}`,
+      () => axiosClient.get(url, { params: { count } }),
+    );
   },
 
   getSpendingByCategory(from, to) {

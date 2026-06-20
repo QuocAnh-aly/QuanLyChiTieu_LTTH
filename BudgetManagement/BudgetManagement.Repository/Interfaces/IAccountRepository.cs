@@ -13,4 +13,8 @@ public interface IAccountRepository : IBaseRepository<Account>
     Task<Account?> GetWithDetailsAsync(int accountId); // include AccountType
     Task<Account?> FindByUserAndNameAsync(int userId, int typeId, string name);
     Task UpdateBalanceAsync(int accountId, decimal delta);
+
+    // Đối soát: tất cả account của user (gồm cả ẩn/không hoạt động) + tổng sổ cái.
+    Task<IEnumerable<Account>> GetAllByUserAsync(int userId);
+    Task<Dictionary<int, decimal>> GetLedgerSumsAsync(int userId);
 }
