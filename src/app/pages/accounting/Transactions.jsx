@@ -16,6 +16,7 @@ import { transactionApi } from "../../api/transactionApi";
 import { toast } from "sonner";
 import { AddTransactionModal } from "../../components/modals/AddTransactionModal";
 import { EditTransactionModal } from "../../components/modals/EditTransactionModal";
+import { TransactionDetailModal } from "../../components/modals/TransactionDetailModal";
 import { useSettings } from "../../context/SettingsContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { confirmDialog } from "../../utils/confirmDialog";
@@ -88,6 +89,7 @@ export function Transactions() {
   const [showCustom,      setShowCustom]      = useState(false);
   const [isAddModalOpen,  setIsAddModalOpen]  = useState(false);
   const [editTarget,      setEditTarget]      = useState(null);
+  const [detailTarget,    setDetailTarget]    = useState(null);
   const [isLoadingMore,   setIsLoadingMore]   = useState(false);
   const [hasMore,         setHasMore]         = useState(true);
   const [pageAccum,       setPageAccum]       = useState(1);
@@ -479,7 +481,7 @@ export function Transactions() {
                       {txs.map((t, txIndex) => {
                         const Icon = TxIcon(t);
                         return (
-                          <tr key={t.journalId} className="animate-list-item hover:bg-muted transition-colors group" style={{ animationDelay: `${txIndex * 50}ms` }}>
+                          <tr key={t.journalId} onClick={() => setDetailTarget(t)} className="animate-list-item hover:bg-muted transition-colors group cursor-pointer" style={{ animationDelay: `${txIndex * 50}ms` }}>
                             <td className="px-3 sm:px-6 py-3 sm:py-3.5">
                               <div className="flex items-center gap-2 sm:gap-3">
                                 <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center shrink-0 ${txBg(t)}`}>
@@ -523,14 +525,14 @@ export function Transactions() {
                             <td className="px-3 sm:px-6 py-3 sm:py-3.5">
                               <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all justify-end">
                                 <button
-                                  onClick={() => setEditTarget(t)}
+                                  onClick={(e) => { e.stopPropagation(); setEditTarget(t); }}
                                   className="p-1.5 rounded hover:bg-purple-50 text-muted-foreground hover:text-purple-600 transition-colors"
                                   title="Sửa"
                                 >
                                   <Pencil size={14} />
                                 </button>
                                 <button
-                                  onClick={() => handleDelete(t.journalId, t.description)}
+                                  onClick={(e) => { e.stopPropagation(); handleDelete(t.journalId, t.description); }}
                                   className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors"
                                   title="Xóa"
                                 >
@@ -600,6 +602,13 @@ export function Transactions() {
         onClose={() => setEditTarget(null)}
         onSave={handleSaveEdit}
         transaction={editTarget}
+      />
+      <TransactionDetailModal
+        isOpen={!!detailTarget}
+        onClose={() => setDetailTarget(null)}
+        transaction={detailTarget}
+        onEdit={(t) => { setDetailTarget(null); setEditTarget(t); }}
+        onDelete={(t) => { setDetailTarget(null); handleDelete(t.journalId, t.description); }}
       />
     </PageLayout>
   );

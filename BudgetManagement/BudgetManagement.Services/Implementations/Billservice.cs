@@ -139,7 +139,7 @@ public class BillService : IBillService
         if (!bill.Active) throw new InvalidOperationException("Không thể quét lại hóa đơn đã tắt.");
 
         await _billRepo.UnlinkAllEntriesAsync(billId);
-        await _billRepo.LinkEntriesByAmountAsync(billId, userId, bill.AmountMin, bill.AmountMax);
+        await _billRepo.LinkEntriesByAmountAsync(billId, userId, bill.AmountMin, bill.AmountMax, bill.Name);
 
         var entries = (await _billRepo.GetLinkedEntriesAsync(billId)).ToList();
         return MapToDto(bill, DateTime.Today, entries, false);
@@ -184,6 +184,7 @@ public class BillService : IBillService
         var next        = ComputeNextExpectedMatch(b, today);
         var paidStatus  = ComputePaidStatus(b, today, entries);
         var periodTxId  = GetCurrentPeriodTransactionId(b, today, entries);
+        var paidPeriod  = GetPaidAmountThisPeriod(b, today, entries);
         var avgAmount   = (b.AmountMin + b.AmountMax) / 2m;
 
         var dto = new BillDto
@@ -204,6 +205,7 @@ public class BillService : IBillService
             NextExpectedMatch  = next,
             PaidStatus         = paidStatus,
             PaidTransactionId  = periodTxId,
+            PaidAmountThisPeriod = paidPeriod,
             MatchedCount       = entries.Count,
             CreatedAt          = b.CreatedAt,
         };
@@ -276,6 +278,20 @@ public class BillService : IBillService
             e.TransactionDate.Date < periodEnd.Date);
 
         return tx?.JournalId ?? 0;
+    }
+
+    private static decimal GetPaidAmountThisPeriod(Bill b, DateTime today,
+        List<JournalEntry> entries)
+    {
+        var periodStart = GetPeriodStart(b, today);
+        if (periodStart == null) return 0m;
+
+        var periodEnd = AdvanceDate(periodStart.Value, b.RepeatFreq, b.Skip + 1);
+
+        return entries
+            .Where(e => e.TransactionDate.Date >= periodStart.Value.Date &&
+                        e.TransactionDate.Date < periodEnd.Date)
+            .Sum(e => e.JournalDetails?.Sum(d => d.Debit ?? 0) ?? 0m);
     }
 
     private static DateTime? GetPeriodStart(Bill b, DateTime today)

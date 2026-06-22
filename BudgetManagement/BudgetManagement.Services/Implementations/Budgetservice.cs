@@ -268,12 +268,17 @@ public class BudgetService : IBudgetService
         await _accountRepo.UpdateBalanceAsync(piggyAccount.AccountId, + amount);
         await _accountRepo.UpdateBalanceAsync(sourceAccount.AccountId, - amount);
  
-    // Cập nhật CurrentAmount trên Budget (clamp to target)
-        var newAmount = Math.Min((goal.CurrentAmount ?? 0) + amount, goal.TargetAmount);
+    // Cập nhật CurrentAmount trên Budget — cộng dồn đúng số đã nạp (KHÔNG kẹp theo
+    // mục tiêu, nếu không khi đã đạt mục tiêu thì nạp thêm sẽ không tăng "đã tiết
+    // kiệm"). Phần trăm hiển thị được giới hạn 100% ở giao diện.
+        var newAmount = (goal.CurrentAmount ?? 0) + amount;
         await _budgetRepo.UpdateCurrentAmountAsync(budgetId, newAmount);
         await _budgetRepo.AddEventAsync(budgetId, amount, notes);
- 
-        return MapToSavingsDto((await _budgetRepo.GetByIdAsync(budgetId))!);
+
+    // Đồng bộ lại entity đang được theo dõi (ExecuteUpdate ghi thẳng DB, không cập
+    // nhật entity đã tải) để DTO trả về phản ánh số dư mới ngay.
+        goal.CurrentAmount = newAmount;
+        return MapToSavingsDto(goal);
     }
 
     public async Task<SavingsGoalDto> RemoveMoneyAsync(int userId, int budgetId, decimal amount, string? notes, int destinationAccountId)
@@ -323,8 +328,10 @@ public class BudgetService : IBudgetService
         var newAmount = Math.Max(0, current - amount);
         await _budgetRepo.UpdateCurrentAmountAsync(budgetId, newAmount);
         await _budgetRepo.AddEventAsync(budgetId, -amount, notes);
- 
-        return MapToSavingsDto((await _budgetRepo.GetByIdAsync(budgetId))!);
+
+    // Đồng bộ entity đang theo dõi để DTO trả về đúng số dư mới.
+        goal.CurrentAmount = newAmount;
+        return MapToSavingsDto(goal);
 }
     public async Task<bool> ResetHistoryAsync(int userId, int budgetId)
     {

@@ -37,6 +37,7 @@ import { transactionApi } from "../../../api/transactionApi";
 import { accountApi } from "../../../api/accountApi";
 import { useSettings } from "../../../context/SettingsContext";
 import { PageLayout } from "../../../components/layout/PageLayout";
+import { TransactionDetailModal } from "../../../components/modals/TransactionDetailModal";
 
 const PIE_COLORS = [
   "#22c55e",
@@ -179,6 +180,7 @@ export function IncomeView() {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
   const [incomeAccounts, setIncomeAccounts] = useState([]);
+  const [detailTarget, setDetailTarget] = useState(null);
 
   const { from: rangeFrom, to: rangeTo } = useMemo(() => {
     if (preset === "custom")
@@ -848,7 +850,8 @@ export function IncomeView() {
                   {filtered.map((t) => (
                     <tr
                       key={t.journalId}
-                      className="hover:bg-muted/50 transition-colors"
+                      onClick={() => setDetailTarget(t)}
+                      className="hover:bg-muted/50 transition-colors cursor-pointer"
                     >
                       <td className="px-4 sm:px-6 py-3.5">
                         <div className="flex items-center gap-3">
@@ -903,6 +906,12 @@ export function IncomeView() {
           )}
         </div>
       </div>
+
+      <TransactionDetailModal
+        isOpen={!!detailTarget}
+        onClose={() => setDetailTarget(null)}
+        transaction={detailTarget}
+      />
     </PageLayout>
   );
 }

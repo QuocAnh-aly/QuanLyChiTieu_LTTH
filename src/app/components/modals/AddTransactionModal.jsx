@@ -8,6 +8,7 @@ import {
   HandCoins,
   Coffee,
   Paperclip,
+  Receipt,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
@@ -15,6 +16,7 @@ import { toast } from "sonner";
 
 import { accountApi } from "../../api/accountApi";
 import { budgetApi } from "../../api/budgetApi";
+import { billApi } from "../../api/billApi";
 import { attachmentApi } from "../../api/attachmentApi";
 import { useCategories } from "../../context/CategoriesContext";
 import { useSettings } from "../../context/SettingsContext";
@@ -115,12 +117,15 @@ export function AddTransactionModal({
   const [createAnother, setCreateAnother] = useState(false);
   const [budgets, setBudgets] = useState([]);
   const [selectedBudget, setSelectedBudget] = useState(null);
+  const [bills, setBills] = useState([]);
+  const [selectedBill, setSelectedBill] = useState(null);
 
   useEffect(() => {
     if (!isOpen) return;
     setTxType(initialType);
     setLiabilityAccounts([]);
     setSelectedBudget(null);
+    setSelectedBill(null);
     accountApi
       .getByType(1)
       .then((data) => setAssetAccounts(data.items || data || []))
@@ -134,6 +139,13 @@ export function AddTransactionModal({
       .then((data) => {
         const items = data.items || data || [];
         setBudgets(items.filter((b) => b.isActive !== false));
+      })
+      .catch(() => {});
+    billApi
+      .getAll({ page: 1, pageSize: 100 })
+      .then((data) => {
+        const items = data.items || data || [];
+        setBills(items.filter((b) => b.active));
       })
       .catch(() => {});
   }, [isOpen, initialType]);
@@ -155,6 +167,7 @@ export function AddTransactionModal({
     setDate(new Date().toISOString().slice(0, 10));
     setShowCustomCategory(false);
     setSelectedBudget(null);
+    setSelectedBill(null);
   };
   const handleTypeChange = (key) => {
     setTxType(key);
@@ -165,6 +178,7 @@ export function AddTransactionModal({
     setLiabilityId("");
     setShowCustomCategory(false);
     setSelectedBudget(null);
+    setSelectedBill(null);
   };
 
   const sameWalletError =
@@ -211,6 +225,7 @@ export function AddTransactionModal({
         debitAccountId: expenseCategory.accountId,
         creditAccountId: parseInt(walletId),
         expenseCategoryName: expenseCategory.name.trim() || "Chưa phân loại",
+        billId: selectedBill ? selectedBill.billId : undefined,
       };
     } else if (txType === "income") {
       payload = {
@@ -839,6 +854,66 @@ export function AddTransactionModal({
                     );
                   })}
                 </div>
+              </div>
+            )}
+
+            {/* ── HÓA ĐƠN ĐỊNH KỲ (chỉ chi tiêu) ── */}
+            {txType === "expense" && bills.length > 0 && (
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
+                  Hóa đơn định kỳ{" "}
+                  <span className="text-muted-foreground font-normal">
+                    (không bắt buộc)
+                  </span>
+                </label>
+                <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-0.5">
+                  {bills.map((b) => {
+                    const isSelected = selectedBill?.billId === b.billId;
+                    return (
+                      <button
+                        key={b.billId}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedBill(null);
+                          } else {
+                            setSelectedBill(b);
+                            // Gợi ý số tiền & mô tả để khớp với hóa đơn.
+                            if (!amount)
+                              setAmount(String(Math.round(b.averageAmount ?? 0)));
+                            if (!description) setDescription(b.name);
+                          }
+                        }}
+                        className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
+                          isSelected
+                            ? "border-purple-400 bg-purple-50 text-purple-700"
+                            : "border-slate-200 hover:border-slate-300 text-slate-600"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <Receipt size={13} />
+                          <span className="truncate font-semibold">{b.name}</span>
+                        </div>
+                        <div className="text-[10px] mt-0.5">
+                          {b.paidStatus === "expected_unpaid" ? (
+                            <span className="text-yellow-600">Chưa trả kỳ này</span>
+                          ) : b.paidStatus === "paid" ? (
+                            <span className="text-green-600">Đã trả kỳ này</span>
+                          ) : (
+                            <span className="text-muted-foreground">
+                              {fmt(b.averageAmount ?? 0)}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedBill && (
+                  <p className="text-[11px] text-muted-foreground mt-1.5">
+                    Giao dịch này sẽ được ghi nhận là thanh toán cho “{selectedBill.name}”.
+                  </p>
+                )}
               </div>
             )}
 
