@@ -39,10 +39,10 @@ public class RecurringService : IRecurringService
     public async Task<RecurringDto> GetByIdAsync(int userId, int recurringId)
     {
         var recurring = await _recurringRepo.GetByIdAsync(recurringId)
-                        ?? throw new KeyNotFoundException("Recurring journal not found.");
+                        ?? throw new KeyNotFoundException("Không tìm thấy giao dịch định kỳ.");
 
         if (recurring.UserId != userId)
-            throw new UnauthorizedAccessException("Access denied.");
+            throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         return MapToDto(recurring);
     }
@@ -71,10 +71,10 @@ public class RecurringService : IRecurringService
     public async Task<RecurringDto> UpdateAsync(int userId, int recurringId, UpdateRecurringDto request)
     {
         var recurring = await _recurringRepo.GetByIdAsync(recurringId)
-                        ?? throw new KeyNotFoundException("Recurring journal not found.");
+                        ?? throw new KeyNotFoundException("Không tìm thấy giao dịch định kỳ.");
 
         if (recurring.UserId != userId)
-            throw new UnauthorizedAccessException("Access denied.");
+            throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         recurring.Title         = request.Title         ?? recurring.Title;
         recurring.Description   = request.Description   ?? recurring.Description;
@@ -91,10 +91,10 @@ public class RecurringService : IRecurringService
     public async Task<bool> DeleteAsync(int userId, int recurringId)
     {
         var recurring = await _recurringRepo.GetByIdAsync(recurringId)
-                        ?? throw new KeyNotFoundException("Recurring journal not found.");
+                        ?? throw new KeyNotFoundException("Không tìm thấy giao dịch định kỳ.");
 
         if (recurring.UserId != userId)
-            throw new UnauthorizedAccessException("Access denied.");
+            throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         return await _recurringRepo.DeleteAsync(recurringId);
     }
@@ -119,7 +119,7 @@ public class RecurringService : IRecurringService
                         DebitAccountId  = recurring.DebitAccountId,
                         CreditAccountId = recurring.CreditAccountId,
                         Amount          = recurring.Amount,
-                        Description     = recurring.Description ?? recurring.Title ?? "Recurring",
+                        Description     = recurring.Description ?? recurring.Title ?? "Giao dịch định kỳ",
                         TransactionDate = DateTime.UtcNow
                     }
                 );

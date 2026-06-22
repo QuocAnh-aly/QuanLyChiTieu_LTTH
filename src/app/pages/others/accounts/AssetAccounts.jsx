@@ -46,7 +46,7 @@ import PaginationBar from "../../../components/ui/navigation/PaginationBar";
 import { PageLayout } from "../../../components/layout/PageLayout";
 import { AccountFormModal } from "../../../components/modals/AccountFormModal";
 import { EditAccountModal } from "../../../components/modals/EditAccountModal";
-import { confirmDialog } from "../../../utils/confirmDialog";
+import { DeleteWalletModal } from "../../../components/modals/DeleteWalletModal";
 
 function mapTransaction(t) {
   const details = t.details || [];
@@ -191,6 +191,7 @@ export function AssetAccounts() {
   const [hoveredMonth, setHoveredMonth] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
+  const [deletingAccount, setDeletingAccount] = useState(null);
 
   const fetchWallets = useCallback(async (silent = false) => {
     try {
@@ -258,17 +259,23 @@ export function AssetAccounts() {
     }
   }, [fetchWallets]);
 
-  const handleDeleteAsset = useCallback(async (id, name) => {
-    if (!await confirmDialog(`Xóa tài sản "${name}"?\nHành động này không thể hoàn tác.`)) return;
+  const handleDeleteAsset = useCallback((account) => {
+    setDeletingAccount(account);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async (opts) => {
+    if (!deletingAccount) return;
     try {
-      await accountApi.delete(id);
-      toast.success(`Đã xóa "${name}".`);
+      await accountApi.delete(deletingAccount.id, opts);
+      toast.success(`Đã xóa "${deletingAccount.name}".`);
+      setDeletingAccount(null);
       fetchWallets();
     } catch (error) {
       const msg = error?.response?.data?.message;
-      toast.error(msg || `Không thể xóa "${name}". Tài khoản có thể đang được sử dụng trong giao dịch hoặc ngân sách.`);
+      toast.error(msg || `Không thể xóa "${deletingAccount.name}".`);
+      throw error; // giữ modal mở khi lỗi
     }
-  }, [fetchWallets]);
+  }, [deletingAccount, fetchWallets]);
 
   useEffect(() => { fetchWallets(); }, [fetchWallets]);
   useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
@@ -817,7 +824,7 @@ export function AssetAccounts() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteAsset(account.id, account.name);
+                            handleDeleteAsset(account);
                           }}
                           className="p-1.5 rounded-lg bg-white/10 hover:bg-red-400/40 text-white/70 hover:text-red-200 transition-all backdrop-blur-sm"
                           title="Xóa"
@@ -917,7 +924,7 @@ export function AssetAccounts() {
                               <Pencil size={13} />
                             </button>
                             <button
-                              onClick={() => handleDeleteAsset(acc.id, acc.name)}
+                              onClick={() => handleDeleteAsset(acc)}
                               className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors"
                               title="Xóa"
                             >
@@ -1123,6 +1130,15 @@ export function AssetAccounts() {
         onSubmit={handleCreateAsset}
         account={null}
         typeId={1}
+      />
+
+      {/* ════════════════════ DELETE WALLET MODAL ════════════════════ */}
+      <DeleteWalletModal
+        isOpen={!!deletingAccount}
+        onClose={() => setDeletingAccount(null)}
+        onConfirm={handleConfirmDelete}
+        account={deletingAccount}
+        targets={accounts.filter((a) => a.typeId === 1)}
       />
 
       {/* ════════════════════ EDIT ASSET MODAL ════════════════════ */}

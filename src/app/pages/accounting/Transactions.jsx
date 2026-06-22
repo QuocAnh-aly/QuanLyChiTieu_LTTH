@@ -20,6 +20,7 @@ import { useSettings } from "../../context/SettingsContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { confirmDialog } from "../../utils/confirmDialog";
 
+
 // typeId: 1=Assets, 2=Liabilities, 4=Revenue, 5=Expense
 // Source = credit side, Destination = debit side (Firefly III model)
 function mapTransaction(t) {
@@ -199,10 +200,11 @@ export function Transactions() {
   const handleAddTransaction = async (data) => {
     try {
       const res = await transactionApi.create(data);
-      if (res?.__offline) { toast.success("Đã lưu offline — sẽ đồng bộ khi có mạng"); return; }
+      if (res?.__offline) { toast.success("Đã lưu offline — sẽ đồng bộ khi có mạng"); return res; }
       await loadData(true);
       toast.success("Đã thêm giao dịch!");
       addNotification({ type: 'success', title: 'Giao dịch mới', message: 'Đã thêm giao dịch thành công', link: '/transactions/all' });
+      return res;
     } catch {
       toast.error("Không thể thêm giao dịch");
       addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể thêm giao dịch' });

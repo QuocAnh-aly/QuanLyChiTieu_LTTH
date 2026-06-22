@@ -33,6 +33,7 @@ import { dashboardApi } from "../../api/dashboardApi";
 import { piggyBankApi } from "../../api/piggyBankApi";
 import { useAuth } from "../../context/AuthContext";
 import { useSettings } from "../../context/SettingsContext";
+import { PageLayout } from "../../components/layout/PageLayout";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -100,8 +101,6 @@ function SkeletonChart() {
   return <div className="h-[300px] bg-muted rounded-xl animate-pulse" />;
 }
 
-import { PageLayout } from "../../components/layout/PageLayout";
-
 export function Dashboard() {
   const { user } = useAuth();
   const { fmt, fmtShort } = useSettings();
@@ -117,6 +116,8 @@ export function Dashboard() {
   const [monthlyTrend, setMonthlyTrend] = useState([]);
   const [categorySpending, setCategorySpending] = useState([]);
   const [recentTransactions, setRecentTransactions] = useState([]);
+  const [budgetData, setBudgetData] = useState([]);
+  const [overspentCategories, setOverspentCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -156,6 +157,7 @@ export function Dashboard() {
         month: p.month,
         income: p.income,
         expenses: p.expense,
+        net:      (p.income ?? 0) - (p.expense ?? 0),
       }));
       setMonthlyTrend(trend);
 
@@ -868,6 +870,40 @@ export function Dashboard() {
             </>
           )}
         </div>
+      </div>
+
+      {/* Net cash flow over time */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-200 mb-8">
+        <h2 className="text-xl font-bold text-slate-900 mb-6">Dòng tiền ròng theo tháng</h2>
+        {monthlyTrend.length > 0 ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={monthlyTrend}>
+              <defs>
+                <linearGradient id="netFlowGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="month" stroke="#64748b" tick={{ fontSize: 12 }} />
+              <YAxis stroke="#64748b" tick={{ fontSize: 12 }} tickFormatter={fmtShort} />
+              <Tooltip
+                contentStyle={{ backgroundColor: "#fff", border: "1px solid #e2e8f0", borderRadius: "8px" }}
+                formatter={(value) => [fmt(value), "Dòng tiền ròng"]}
+              />
+              <Area
+                type="monotone"
+                dataKey="net"
+                stroke="#8b5cf6"
+                strokeWidth={2}
+                fill="url(#netFlowGradient)"
+                name="Dòng tiền ròng"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-[300px] flex items-center justify-center text-slate-400">Không có dữ liệu dòng tiền</div>
+        )}
       </div>
 
       {/* Recent Transactions */}

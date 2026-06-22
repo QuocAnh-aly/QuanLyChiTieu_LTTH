@@ -19,6 +19,7 @@ import { SubscriptionFormModal } from "../../components/modals/SubscriptionFormM
 import { PayBillModal } from "../../components/modals/PayBillModal";
 import { useSettings } from "../../context/SettingsContext";
 import { shouldShowToast } from "../../utils/toastOnce";
+import { confirmDialog } from "../../utils/confirmDialog";
 
 const FREQ_LABELS = {
   daily:       "Hàng ngày",
@@ -202,10 +203,11 @@ export function SubscriptionDetail() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {bill.paidStatus === "expected_unpaid" && (
+          {bill.active && (
             <button onClick={() => setPayOpen(true)}
               className="flex items-center gap-1.5 px-3 py-2 bg-purple-600 text-white hover:bg-purple-700 rounded-lg font-medium text-sm transition-colors">
-              <Wallet size={14} /> Trả ngay
+              <Wallet size={14} />
+              {bill.paidStatus === "expected_unpaid" ? "Trả ngay" : "Ghi giao dịch"}
             </button>
           )}
           <button onClick={handleRescan} disabled={rescanning || !bill.active}

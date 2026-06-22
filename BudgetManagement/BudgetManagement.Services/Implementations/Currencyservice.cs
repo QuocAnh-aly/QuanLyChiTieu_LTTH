@@ -25,7 +25,7 @@ public class CurrencyService : ICurrencyService
     public async Task<CurrencyDto> GetByCodeAsync(int userId, string code)
     {
         var c = await _currencyRepo.GetByUserAndCodeAsync(userId, code.ToUpper())
-                ?? throw new KeyNotFoundException("Currency not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy tiền tệ.");
         return MapToDto(c);
     }
 
@@ -39,11 +39,11 @@ public class CurrencyService : ICurrencyService
     {
         var code = request.Code.Trim().ToUpper();
         if (string.IsNullOrEmpty(code))
-            throw new ArgumentException("Currency code is required.");
+            throw new ArgumentException("Vui lòng nhập mã tiền tệ.");
 
         var existing = await _currencyRepo.GetByUserAndCodeAsync(userId, code);
         if (existing is not null)
-            throw new InvalidOperationException($"Currency {code} already exists.");
+            throw new InvalidOperationException($"Tiền tệ {code} đã tồn tại.");
 
         var isFirst = !(await _currencyRepo.GetByUserAsync(userId)).Any();
 
@@ -65,7 +65,7 @@ public class CurrencyService : ICurrencyService
     public async Task<CurrencyDto> UpdateAsync(int userId, string code, UpdateCurrencyDto request)
     {
         var c = await _currencyRepo.GetByUserAndCodeAsync(userId, code.ToUpper())
-                ?? throw new KeyNotFoundException("Currency not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy tiền tệ.");
 
         c.Name          = request.Name?.Trim()   ?? c.Name;
         c.Symbol        = request.Symbol?.Trim() ?? c.Symbol;
@@ -79,9 +79,9 @@ public class CurrencyService : ICurrencyService
     public async Task<bool> DeleteAsync(int userId, string code)
     {
         var c = await _currencyRepo.GetByUserAndCodeAsync(userId, code.ToUpper())
-                ?? throw new KeyNotFoundException("Currency not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy tiền tệ.");
         if (c.IsPrimary == true)
-            throw new InvalidOperationException("Cannot delete the primary currency. Set another as primary first.");
+            throw new InvalidOperationException("Không thể xóa tiền tệ chính. Hãy đặt một tiền tệ khác làm chính trước.");
 
         // Remove all exchange rates touching this currency, then the currency itself.
         await _rateRepo.DeleteByCurrencyAsync(userId, c.Code);
@@ -91,7 +91,7 @@ public class CurrencyService : ICurrencyService
     public async Task<CurrencyDto> SetPrimaryAsync(int userId, string code)
     {
         var c = await _currencyRepo.GetByUserAndCodeAsync(userId, code.ToUpper())
-                ?? throw new KeyNotFoundException("Currency not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy tiền tệ.");
 
         await _currencyRepo.ClearPrimaryAsync(userId);
         c.IsPrimary = true;
@@ -105,9 +105,9 @@ public class CurrencyService : ICurrencyService
     public async Task<CurrencyDto> DisableAsync(int userId, string code)
     {
         var c = await _currencyRepo.GetByUserAndCodeAsync(userId, code.ToUpper())
-                ?? throw new KeyNotFoundException("Currency not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy tiền tệ.");
         if (c.IsPrimary == true)
-            throw new InvalidOperationException("Cannot disable the primary currency.");
+            throw new InvalidOperationException("Không thể tắt tiền tệ chính.");
         c.IsEnabled = false;
         return MapToDto(await _currencyRepo.UpdateAsync(c));
     }
@@ -115,7 +115,7 @@ public class CurrencyService : ICurrencyService
     private async Task<CurrencyDto> SetEnabledAsync(int userId, string code, bool enabled)
     {
         var c = await _currencyRepo.GetByUserAndCodeAsync(userId, code.ToUpper())
-                ?? throw new KeyNotFoundException("Currency not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy tiền tệ.");
         c.IsEnabled = enabled;
         return MapToDto(await _currencyRepo.UpdateAsync(c));
     }

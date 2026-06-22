@@ -33,7 +33,7 @@ public class AuthService : IAuthService
     public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
     {
         if (await _userRepo.ExistsAsync(request.Account))
-            throw new InvalidOperationException("Username already exists.");
+            throw new InvalidOperationException("Tên đăng nhập đã tồn tại.");
 
         // Validate password strength
         var passwordCheck = PasswordStrengthValidator.Validate(request.Password);
@@ -78,10 +78,10 @@ public class AuthService : IAuthService
     public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
     {
         var user = await _userRepo.GetByAccountAsync(request.Account)
-                   ?? throw new UnauthorizedAccessException("Invalid credentials.");
+                   ?? throw new UnauthorizedAccessException("Sai tên đăng nhập hoặc mật khẩu.");
 
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-            throw new UnauthorizedAccessException("Invalid credentials.");
+            throw new UnauthorizedAccessException("Sai tên đăng nhập hoặc mật khẩu.");
 
         var (accessToken, refreshToken) = GenerateTokens(user);
 
@@ -99,10 +99,10 @@ public class AuthService : IAuthService
     {
         // Simple implementation: validate refresh token and issue new pair
         var userIdStr = ValidateToken(refreshToken);
-        if (userIdStr == null) throw new UnauthorizedAccessException("Invalid refresh token.");
+        if (userIdStr == null) throw new UnauthorizedAccessException("Phiên đăng nhập không hợp lệ.");
 
         var user = await _userRepo.GetByIdAsync(int.Parse(userIdStr))
-                   ?? throw new UnauthorizedAccessException("User not found.");
+                   ?? throw new UnauthorizedAccessException("Không tìm thấy người dùng.");
 
         var (accessToken, newRefreshToken) = GenerateTokens(user);
 
@@ -119,7 +119,7 @@ public class AuthService : IAuthService
     public async Task<UserProfileDto> GetProfileAsync(int userId)
     {
         var user = await _userRepo.GetByIdAsync(userId)
-                   ?? throw new KeyNotFoundException("User not found.");
+                   ?? throw new KeyNotFoundException("Không tìm thấy người dùng.");
 
         return MapToProfileDto(user);
     }
@@ -127,7 +127,7 @@ public class AuthService : IAuthService
     public async Task<UserProfileDto> UpdateProfileAsync(int userId, UpdateProfileDto request)
     {
         var user = await _userRepo.GetByIdAsync(userId)
-                   ?? throw new KeyNotFoundException("User not found.");
+                   ?? throw new KeyNotFoundException("Không tìm thấy người dùng.");
 
         user.UserName       = request.UserName       ?? user.UserName;
         user.Email          = request.Email          ?? user.Email;
@@ -145,10 +145,10 @@ public class AuthService : IAuthService
     public async Task<bool> ChangePasswordAsync(int userId, ChangePasswordDto request)
     {
         var user = await _userRepo.GetByIdAsync(userId)
-                   ?? throw new KeyNotFoundException("User not found.");
+                   ?? throw new KeyNotFoundException("Không tìm thấy người dùng.");
 
         if (!BCrypt.Net.BCrypt.Verify(request.OldPassword, user.PasswordHash))
-            throw new UnauthorizedAccessException("Current password is incorrect.");
+            throw new UnauthorizedAccessException("Mật khẩu hiện tại không đúng.");
 
         // Validate new password strength
         var passwordCheck = PasswordStrengthValidator.Validate(request.NewPassword);

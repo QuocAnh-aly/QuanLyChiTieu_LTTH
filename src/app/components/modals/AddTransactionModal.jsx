@@ -7,12 +7,15 @@ import {
   Tag,
   HandCoins,
   Coffee,
+  Paperclip,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 import { accountApi } from "../../api/accountApi";
 import { budgetApi } from "../../api/budgetApi";
+import { attachmentApi } from "../../api/attachmentApi";
 import { useCategories } from "../../context/CategoriesContext";
 import { useSettings } from "../../context/SettingsContext";
 import { ICON_MAP } from "../../utils/icons";
@@ -103,6 +106,7 @@ export function AddTransactionModal({
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedTags, setSelectedTags] = useState([]);
+  const [pendingFile, setPendingFile] = useState(null);
 
   const now = new Date();
   const [date, setDate] = useState(format(now, "yyyy-MM-dd"));
@@ -147,6 +151,7 @@ export function AddTransactionModal({
     setDescription("");
     setNotes("");
     setSelectedTags([]);
+    setPendingFile(null);
     setDate(new Date().toISOString().slice(0, 10));
     setShowCustomCategory(false);
     setSelectedBudget(null);
@@ -228,7 +233,18 @@ export function AddTransactionModal({
       };
     }
 
-    await onAdd(payload);
+    const created = await onAdd(payload);
+
+    // Đính kèm hóa đơn (nếu có) sau khi giao dịch đã được tạo và có journalId.
+    if (pendingFile && created?.journalId) {
+      try {
+        await attachmentApi.upload("transaction", created.journalId, pendingFile);
+      } catch {
+        toast.error("Giao dịch đã lưu nhưng không tải lên được hóa đơn đính kèm");
+      }
+    } else if (pendingFile && created?.__offline) {
+      toast.info("Hóa đơn đính kèm sẽ cần thêm lại sau khi đồng bộ");
+    }
 
     if (showCustomCategory) {
       await fetchCategories();
@@ -238,6 +254,7 @@ export function AddTransactionModal({
       setAmount("");
       setDescription("");
       setNotes("");
+      setPendingFile(null);
     } else {
       reset();
       onClose();
@@ -562,6 +579,7 @@ export function AddTransactionModal({
               <input
                 type="text"
                 placeholder="Nhập tên mục mới"
+                maxLength={50}
                 value={
                   txType === "expense"
                     ? expenseCategory.name
@@ -837,6 +855,39 @@ export function AddTransactionModal({
                 placeholder="Thêm ghi chú chi tiết..."
               />
             </div>
+
+            {/* Receipt attachment (chi tiêu / thu nhập) */}
+            {(txType === "expense" || txType === "income") && (
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
+                  Đính kèm hóa đơn
+                </label>
+                {pendingFile ? (
+                  <div className="flex items-center justify-between gap-2 px-3 py-2 border border-border rounded-lg bg-muted/40">
+                    <span className="text-sm text-foreground truncate">{pendingFile.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setPendingFile(null)}
+                      className="text-muted-foreground hover:text-red-500 shrink-0"
+                      title="Bỏ tệp"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center gap-2 px-3 py-2.5 border border-dashed border-border rounded-lg text-sm text-muted-foreground cursor-pointer hover:border-purple-400 hover:text-foreground transition-colors">
+                    <Paperclip size={15} />
+                    <span>Chọn ảnh/PDF hóa đơn (tùy chọn)</span>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      className="hidden"
+                      onChange={(e) => setPendingFile(e.target.files?.[0] || null)}
+                    />
+                  </label>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Footer */}

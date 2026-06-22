@@ -11,6 +11,7 @@ public class AccountService : IAccountService
     private readonly IBudgetRepository _budgetRepo;
     private readonly IJournalRepository _journalRepo;
     private readonly IRecurringRepository _recurringRepo;
+    private readonly ITransactionService _transactionService;
     private const int DefaultPageSize = 20;
 
     // Account_Types IDs (khớp với INSERT trong SQL schema)
@@ -20,12 +21,16 @@ public class AccountService : IAccountService
     private const int TypeRevenue     = 4;
     private const int TypeExpense     = 5;
 
-    public AccountService(IAccountRepository accountRepo, IBudgetRepository budgetRepo, IJournalRepository journalRepo, IRecurringRepository recurringRepo)
+    // Giới hạn độ dài tên tài khoản/danh mục/nguồn thu
+    private const int MaxNameLength = 50;
+
+    public AccountService(IAccountRepository accountRepo, IBudgetRepository budgetRepo, IJournalRepository journalRepo, IRecurringRepository recurringRepo, ITransactionService transactionService)
     {
         _accountRepo = accountRepo;
         _budgetRepo = budgetRepo;
         _journalRepo = journalRepo;
         _recurringRepo = recurringRepo;
+        _transactionService = transactionService;
     }
 
     public async Task<IEnumerable<AccountDto>> GetAllAsync(int userId)
@@ -67,16 +72,19 @@ public class AccountService : IAccountService
     public async Task<AccountDto> GetByIdAsync(int userId, int accountId)
     {
         var account = await _accountRepo.GetWithDetailsAsync(accountId)
-                      ?? throw new KeyNotFoundException("Account not found.");
+                      ?? throw new KeyNotFoundException("Không tìm thấy tài khoản.");
 
         if (account.UserId != userId)
-            throw new UnauthorizedAccessException("Access denied.");
+            throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         return MapToDto(account);
     }
 
     public async Task<AccountDto> CreateAsync(int userId, CreateAccountDto request)
     {
+        if (!string.IsNullOrWhiteSpace(request.Name) && request.Name.Trim().Length > MaxNameLength)
+            throw new ArgumentException($"Tên không được vượt quá {MaxNameLength} ký tự.");
+
         var account = new Account
         {
             UserId       = userId,
@@ -101,10 +109,13 @@ public class AccountService : IAccountService
     public async Task<AccountDto> UpdateAsync(int userId, int accountId, UpdateAccountDto request)
     {
         var account = await _accountRepo.GetByIdAsync(accountId)
-                      ?? throw new KeyNotFoundException("Account not found.");
+                      ?? throw new KeyNotFoundException("Không tìm thấy tài khoản.");
 
         if (account.UserId != userId)
-            throw new UnauthorizedAccessException("Access denied.");
+            throw new UnauthorizedAccessException("Không có quyền truy cập.");
+
+        if (!string.IsNullOrWhiteSpace(request.Name) && request.Name.Trim().Length > MaxNameLength)
+            throw new ArgumentException($"Tên không được vượt quá {MaxNameLength} ký tự.");
 
         account.Name         = request.Name         ?? account.Name;
         account.IconName     = request.IconName     ?? account.IconName;
@@ -119,23 +130,58 @@ public class AccountService : IAccountService
         return MapToDto(updated);
     }
 
-    public async Task<bool> DeleteAsync(int userId, int accountId)
+    public async Task<bool> DeleteAsync(int userId, int accountId, int? transferToAccountId = null, bool force = false)
     {
         var account = await _accountRepo.GetByIdAsync(accountId)
-                      ?? throw new KeyNotFoundException("Account not found.");
+                      ?? throw new KeyNotFoundException("Không tìm thấy tài khoản.");
 
         if (account.UserId != userId)
-            throw new UnauthorizedAccessException("Access denied.");
-        
-        bool hasTransaction = await _journalRepo.HasTransaction(accountId);
-        if (!hasTransaction)
+            throw new UnauthorizedAccessException("Không có quyền truy cập.");
+
+        var balance = account.Balance ?? 0;
+        // Kiểm tra trước khi tạo bất kỳ giao dịch nào (để các điều kiện chặn không gây tác dụng phụ).
+        bool hadTransaction = await _journalRepo.HasTransaction(accountId);
+
+        // 1) Còn số dư → bắt buộc chọn ví khác để chuyển số dư trước khi xóa.
+        if (balance != 0 && transferToAccountId is null)
+            throw new InvalidOperationException("Ví còn số dư. Vui lòng chọn ví khác để chuyển số dư trước khi xóa.");
+
+        // 2) Có giao dịch liên quan → cần xác nhận xử lý dữ liệu giao dịch.
+        if (hadTransaction && !force)
+            throw new InvalidOperationException("Ví có giao dịch liên quan. Vui lòng xác nhận để tiếp tục (lịch sử giao dịch sẽ được giữ lại).");
+
+        // 3) Chuyển toàn bộ số dư sang ví nhận (nếu còn).
+        if (balance != 0)
         {
-            return await _accountRepo.DeleteAsync(accountId);
+            var target = await _accountRepo.GetByIdAsync(transferToAccountId!.Value)
+                         ?? throw new KeyNotFoundException("Không tìm thấy ví nhận.");
+            if (target.UserId != userId)
+                throw new UnauthorizedAccessException("Không có quyền truy cập.");
+            if (target.AccountId == accountId)
+                throw new InvalidOperationException("Ví nhận phải khác ví đang xóa.");
+
+            // Chuyển khoản nội bộ để đưa số dư ví về 0 (double-entry tự cập nhật số dư 2 bên).
+            var transfer = new CreateTransactionDto
+            {
+                Amount          = Math.Abs(balance),
+                Description     = $"Chuyển số dư khi xóa ví: {account.Name}",
+                TransactionDate = DateTime.UtcNow,
+                // balance > 0: tiền đi từ ví đang xóa → ví nhận; balance < 0: ngược lại.
+                DebitAccountId  = balance > 0 ? target.AccountId : accountId,
+                CreditAccountId = balance > 0 ? accountId : target.AccountId,
+            };
+            await _transactionService.CreateAsync(userId, transfer);
         }
 
-        account.IsActive = false;
-        var res = await _accountRepo.UpdateAsync(account);
-        return res != null;
+        // 4) Xóa: nếu đã có giao dịch cũ HOẶC vừa tạo giao dịch chuyển số dư → ẩn ví để giữ sổ cái.
+        if (hadTransaction || balance != 0)
+        {
+            account.IsActive = false;
+            var res = await _accountRepo.UpdateAsync(account);
+            return res != null;
+        }
+
+        return await _accountRepo.DeleteAsync(accountId);
     }
 
     public async Task<WalletSummaryDto> GetWalletSummaryAsync(int userId, int page = 1, int pageSize = 50, string? search = null, string? sortBy = null)

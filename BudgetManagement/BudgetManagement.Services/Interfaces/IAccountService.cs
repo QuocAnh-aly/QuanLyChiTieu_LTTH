@@ -11,7 +11,7 @@ public interface IAccountService
     Task<AccountDto> GetByIdAsync(int userId, int accountId);
     Task<AccountDto> CreateAsync(int userId, CreateAccountDto request);
     Task<AccountDto> UpdateAsync(int userId, int accountId, UpdateAccountDto request);
-    Task<bool> DeleteAsync(int userId, int accountId);
+    Task<bool> DeleteAsync(int userId, int accountId, int? transferToAccountId = null, bool force = false);
 
     // Dashboard summary — with optional server-side search & sort
     Task<WalletSummaryDto> GetWalletSummaryAsync(int userId, int page = 1, int pageSize = 50, string? search = null, string? sortBy = null);

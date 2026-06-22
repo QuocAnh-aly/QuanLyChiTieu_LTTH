@@ -257,3 +257,127 @@ Hai hạn chế đã biết:
 Cách test
 
 Vào Cài đặt → Quản trị → thẻ Đối soát số dư → Kiểm tra. Nếu dữ liệu nhất quán sẽ báo "tất cả khớp". Để thử thấy nó bắt lỗi: sửa tay cột balance của một ví trong DB cho lệch, rồi bấm Kiểm tra (thấy ví đó liệt kê) → Kiểm tra & Sửa (số dư về đúng theo sổ cái).
+//------------------------------------------------------------------------------
+
+Kế hoạch fix lỗi — nhánh hotfix-4.0.1
+
+Bối cảnh
+
+- FE: React (src/app), BE: .NET (BudgetManagement/*).
+- Có sẵn diff WIP chưa commit ở Dashboard + import confirmDialog ở các trang accounting.
+- Item "danh mục thu nhập" → để sau theo quyết định của bạn.
+
+---
+1) Đổi note/nhãn còn tiếng Anh sang tiếng Việt
+
+Phạm vi đã chốt: 3 chỗ.
+
+┌───────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────┬───────────────────────┐
+│                    Chỗ                    │                                  File                                  │          Sửa          │
+├───────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────┼───────────────────────┤
+│ Mô tả giao dịch định kỳ tự sinh           │ BudgetManagement.Services/Implementations/Recurringservice.cs:122      │ ?? "Giao dịch định    │
+│ "Recurring"                               │                                                                        │ kỳ"                   │
+├───────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────┼───────────────────────┤
+│ Tên ví lợn "Piggy Wallet – {title}"       │ Budgetservice.cs:164 và :219                                           │ "Ví lợn – {title}"    │
+├───────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────┼───────────────────────┤
+│ Equity "Initial" ⚠️                       │ Authservice.cs:17,64 + Accountrepository.cs:14 +                       │ Xem cảnh báo dưới     │
+│                                           │ AuthServiceTests.cs:98                                                 │                       │
+└───────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────┴───────────────────────┘
+
+⚠️ Cảnh báo "Initial": đây là tài khoản hệ thống ẩn, dùng làm sentinel. Nếu đổi tên phải đồng bộ: (1) hằng InitialEquity, (2) bộ lọc a.Name == "Initial" ở repo (chuyển sang lọc theo TypeId==3 hoặc cờ riêng để khỏi lệ thuộc tên), (3) test, (4) migrate các bản ghi "Initial" cũ. Vì nó không hiển thị, đề xuất: chuyển sentinel sang lọc theo TypeId==3 rồi mới đổi tên hiển thị — gộp chung làm 1 bước an toàn.
+
+---
+2) Xóa ví tiền — quy tắc mới
+
+Hiện trạng: BE AccountService.DeleteAsync — có giao dịch thì soft-delete; không kiểm tra số dư. FE chỉ có confirmDialog text.
+
+Yêu cầu: còn số dư → bắt chuyển số dư sang ví khác; có giao dịch → bắt xác nhận xử lý dữ liệu.
+
+- BE (Accountservice.cs + Accountcontroller.cs):
+  - DeleteAsync(userId, accountId, transferToAccountId?, force?).
+  - Nếu Balance != 0 và không có transferToAccountId → trả lỗi 409 "Ví còn số dư, hãy chọn ví nhận".
+  - Nếu có transferToAccountId → tạo journal chuyển toàn bộ số dư sang ví đó (tái dùng logic transfer), rồi tiếp tục xóa.
+  - Nếu có giao dịch và force != true → 409 "Ví có giao dịch, cần xác nhận". force=true → soft-delete (giữ lịch sử).
+- FE: thay confirmDialog ở AssetAccounts.jsx (handleDeleteAsset) bằng modal mới DeleteWalletModal: hiện số dư, chọn ví nhận (nếu cần), checkbox xác nhận khi có giao dịch. Gọi accountApi.delete(id, { transferToAccountId, force }) → cập nhật accountApi.delete để nhận body.
+
+---
+3) Thêm thu nhập/chi tiêu có đính kèm hóa đơn
+
+Hiện trạng: đính kèm đã có ở EditTransactionModal + SubscriptionDetail qua ReceiptAttachments/attachmentApi. AddTransactionModal chưa có. Khó: upload cần journalId → phải tạo giao dịch trước.
+
+- AddTransactionModal.jsx: thêm ô chọn file ảnh (state pendingFile).
+- Luồng submit: onAdd(payload) phải trả về giao dịch vừa tạo (kèm journalId); sau đó gọi attachmentApi.upload("transaction", journalId, pendingFile).
+- Sửa handler handleAdd ở các trang dùng modal (Withdrawal.jsx, Deposit.jsx, Transactions.jsx, Transfers.jsx) để return kết quả transactionApi.create. Lưu ý nhánh __offline (không có journalId) → bỏ qua upload + báo "sẽ đồng bộ sau".
+
+---
+4) Thông báo tên danh mục quá dài
+
+Hiện trạng: Categories.jsx chỉ check rỗng. BE Name không giới hạn rõ ở tầng service.
+
+- FE (ExpenseCategoryForm + IncomeSourceForm trong Categories.jsx): thêm maxLength (vd 50) cho input + chặn submit và toast.error("Tên danh mục tối đa 50 ký tự") khi vượt. Áp dụng tương tự cho các form tạo danh mục inline khác nếu cần.
+- BE (tùy chọn, khuyến nghị): validate độ dài ở Accountservice.CreateAsync/UpdateAsync → trả message tiếng Việt để đồng nhất.
+
+---
+5) Thêm giao dịch cho hóa đơn định kỳ
+
+Hiện trạng: SubscriptionDetail.jsx chỉ hiện nút "Trả ngay" khi paidStatus === "expected_unpaid". BE đã có endpoint bills/{id}/pay + PayBillModal.
+
+- Cho phép ghi giao dịch cho hóa đơn bất kỳ lúc nào: hiển thị nút "Thêm giao dịch / Ghi thanh toán" không phụ thuộc trạng thái (dùng lại PayBillModal + billApi.pay).
+- (Tùy chọn) thêm nút tương tự ở danh sách Subscriptions.jsx.
+- Phụ: SubscriptionDetail.handleDelete dùng confirmDialog nhưng chưa import — thêm import (bug tiềm ẩn).
+
+---
+6) Nạp tiền vào lợn — không quá số dư ví
+
+Hiện trạng: Budgetservice.AddMoneyAsync chỉ chặn amount<=0, không chặn vượt số dư ví. FE AddMoneyModal chỉ giới hạn theo leftToSave (số còn thiếu của mục tiêu).
+
+- BE (Budgetservice.cs:229): thêm if (amount > (sourceAccount.Balance ?? 0)) throw new ArgumentException("Số tiền nạp vượt quá số dư ví nguồn.").
+- FE (AddMoneyModal.jsx): maxAmount = min(leftToSave, balance ví đang chọn); hiển thị số dư ví và cảnh báo khi vượt; disable nút nạp.
+
+---
+7) Trang Nợ: thêm nút "Thêm nợ"
+
+Chốt: chỉ thêm nút ở trang Nợ, giữ nguyên trang Tài sản.
+
+- Liabilities.jsx: thêm actions nút "Thêm nợ" + state showCreateModal, dùng lại AccountFormModal với typeId={2} và handleCreateLiability → accountApi.create → fetchAccounts(). (AccountFormModal đã hỗ trợ typeId, đã dùng cho tạo tài sản.)
+
+---
+Thứ tự thực hiện đề xuất
+
+1. Nhóm FE thuần, rủi ro thấp: #4, #7, #6 (FE), #5.
+2. BE đơn giản: #6 (BE), #1 (Recurring + Piggy).
+3. Phức tạp hơn: #2 (xóa ví), #3 (đính kèm khi thêm).
+4. Cân nhắc riêng: #1 phần "Initial" (kèm migration) — làm cuối, hoặc bỏ nếu bạn không muốn động vào sentinel.
+
+Ngoài phạm vi đợt này
+
+- Item danh mụcthu nhập (bạn để quyết sau).
+
+---
+Bạn duyệt kế hoạch này thì tôi bắt tay làm theo thứ tự trên. Có muốn tôi gộp/bỏ mục nào, hay xử lý phần "Initial" theo hướng đổi sentinel sang TypeId==3 rồi mới đổi tên không?ở
+
+//------------------------------------------------
+
+#1 — Đồng nhất thông báo sang tiếng Việt
+Dịch toàn bộ message tiếng Anh ở backend (11 service + 2 BaseController + AuthController + Attachmentscontroller): "Access denied", "X not found", "Invalid credentials", "Amount must be positive"… → tiếng Việt. Đổi default "Recurring" → "Giao dịch định kỳ", "Piggy Wallet – …" → "Ví lợn – …". Giữ nguyên "Initial" (system account ẩn). Cập nhật 10 assertion test cho khớp.
+
+#2 — Xóa ví (Accountservice + controller + DeleteWalletModal mới + AssetAccounts)
+Còn số dư → bắt chọn ví nhận, tự tạo giao dịch chuyển số dư về 0. Có giao dịch → bắt xác nhận (force), ví được ẩn để giữ sổ cái. Thêm 3 test mới.
+
+#3 — Đính kèm hóa đơn khi thêm thu/chi (AddTransactionModal + 4 trang accounting)
+Thêm ô chọn ảnh/PDF (chỉ với thu nhập/chi tiêu); sau khi tạo giao dịch lấy journalId rồi upload qua attachmentApi. handleAdd các trang giờ trả về giao dịch tạo được.
+
+#4 — Tên danh mục quá dài: chặn >50 ký tự ở Categories (FE) + Accountservice (BE, áp cho cả tạo nhanh từ modal).
+
+#5 — Ghi giao dịch cho hóa đơn định kỳ: nút thanh toán luôn hiện khi hóa đơn còn hoạt động (nhãn "Trả ngay"/"Ghi giao dịch"); fix import confirmDialog còn thiếu.
+
+#6 — Nạp lợn không quá số dư ví: FE cap min(số còn thiếu, số dư ví) + cảnh báo; BE AddMoneyAsync chặn vượt số dư ví nguồn.
+
+#7 — Nút "Thêm nợ" ở trang Nợ: thêm nút + AccountFormModal typeId=2; fix import confirmDialog còn thiếu.
+
+Kiểm thử
+
+- Backend: build 0 lỗi, 69/69 test pass.
+- Frontend: vite build thành công (chỉ còn cảnh báo chunk-size có sẵn).
+
+Lưu ý: Process.md và Dashboard.jsx hiện diện trong git status là thay đổi có sẵn từ trước (WIP), tôi không đụng tới. Mục danh mục thu nhập để lại theo quyết định của bạn. Chưa commit — bạn muốn tôi tạo commit trên nhánh hotfix-4.0.1 không?

@@ -35,8 +35,11 @@ export const accountApi = {
     return axiosClient.put(`/api/accounts/${id}`, data);
   },
 
-  delete(id) {
-    return axiosClient.delete(`/api/accounts/${id}`);
+  delete(id, { transferToAccountId, force } = {}) {
+    const params = {};
+    if (transferToAccountId != null) params.transferToAccountId = transferToAccountId;
+    if (force) params.force = true;
+    return axiosClient.delete(`/api/accounts/${id}`, { params });
   },
 
   // Đối soát số dư ví với sổ cái. repair=true sẽ sửa các số dư bị lệch.

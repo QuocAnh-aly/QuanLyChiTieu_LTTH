@@ -13,6 +13,7 @@ import {
   PieChart,
   Landmark,
   ArrowUpRight,
+  Plus,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -27,6 +28,7 @@ import { useSettings } from "../../../context/SettingsContext";
 import { PageLayout } from "../../../components/layout/PageLayout";
 import { AccountFormModal } from "../../../components/modals/AccountFormModal";
 import { EditAccountModal } from "../../../components/modals/EditAccountModal";
+import { confirmDialog } from "../../../utils/confirmDialog";
 import { toast } from "sonner";
 
 const PIE_COLORS = ["#ef4444", "#f97316", "#eab308", "#ec4899", "#a855f7", "#f43f5e", "#fb923c", "#fdba74"];
@@ -79,6 +81,7 @@ export function Liabilities() {
   const [loadingTx, setLoadingTx] = useState({});
   const [expandedCard, setExpandedCard] = useState(null);
   const [editingAccount, setEditingAccount] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const fetchAccounts = useCallback(async () => {
     setIsLoading(true);
@@ -91,6 +94,17 @@ export function Liabilities() {
       setIsLoading(false);
     }
   }, []);
+
+  const handleCreateLiability = useCallback(async (data) => {
+    try {
+      await accountApi.create({ typeId: 2, ...data });
+      toast.success("Đã thêm khoản nợ mới");
+      setShowCreateModal(false);
+      fetchAccounts();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Không thể tạo khoản nợ");
+    }
+  }, [fetchAccounts]);
 
   const handleEditLiability = useCallback(async (id, data) => {
     try {
@@ -192,6 +206,15 @@ export function Liabilities() {
       }
       subtitle={
         <span className="ml-[52px]">Theo dõi các khoản vay, trả góp và nợ tín dụng — tổng quan tình hình tài chính</span>
+      }
+      actions={
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium shadow-sm"
+        >
+          <Plus size={17} />
+          <span className="hidden sm:inline">Thêm nợ</span>
+        </button>
       }
     >
       {/* ════════════════════ SUMMARY CARDS ════════════════════ */}
@@ -675,6 +698,15 @@ export function Liabilities() {
           </div>
         </div>
       )}
+      {/* ════════════════════ CREATE LIABILITY MODAL ════════════════════ */}
+      <AccountFormModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSubmit={handleCreateLiability}
+        account={null}
+        typeId={2}
+      />
+
       {/* ════════════════════ EDIT LIABILITY MODAL ════════════════════ */}
       {editingAccount && (
         <EditAccountModal

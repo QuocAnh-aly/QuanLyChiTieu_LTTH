@@ -12,7 +12,7 @@ public abstract class BaseController : ControllerBase
     protected int GetUserId()
     {
         var claim = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                    ?? throw new UnauthorizedAccessException("User not authenticated.");
+                    ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực.");
         return int.Parse(claim);
     }
 }

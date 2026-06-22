@@ -45,10 +45,10 @@ public class BudgetService : IBudgetService
     public async Task<BudgetDto> GetExpenseBudgetByIdAsync(int userId, int budgetId)
     {
         var budget = await _budgetRepo.GetByIdAsync(budgetId)
-                     ?? throw new KeyNotFoundException("Budget not found.");
+                     ?? throw new KeyNotFoundException("Không tìm thấy ngân sách.");
 
         if (budget.UserId != userId)
-            throw new UnauthorizedAccessException("Access denied.");
+            throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         return MapToBudgetDto(budget);
     }
@@ -64,7 +64,7 @@ public class BudgetService : IBudgetService
                              ?? throw new KeyNotFoundException("Danh mục chi tiêu không tồn tại.");
 
         if (expenseAccount.UserId != userId)
-            throw new UnauthorizedAccessException("Access denied.");
+            throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         if (expenseAccount.TypeId != TypeExpenseAccount)
             throw new ArgumentException("Danh mục được chọn phải là danh mục chi tiêu (Expense).");
@@ -107,10 +107,10 @@ public class BudgetService : IBudgetService
     public async Task<BudgetDto> UpdateExpenseBudgetAsync(int userId, int budgetId, UpdateBudgetDto request)
     {
         var budget = await _budgetRepo.GetByIdAsync(budgetId)
-                     ?? throw new KeyNotFoundException("Budget not found.");
+                     ?? throw new KeyNotFoundException("Không tìm thấy ngân sách.");
 
         if (budget.UserId != userId)
-            throw new UnauthorizedAccessException("Access denied.");
+            throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         budget.Title        = request.Title        ?? budget.Title;
         budget.TargetAmount = request.TargetAmount ?? budget.TargetAmount;
@@ -128,10 +128,10 @@ public class BudgetService : IBudgetService
     public async Task<bool> DeleteBudgetAsync(int userId, int budgetId)
     {
         var budget = await _budgetRepo.GetByIdAsync(budgetId)
-                     ?? throw new KeyNotFoundException("Budget not found.");
+                     ?? throw new KeyNotFoundException("Không tìm thấy ngân sách.");
 
         if (budget.UserId != userId)
-            throw new UnauthorizedAccessException("Access denied.");
+            throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         return await _budgetRepo.DeleteAsync(budgetId);
     }
@@ -147,10 +147,10 @@ public class BudgetService : IBudgetService
     public async Task<SavingsGoalDto> GetSavingsGoalByIdAsync(int userId, int budgetId)
     {
         var goal = await _budgetRepo.GetByIdAsync(budgetId)
-                   ?? throw new KeyNotFoundException("Savings goal not found.");
+                   ?? throw new KeyNotFoundException("Không tìm thấy lợn tiết kiệm.");
 
         if (goal.UserId != userId)
-            throw new UnauthorizedAccessException("Access denied.");
+            throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         return MapToSavingsDto(goal);
     }
@@ -161,7 +161,7 @@ public class BudgetService : IBudgetService
         {
             UserId         = userId,
             TypeId         = TypeSavingsAccount,
-            Name           = $"Piggy Wallet – {request.Title}",
+            Name           = $"Ví lợn – {request.Title}",
             IconName       = request.IconName ?? "PiggyBank",
             Color          = request.Color    ?? "green",
             Balance        = request.InitialAmount ?? 0,
@@ -198,10 +198,10 @@ public class BudgetService : IBudgetService
     public async Task<SavingsGoalDto> UpdateSavingsGoalAsync(int userId, int budgetId, UpdateSavingsGoalDto request)
     {
         var goal = await _budgetRepo.GetByIdAsync(budgetId)
-                   ?? throw new KeyNotFoundException("Savings goal not found.");
+                   ?? throw new KeyNotFoundException("Không tìm thấy lợn tiết kiệm.");
 
         if (goal.UserId != userId)
-            throw new UnauthorizedAccessException("Access denied.");
+            throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         goal.Title               = request.Title               ?? goal.Title;
         goal.TargetAmount        = request.TargetAmount        ?? goal.TargetAmount;
@@ -216,7 +216,7 @@ public class BudgetService : IBudgetService
               var account = await _accountRepo.GetWithDetailsAsync(goal.AccountId);
             if (account is not null && account.TypeId == TypeSavingsAccount)
             {
-                account.Name    = $"Piggy Wallet – {request.Title}";
+                account.Name    = $"Ví lợn – {request.Title}";
                 account.IconName = request.IconName ?? account.IconName;
                 account.Color   = request.Color    ?? account.Color;
                 await _accountRepo.UpdateAsync(account);
@@ -229,16 +229,19 @@ public class BudgetService : IBudgetService
     public async Task<SavingsGoalDto> AddMoneyAsync(int userId, int budgetId, decimal amount, string? notes, int sourceAccountId)
     {
         var goal = await _budgetRepo.GetByIdAsync(budgetId)
-                   ?? throw new KeyNotFoundException("Savings goal not found.");
-        if (goal.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
-        if (amount <= 0) throw new ArgumentException("Amount must be positive.");
+                   ?? throw new KeyNotFoundException("Không tìm thấy lợn tiết kiệm.");
+        if (goal.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
+        if (amount <= 0) throw new ArgumentException("Số tiền phải lớn hơn 0.");
 
         var sourceAccount = await _accountRepo.GetByIdAsync(sourceAccountId)
-                    ?? throw new KeyNotFoundException("Source account not found.");
-        if (sourceAccount.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
+                    ?? throw new KeyNotFoundException("Không tìm thấy ví nguồn.");
+        if (sourceAccount.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
+
+        if (amount > (sourceAccount.Balance ?? 0))
+            throw new ArgumentException("Số tiền nạp vượt quá số dư ví nguồn.");
 
         var piggyAccount = await _accountRepo.GetByIdAsync(goal.AccountId)
-                       ?? throw new KeyNotFoundException("Piggy Wallet account not found.");
+                       ?? throw new KeyNotFoundException("Không tìm thấy tài khoản ví lợn.");
     // Tạo Journal: chuyển tiền từ ví nguồn → lợn tiết kiệm
     //   Debit  Piggy Wallet  (TypeSavings — tăng balance lợn)
     //   Credit Source Wallet (Assets      — giảm balance ví)
@@ -276,9 +279,9 @@ public class BudgetService : IBudgetService
     public async Task<SavingsGoalDto> RemoveMoneyAsync(int userId, int budgetId, decimal amount, string? notes, int destinationAccountId)
     {
         var goal = await _budgetRepo.GetByIdAsync(budgetId)
-               ?? throw new KeyNotFoundException("Savings goal not found.");
-        if (goal.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
-        if (amount <= 0) throw new ArgumentException("Amount must be positive.");
+               ?? throw new KeyNotFoundException("Không tìm thấy lợn tiết kiệm.");
+        if (goal.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
+        if (amount <= 0) throw new ArgumentException("Số tiền phải lớn hơn 0.");
  
         var current = goal.CurrentAmount ?? 0;
         if (amount > current)
@@ -286,11 +289,11 @@ public class BudgetService : IBudgetService
  
     // Validate ví đích
         var destinationAccount = await _accountRepo.GetByIdAsync(destinationAccountId)
-                             ?? throw new KeyNotFoundException("Destination account not found.");
-    if (destinationAccount.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
+                             ?? throw new KeyNotFoundException("Không tìm thấy ví đích.");
+    if (destinationAccount.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
  
         var piggyAccount = await _accountRepo.GetByIdAsync(goal.AccountId)
-                       ?? throw new KeyNotFoundException("Piggy Wallet account not found.");
+                       ?? throw new KeyNotFoundException("Không tìm thấy tài khoản ví lợn.");
  
     // Tạo Journal: rút tiền từ lợn → ví đích
     //   Debit  Destination Wallet (Assets      — tăng balance ví)
@@ -326,8 +329,8 @@ public class BudgetService : IBudgetService
     public async Task<bool> ResetHistoryAsync(int userId, int budgetId)
     {
         var goal = await _budgetRepo.GetByIdAsync(budgetId)
-                   ?? throw new KeyNotFoundException("Savings goal not found.");
-        if (goal.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
+                   ?? throw new KeyNotFoundException("Không tìm thấy lợn tiết kiệm.");
+        if (goal.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         var current = goal.CurrentAmount ?? 0;
 
@@ -344,8 +347,8 @@ public class BudgetService : IBudgetService
     public async Task<IEnumerable<PiggyBankEventDto>> GetEventsAsync(int userId, int budgetId)
     {
         var goal = await _budgetRepo.GetByIdAsync(budgetId)
-                   ?? throw new KeyNotFoundException("Savings goal not found.");
-        if (goal.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
+                   ?? throw new KeyNotFoundException("Không tìm thấy lợn tiết kiệm.");
+        if (goal.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         var events = await _budgetRepo.GetEventsByBudgetIdAsync(budgetId);
         return events.Select(e => new PiggyBankEventDto

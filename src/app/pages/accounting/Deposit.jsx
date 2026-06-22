@@ -17,6 +17,7 @@ import { AddTransactionModal } from "../../components/modals/AddTransactionModal
 import { EditTransactionModal } from "../../components/modals/EditTransactionModal";
 import { useSettings } from "../../context/SettingsContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { confirmDialog } from "../../utils/confirmDialog";
 
 function mapTx(t) {
   const details       = t.details || [];
@@ -151,8 +152,9 @@ export function Deposit() {
   const handleAdd = async (data) => {
     try {
       const res = await transactionApi.create(data);
-      if (res?.__offline) { toast.success("Đã lưu offline — sẽ đồng bộ khi có mạng"); return; }
+      if (res?.__offline) { toast.success("Đã lưu offline — sẽ đồng bộ khi có mạng"); return res; }
       await loadData(true); toast.success("Đã thêm giao dịch!"); addNotification({ type: 'success', title: 'Khoản thu mới', message: 'Đã thêm giao dịch thu nhập', link: '/transactions/deposit' });
+      return res;
     }
     catch { toast.error("Không thể thêm giao dịch"); addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể thêm giao dịch thu nhập' }); }
   };

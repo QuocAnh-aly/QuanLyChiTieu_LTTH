@@ -27,8 +27,15 @@ export function AddMoneyModal({ isOpen, onClose, onSave, goal }) {
 
   const leftToSave =
     goal.leftToSave ?? Math.max(0, goal.targetAmount - goal.currentAmount);
-  const maxAmount = leftToSave;
+  const selectedWallet = accounts.find(
+    (a) => String(a.accountId) === String(sourceAccountId),
+  );
+  const walletBalance = selectedWallet?.balance ?? null;
+  // Không cho nạp quá số dư ví nguồn, cũng không vượt số còn thiếu của mục tiêu.
+  const maxAmount =
+    walletBalance != null ? Math.min(leftToSave, walletBalance) : leftToSave;
   const enteredAmount = parseFloat(amount) || 0;
+  const exceedsWallet = walletBalance != null && enteredAmount > walletBalance;
   const canSubmit =
     enteredAmount > 0 && enteredAmount <= maxAmount && sourceAccountId;
 
@@ -162,11 +169,15 @@ export function AddMoneyModal({ isOpen, onClose, onSave, goal }) {
               </div>
               {enteredAmount > maxAmount && (
                 <p className="text-xs text-red-500 mt-1">
-                  Tối đa có thể nạp: {fmt(maxAmount)}
+                  {exceedsWallet
+                    ? `Vượt quá số dư ví nguồn (${fmt(walletBalance)})`
+                    : `Tối đa có thể nạp: ${fmt(maxAmount)}`}
                 </p>
               )}
               <p className="text-xs text-muted-foreground mt-1">
-                Tối đa: {fmt(maxAmount)}
+                {walletBalance != null
+                  ? `Tối đa: ${fmt(maxAmount)} (số dư ví: ${fmt(walletBalance)})`
+                  : `Tối đa: ${fmt(maxAmount)}`}
               </p>
             </div>
 
