@@ -9,6 +9,9 @@ import {
   Calendar,
   Tag,
   StickyNote,
+  Landmark,
+  Hash,
+  Clock,
 } from "lucide-react";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -36,6 +39,13 @@ function derive(t) {
     else if (isTransfer) categoryName = "Chuyển khoản";
   }
 
+  // Ví / ngân hàng = tài khoản tiền thật (Assets=1) hoặc khoản nợ (Liabilities=2),
+  // giữ thứ tự nguồn (credit) → đích (debit) để hiển thị đúng dòng tiền.
+  const walletNames = [creditDetail, debitDetail]
+    .filter((x) => x && (x.typeId === 1 || x.typeId === 2))
+    .map((x) => x.accountName)
+    .filter(Boolean);
+
   return {
     isIncome: t.isIncome ?? isIncome,
     isTransfer: t.isTransfer ?? isTransfer,
@@ -43,6 +53,7 @@ function derive(t) {
     categoryName,
     sourceAccount: t.sourceAccount || creditDetail?.accountName || "—",
     destAccount: t.destAccount || debitDetail?.accountName || "—",
+    walletLabel: walletNames.join(" → ") || "—",
   };
 }
 
@@ -141,6 +152,12 @@ export function TransactionDetailModal({
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-muted-foreground flex items-center gap-2">
+                <Landmark size={14} /> Ví / Ngân hàng
+              </span>
+              <span className="font-medium text-card-foreground text-right">{d.walletLabel}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-muted-foreground flex items-center gap-2">
                 <Calendar size={14} /> Thời gian
               </span>
               <span className="font-medium text-card-foreground text-right">
@@ -172,6 +189,24 @@ export function TransactionDetailModal({
                     </span>
                   ))}
                 </div>
+              </div>
+            )}
+            {transaction.createdAt && (
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <Clock size={14} /> Ngày ghi nhận
+                </span>
+                <span className="font-medium text-card-foreground text-right">
+                  {format(new Date(transaction.createdAt), "dd/MM/yyyy HH:mm", { locale: vi })}
+                </span>
+              </div>
+            )}
+            {transaction.journalId && (
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <Hash size={14} /> Mã giao dịch
+                </span>
+                <span className="font-mono font-medium text-card-foreground text-right">#{transaction.journalId}</span>
               </div>
             )}
           </div>
