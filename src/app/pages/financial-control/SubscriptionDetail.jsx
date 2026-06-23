@@ -15,10 +15,12 @@ import { billApi } from "../../api/billApi";
 import { toast } from "sonner";
 import { useNotifications } from "../../context/NotificationContext";
 import { ReceiptAttachments } from "../../components/attachments/ReceiptAttachments";
+import { TransactionReceiptsGallery } from "../../components/attachments/TransactionReceiptsGallery";
 import { SubscriptionFormModal } from "../../components/modals/SubscriptionFormModal";
 import { PayBillModal } from "../../components/modals/PayBillModal";
 import { useSettings } from "../../context/SettingsContext";
 import { shouldShowToast } from "../../utils/toastOnce";
+import { confirmDialog } from "../../utils/confirmDialog";
 
 const FREQ_LABELS = {
   daily:       "Hàng ngày",
@@ -202,10 +204,11 @@ export function SubscriptionDetail() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {bill.paidStatus === "expected_unpaid" && (
+          {bill.active && (
             <button onClick={() => setPayOpen(true)}
               className="flex items-center gap-1.5 px-3 py-2 bg-purple-600 text-white hover:bg-purple-700 rounded-lg font-medium text-sm transition-colors">
-              <Wallet size={14} /> Trả ngay
+              <Wallet size={14} />
+              {bill.paidStatus === "expected_unpaid" ? "Trả ngay" : "Ghi giao dịch"}
             </button>
           )}
           <button onClick={handleRescan} disabled={rescanning || !bill.active}
@@ -263,6 +266,33 @@ export function SubscriptionDetail() {
           <p className="text-base font-bold text-card-foreground">{avgActual > 0 ? fmt(avgActual) : "—"}</p>
         </div>
       </div>
+
+      {/* Tiến độ thanh toán kỳ hiện tại */}
+      {bill.active && (bill.paidStatus === "expected_unpaid" || bill.paidStatus === "paid") && (() => {
+        const avg  = bill.averageAmount || bill.amountMax || 0;
+        const paid = bill.paidAmountThisPeriod || 0;
+        const pct  = avg > 0
+          ? Math.min(100, Math.round((paid / avg) * 100))
+          : (bill.paidStatus === "paid" ? 100 : 0);
+        return (
+          <div className="bg-card rounded-2xl border border-border shadow-sm p-5 mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-bold text-foreground">Tiến độ thanh toán kỳ này</p>
+              <span className={`text-sm font-bold ${pct >= 100 ? "text-green-600" : "text-purple-600"}`}>{pct}%</span>
+            </div>
+            <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${pct >= 100 ? "bg-green-500" : "bg-purple-500"}`}
+                style={{ width: `${Math.max(pct, 2)}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground mt-1.5">
+              <span>Đã trả: <span className="font-semibold text-foreground">{fmt(paid)}</span></span>
+              <span>Dự kiến: {fmt(avg)}</span>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Info row */}
       <div className="bg-card rounded-2xl border border-border shadow-sm p-5 mb-6">
@@ -361,6 +391,15 @@ export function SubscriptionDetail() {
       <div className="bg-card rounded-2xl border border-border shadow-sm p-6 mt-6">
         <ReceiptAttachments type="bill" id={id} />
       </div>
+
+      {/* Hóa đơn đính kèm từ các giao dịch đã khớp */}
+      {bill.matchedTransactions?.length > 0 && (
+        <div className="bg-card rounded-2xl border border-border shadow-sm p-6 mt-6">
+          <TransactionReceiptsGallery
+            journalIds={bill.matchedTransactions.map((t) => t.journalId)}
+          />
+        </div>
+      )}
 
       {/* Edit modal */}
       <SubscriptionFormModal isOpen={editOpen} onClose={() => setEditOpen(false)} onSave={handleUpdate} bill={bill} />

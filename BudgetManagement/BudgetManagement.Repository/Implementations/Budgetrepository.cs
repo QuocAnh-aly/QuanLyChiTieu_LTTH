@@ -114,6 +114,10 @@ public class BudgetRepository : BaseRepository<Budget>, IBudgetRepository
                      && b.IsActive == true)
             .FirstOrDefaultAsync();
 
+    public async Task<bool> HasSavingsGoalByAccountIdAsync(int accountId)
+        => await _dbSet
+            .AnyAsync(b => b.AccountId == accountId && b.BudgetType == "savings");
+
     public async Task UpdateCurrentAmountAsync(int budgetId, decimal amount)
         => await _dbSet
             .Where(b => b.BudgetId == budgetId)

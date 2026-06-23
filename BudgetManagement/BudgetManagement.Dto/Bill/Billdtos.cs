@@ -63,6 +63,9 @@ public class BillDto
     // ID of the most recent matched transaction in current period (0 = none)
     public int PaidTransactionId { get; set; }
 
+    // Tổng số tiền đã trả trong chu kỳ hiện tại (để hiển thị thanh tiến độ).
+    public decimal PaidAmountThisPeriod { get; set; }
+
     public int MatchedCount { get; set; }
     public DateTime CreatedAt { get; set; }
 

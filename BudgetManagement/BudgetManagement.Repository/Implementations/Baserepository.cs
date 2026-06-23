@@ -23,6 +23,7 @@ public abstract class BaseRepository<T> : IBaseRepository<T> where T : class
     public virtual async Task<T> CreateAsync(T entity)
     {
         _dbSet.Add(entity);
+        
         await _context.SaveChangesAsync();
         return entity;
     }

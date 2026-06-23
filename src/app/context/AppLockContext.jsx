@@ -16,45 +16,93 @@ import { createPinCredential, verifyPinCredential } from "../security/pinCrypto"
 // - aesKey       : khóa AES-GCM giữ trong RAM sau khi mở khóa (dùng cho offline)
 // - autoLockMins : số phút không hoạt động thì tự khóa (0 = chỉ khóa khi ẩn tab)
 //
+// PIN được lưu theo TỪNG user (`app_pin_cred:<userId>`) để tài khoản này không
+// dùng nhầm PIN của tài khoản khác trên cùng trình duyệt. Khi đổi user
+// (đăng nhập/đăng xuất) trạng thái khóa được nạp lại theo user hiện tại.
+//
 // Tự khóa khi: tab bị ẩn (visibilitychange) hoặc quá thời gian không hoạt động.
 // Mặc định khi tải lại trang mà đã có PIN → ở trạng thái khóa.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CRED_KEY = "app_pin_cred";
-const TIMEOUT_KEY = "app_lock_timeout"; // phút
+const CRED_PREFIX = "app_pin_cred"; // key per-user: `app_pin_cred:<userId>`
+const TIMEOUT_PREFIX = "app_lock_timeout"; // key per-user: `app_lock_timeout:<userId>`
+// Key global cũ (không gắn user) — dọn đi để PIN cũ không lẫn sang tài khoản khác.
+const LEGACY_CRED_KEY = "app_pin_cred";
+const LEGACY_TIMEOUT_KEY = "app_lock_timeout";
 const DEFAULT_TIMEOUT_MINS = 5;
 
 const AppLockContext = createContext(null);
 
-const readCred = () => {
+const getUserId = () => localStorage.getItem("user_id") || null;
+const credKeyFor = (uid) => (uid ? `${CRED_PREFIX}:${uid}` : null);
+const timeoutKeyFor = (uid) => (uid ? `${TIMEOUT_PREFIX}:${uid}` : null);
+
+const readCredFor = (uid) => {
+  const key = credKeyFor(uid);
+  if (!key) return null;
   try {
-    const raw = localStorage.getItem(CRED_KEY);
+    const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 };
 
+const readTimeoutFor = (uid) => {
+  const key = timeoutKeyFor(uid);
+  if (!key) return DEFAULT_TIMEOUT_MINS;
+  const v = Number(localStorage.getItem(key));
+  return Number.isFinite(v) && v >= 0 ? v : DEFAULT_TIMEOUT_MINS;
+};
+
 export function AppLockProvider({ children }) {
-  const [cred, setCred] = useState(readCred);
-  const [isLocked, setIsLocked] = useState(() => !!readCred());
+  const initialUserId = getUserId();
+  const userIdRef = useRef(initialUserId);
+  const [cred, setCred] = useState(() => readCredFor(initialUserId));
+  const [isLocked, setIsLocked] = useState(() => !!readCredFor(initialUserId));
   const [aesKey, setAesKey] = useState(null);
-  const [autoLockMins, setAutoLockMins] = useState(() => {
-    const v = Number(localStorage.getItem(TIMEOUT_KEY));
-    return Number.isFinite(v) && v >= 0 ? v : DEFAULT_TIMEOUT_MINS;
-  });
+  const [autoLockMins, setAutoLockMins] = useState(() => readTimeoutFor(initialUserId));
 
   const hasPin = !!cred;
   const inactivityTimer = useRef(null);
 
+  // Dọn key global cũ (PIN không gắn user) một lần khi khởi tạo.
+  useEffect(() => {
+    localStorage.removeItem(LEGACY_CRED_KEY);
+    localStorage.removeItem(LEGACY_TIMEOUT_KEY);
+  }, []);
+
+  // ── Theo dõi user hiện tại; đổi user → nạp lại trạng thái khóa theo user đó ──
+  useEffect(() => {
+    const sync = () => {
+      const uid = getUserId();
+      if (uid === userIdRef.current) return;
+      userIdRef.current = uid;
+      const c = readCredFor(uid);
+      setCred(c);
+      setIsLocked(!!c);
+      setAesKey(null);
+      setAutoLockMins(readTimeoutFor(uid));
+    };
+    window.addEventListener("storage", sync);
+    window.addEventListener("auth:logout", sync);
+    // Đăng nhập trong cùng tab không phát "storage"; poll nhẹ để cập nhật.
+    const id = setInterval(sync, 1000);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("auth:logout", sync);
+      clearInterval(id);
+    };
+  }, []);
+
   const lock = useCallback(() => {
-    if (!readCred()) return; // không có PIN thì không có gì để khóa
+    if (!readCredFor(getUserId())) return; // không có PIN thì không có gì để khóa
     setAesKey(null);
     setIsLocked(true);
   }, []);
 
   const unlock = useCallback(async (pin) => {
-    const current = readCred();
+    const current = readCredFor(getUserId());
     if (!current) return { ok: false, reason: "no-pin" };
     const { ok, key } = await verifyPinCredential(pin, current);
     if (!ok) return { ok: false, reason: "wrong-pin" };
@@ -65,16 +113,18 @@ export function AppLockProvider({ children }) {
   }, []);
 
   const setupPin = useCallback(async (pin) => {
-    const { cred: newCred, key } = await createPinCredential(pin);
-    localStorage.setItem(CRED_KEY, JSON.stringify(newCred));
+    const key = credKeyFor(getUserId());
+    if (!key) return { ok: false, reason: "no-user" };
+    const { cred: newCred, key: aes } = await createPinCredential(pin);
+    localStorage.setItem(key, JSON.stringify(newCred));
     setCred(newCred);
-    setAesKey(key);
+    setAesKey(aes);
     setIsLocked(false);
     return { ok: true };
   }, []);
 
   const changePin = useCallback(async (oldPin, newPin) => {
-    const current = readCred();
+    const current = readCredFor(getUserId());
     if (!current) return { ok: false, reason: "no-pin" };
     const { ok } = await verifyPinCredential(oldPin, current);
     if (!ok) return { ok: false, reason: "wrong-pin" };
@@ -82,11 +132,12 @@ export function AppLockProvider({ children }) {
   }, [setupPin]);
 
   const disablePin = useCallback(async (pin) => {
-    const current = readCred();
+    const key = credKeyFor(getUserId());
+    const current = readCredFor(getUserId());
     if (!current) return { ok: true };
     const { ok } = await verifyPinCredential(pin, current);
     if (!ok) return { ok: false, reason: "wrong-pin" };
-    localStorage.removeItem(CRED_KEY);
+    if (key) localStorage.removeItem(key);
     setCred(null);
     setAesKey(null);
     setIsLocked(false);
@@ -97,7 +148,8 @@ export function AppLockProvider({ children }) {
     const v = Number(mins);
     const safe = Number.isFinite(v) && v >= 0 ? v : DEFAULT_TIMEOUT_MINS;
     setAutoLockMins(safe);
-    localStorage.setItem(TIMEOUT_KEY, String(safe));
+    const key = timeoutKeyFor(getUserId());
+    if (key) localStorage.setItem(key, String(safe));
   }, []);
 
   // ── Tự khóa khi tab bị ẩn ────────────────────────────────────────────────

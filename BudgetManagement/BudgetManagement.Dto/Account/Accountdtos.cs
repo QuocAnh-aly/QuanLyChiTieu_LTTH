@@ -47,6 +47,9 @@ public class AccountDto
     public bool     IsActive        { get; set; }
     public string  CurrencyCode   { get; set; } = "VND";
     public DateTime? CreatedAt      { get; set; }
+    /// <summary>True nếu đây là ví của một lợn tiết kiệm (Budget savings tham chiếu).
+    /// FE dùng để ẩn nút sửa/xóa trực tiếp — phải thao tác qua trang Lợn tiết kiệm.</summary>
+    public bool     IsSavingsWallet { get; set; }
 }
 
 // ─── Đối soát số dư (Balance reconciliation) ─────────────────────────────────

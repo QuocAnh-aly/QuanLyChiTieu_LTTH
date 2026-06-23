@@ -6,16 +6,20 @@ import {
   ArrowLeftRight,
   Tag,
   HandCoins,
-  Coffee,
+  Paperclip,
+  Receipt,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 import { accountApi } from "../../api/accountApi";
 import { budgetApi } from "../../api/budgetApi";
+import { billApi } from "../../api/billApi";
+import { attachmentApi } from "../../api/attachmentApi";
 import { useCategories } from "../../context/CategoriesContext";
 import { useSettings } from "../../context/SettingsContext";
-import { ICON_MAP } from "../../utils/icons";
 import { formatVND, parseVND } from "../../utils/formatMoney";
 
 const TX_TYPES = [
@@ -86,6 +90,7 @@ export function AddTransactionModal({
   const { fetchCategories, expenseCategories, incomeSources, tags } =
     useCategories();
   const { fmt, currencySymbol } = useSettings();
+  const navigate = useNavigate();
 
   const [txType, setTxType] = useState(initialType);
   const [assetAccounts, setAssetAccounts] = useState([]);
@@ -103,6 +108,7 @@ export function AddTransactionModal({
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedTags, setSelectedTags] = useState([]);
+  const [pendingFile, setPendingFile] = useState(null);
 
   const now = new Date();
   const [date, setDate] = useState(format(now, "yyyy-MM-dd"));
@@ -110,13 +116,14 @@ export function AddTransactionModal({
 
   const [createAnother, setCreateAnother] = useState(false);
   const [budgets, setBudgets] = useState([]);
-  const [selectedBudget, setSelectedBudget] = useState(null);
+  const [bills, setBills] = useState([]);
+  const [selectedBill, setSelectedBill] = useState(null);
 
   useEffect(() => {
     if (!isOpen) return;
     setTxType(initialType);
     setLiabilityAccounts([]);
-    setSelectedBudget(null);
+    setSelectedBill(null);
     accountApi
       .getByType(1)
       .then((data) => setAssetAccounts(data.items || data || []))
@@ -130,6 +137,13 @@ export function AddTransactionModal({
       .then((data) => {
         const items = data.items || data || [];
         setBudgets(items.filter((b) => b.isActive !== false));
+      })
+      .catch(() => {});
+    billApi
+      .getAll({ page: 1, pageSize: 100 })
+      .then((data) => {
+        const items = data.items || data || [];
+        setBills(items.filter((b) => b.active));
       })
       .catch(() => {});
   }, [isOpen, initialType]);
@@ -147,9 +161,10 @@ export function AddTransactionModal({
     setDescription("");
     setNotes("");
     setSelectedTags([]);
+    setPendingFile(null);
     setDate(new Date().toISOString().slice(0, 10));
     setShowCustomCategory(false);
-    setSelectedBudget(null);
+    setSelectedBill(null);
   };
   const handleTypeChange = (key) => {
     setTxType(key);
@@ -159,7 +174,7 @@ export function AddTransactionModal({
     setIncomeCategory(DEFAULT_CATEGORY);
     setLiabilityId("");
     setShowCustomCategory(false);
-    setSelectedBudget(null);
+    setSelectedBill(null);
   };
 
   const sameWalletError =
@@ -167,16 +182,11 @@ export function AddTransactionModal({
 
   const canSubmit = (() => {
     if (!walletId || !amount || parseFloat(amount) <= 0) return false;
-    if (txType === "expense")
-      return (
-        expenseCategory.accountId > 0 ||
-        (showCustomCategory && expenseCategory.name.trim())
-      );
-    if (txType === "income")
-      return (
-        incomeCategory.accountId > 0 ||
-        (showCustomCategory && incomeCategory.name.trim())
-      );
+    // Hợp lệ khi có TÊN danh mục — bao gồm: danh mục có sẵn (id>0), danh mục
+    // mặc định (id rỗng) và danh mục mới nhập tay. Backend tự khớp theo id,
+    // hoặc tạo mới theo tên nếu id không hợp lệ.
+    if (txType === "expense") return !!expenseCategory.name.trim();
+    if (txType === "income") return !!incomeCategory.name.trim();
     if (txType === "transfer") return !!toWalletId && !sameWalletError;
     if (txType === "repayment")
       return (
@@ -203,15 +213,17 @@ export function AddTransactionModal({
     if (txType === "expense") {
       payload = {
         ...base,
-        debitAccountId: expenseCategory.accountId,
+        // id rỗng/không hợp lệ → gửi 0 để backend tạo/khớp theo tên danh mục
+        debitAccountId: Number(expenseCategory.accountId) || 0,
         creditAccountId: parseInt(walletId),
         expenseCategoryName: expenseCategory.name.trim() || "Chưa phân loại",
+        billId: selectedBill ? selectedBill.billId : undefined,
       };
     } else if (txType === "income") {
       payload = {
         ...base,
         debitAccountId: parseInt(walletId),
-        creditAccountId: incomeCategory.accountId,
+        creditAccountId: Number(incomeCategory.accountId) || 0,
         incomeCategoryName: incomeCategory.name.trim() || "Khác",
       };
     } else if (txType === "repayment") {
@@ -228,9 +240,26 @@ export function AddTransactionModal({
       };
     }
 
-    await onAdd(payload);
+    const created = await onAdd(payload);
 
-    if (showCustomCategory) {
+    // Đính kèm hóa đơn (nếu có) sau khi giao dịch đã được tạo và có journalId.
+    if (pendingFile && created?.journalId) {
+      try {
+        await attachmentApi.upload("transaction", created.journalId, pendingFile);
+      } catch {
+        toast.error("Giao dịch đã lưu nhưng không tải lên được hóa đơn đính kèm");
+      }
+    } else if (pendingFile && created?.__offline) {
+      toast.info("Hóa đơn đính kèm sẽ cần thêm lại sau khi đồng bộ");
+    }
+
+    // Làm mới danh mục khi có khả năng backend vừa tạo mới theo tên
+    // (nhập tay, hoặc chọn danh mục mặc định/không có id hợp lệ).
+    const usedNewCategory =
+      showCustomCategory ||
+      (txType === "expense" && !(Number(expenseCategory.accountId) > 0)) ||
+      (txType === "income" && !(Number(incomeCategory.accountId) > 0));
+    if (usedNewCategory) {
       await fetchCategories();
     }
 
@@ -238,6 +267,7 @@ export function AddTransactionModal({
       setAmount("");
       setDescription("");
       setNotes("");
+      setPendingFile(null);
     } else {
       reset();
       onClose();
@@ -371,39 +401,65 @@ export function AddTransactionModal({
                     Danh mục chi tiêu <span className="text-red-500">*</span>
                   </label>
                   <div className="grid grid-cols-2 gap-2">
-                    {expenseCategories.map((cat) => (
-                      <button
-                        key={cat.accountId}
-                        type="button"
-                        onClick={() => {
-                          setExpenseCategory({
-                            accountId: cat.accountId,
-                            name: cat.name,
-                          });
-                          setShowCustomCategory(false);
-                          // Auto-select budget matching this category
-                          const matching = budgets.find(
-                            (b) => b.accountId === cat.accountId,
-                          );
-                          if (matching) setSelectedBudget(matching);
-                          else setSelectedBudget(null);
-                        }}
-                        className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
-                          expenseCategory.accountId === cat.accountId &&
-                          expenseCategory.accountId !== 0
-                            ? `${COLOR_MAP[cat.color] || COLOR_MAP.red}`
-                            : "border-slate-200 hover:border-slate-300 text-slate-700"
-                        }`}>
-                        {cat.name}
-                      </button>
-                    ))}
+                    {expenseCategories.map((cat) => {
+                      // Ngân sách (nếu có) gắn với danh mục này — hiển thị ngay
+                      // trên danh mục thay vì lưới chọn riêng.
+                      const catBudget =
+                        Number(cat.accountId) > 0
+                          ? budgets.find((b) => b.accountId === cat.accountId)
+                          : null;
+                      const isSel =
+                        !showCustomCategory &&
+                        expenseCategory.name === cat.name &&
+                        String(expenseCategory.accountId) ===
+                          String(cat.accountId);
+                      const pct = Math.min(catBudget?.percentage ?? 0, 100);
+                      return (
+                        <button
+                          key={cat.accountId || cat.name}
+                          type="button"
+                          onClick={() => {
+                            setExpenseCategory({
+                              accountId: cat.accountId,
+                              name: cat.name,
+                            });
+                            setShowCustomCategory(false);
+                          }}
+                          className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
+                            isSel
+                              ? `${COLOR_MAP[cat.color] || COLOR_MAP.red}`
+                              : "border-slate-200 hover:border-slate-300 text-slate-700"
+                          }`}>
+                          <span className="block truncate">{cat.name}</span>
+                          {catBudget && (
+                            <>
+                              <div className="w-full bg-slate-100 rounded-full h-1 mt-1.5">
+                                <div
+                                  className={`h-1 rounded-full ${
+                                    pct >= 100
+                                      ? "bg-red-500"
+                                      : pct >= 80
+                                        ? "bg-amber-400"
+                                        : "bg-purple-500"
+                                  }`}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                              <span className="text-[10px] text-slate-400">
+                                {fmt(catBudget.currentAmount ?? 0)} /{" "}
+                                {fmt(catBudget.targetAmount ?? 0)}
+                              </span>
+                            </>
+                          )}
+                        </button>
+                      );
+                    })}
 
                     <button
                       type="button"
                       onClick={() => {
                         setExpenseCategory(DEFAULT_CATEGORY);
                         setShowCustomCategory(true);
-                        setSelectedBudget(null);
                       }}
                       className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
                         showCustomCategory
@@ -413,78 +469,42 @@ export function AddTransactionModal({
                       + Danh mục mới
                     </button>
                   </div>
-                </div>
 
-                {/* ── BUDGET SECTION ── */}
-                {budgets.length > 0 && (
-                  <div>
-                    <label className="block text-sm font-semibold text-foreground mb-1.5">
-                      Danh mục ngân sách{" "}
-                      <span className="text-muted-foreground font-normal">
-                        (không bắt buộc)
-                      </span>
-                    </label>
-                    <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-0.5">
-                      {budgets.map((b) => {
-                        const isSelected =
-                          selectedBudget?.budgetId === b.budgetId;
-                        const pct = Math.min(b.percentage ?? 0, 100);
-                        const BudgetIcon = ICON_MAP[b.iconName] || Coffee;
-                        return (
+                  {/* Gợi ý ngân sách cho danh mục đang chọn */}
+                  {!showCustomCategory &&
+                    expenseCategory.name.trim() &&
+                    (() => {
+                      const selBudget =
+                        Number(expenseCategory.accountId) > 0
+                          ? budgets.find(
+                              (b) => b.accountId === expenseCategory.accountId,
+                            )
+                          : null;
+                      return selBudget ? (
+                        <p className="text-[11px] text-muted-foreground mt-2">
+                          Sẽ tính vào ngân sách “
+                          <span className="font-semibold">
+                            {selBudget.title}
+                          </span>
+                          ” — đã dùng {fmt(selBudget.currentAmount ?? 0)}/
+                          {fmt(selBudget.targetAmount ?? 0)}
+                        </p>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground mt-2">
+                          Danh mục này chưa có ngân sách.{" "}
                           <button
-                            key={b.budgetId}
                             type="button"
                             onClick={() => {
-                              if (isSelected) {
-                                setSelectedBudget(null);
-                              } else {
-                                setSelectedBudget(b);
-                                // Auto-select the matching category
-                                const match = expenseCategories.find(
-                                  (c) => c.accountId === b.accountId,
-                                );
-                                if (match) {
-                                  setExpenseCategory({
-                                    accountId: match.accountId,
-                                    name: match.name,
-                                  });
-                                  setShowCustomCategory(false);
-                                }
-                              }
+                              onClose();
+                              navigate("/budgets");
                             }}
-                            className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
-                              isSelected
-                                ? "border-purple-400 bg-purple-50 text-purple-700"
-                                : "border-slate-200 hover:border-slate-300 text-slate-600"
-                            }`}>
-                            <div className="flex items-center gap-1.5 mb-1">
-                              <BudgetIcon size={13} />
-                              <span className="truncate font-semibold">
-                                {b.title}
-                              </span>
-                            </div>
-                            <div className="w-full bg-slate-100 rounded-full h-1.5 mb-1">
-                              <div
-                                className={`h-1.5 rounded-full transition-all ${
-                                  pct >= 100
-                                    ? "bg-red-500"
-                                    : pct >= 80
-                                      ? "bg-amber-400"
-                                      : "bg-purple-500"
-                                }`}
-                                style={{ width: `${pct}%` }}
-                              />
-                            </div>
-                            <div className="text-[10px] text-slate-400">
-                              {fmt(b.currentAmount ?? 0)} /{" "}
-                              {fmt(b.targetAmount ?? 0)}
-                            </div>
+                            className="text-purple-600 hover:underline font-medium">
+                            Tạo ngân sách
                           </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+                        </p>
+                      );
+                    })()}
+                </div>
               </>
             )}
 
@@ -519,26 +539,32 @@ export function AddTransactionModal({
                     Nguồn thu nhập <span className="text-red-500">*</span>
                   </label>
                   <div className="grid grid-cols-2 gap-2">
-                    {incomeSources.map((src) => (
-                      <button
-                        key={src.accountId}
-                        type="button"
-                        onClick={() => {
-                          setIncomeCategory({
-                            accountId: src.accountId,
-                            name: src.name,
-                          });
-                          setShowCustomCategory(false);
-                        }}
-                        className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
-                          incomeCategory.accountId === src.accountId &&
-                          incomeCategory.accountId !== 0
-                            ? `${COLOR_MAP[src.color] || COLOR_MAP.green}`
-                            : "border-slate-200 hover:border-slate-300 text-slate-700"
-                        }`}>
-                        {src.name}
-                      </button>
-                    ))}
+                    {incomeSources.map((src) => {
+                      const isSel =
+                        !showCustomCategory &&
+                        incomeCategory.name === src.name &&
+                        String(incomeCategory.accountId) ===
+                          String(src.accountId);
+                      return (
+                        <button
+                          key={src.accountId || src.name}
+                          type="button"
+                          onClick={() => {
+                            setIncomeCategory({
+                              accountId: src.accountId,
+                              name: src.name,
+                            });
+                            setShowCustomCategory(false);
+                          }}
+                          className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
+                            isSel
+                              ? `${COLOR_MAP[src.color] || COLOR_MAP.green}`
+                              : "border-slate-200 hover:border-slate-300 text-slate-700"
+                          }`}>
+                          {src.name}
+                        </button>
+                      );
+                    })}
                     <button
                       type="button"
                       onClick={() => {
@@ -562,6 +588,7 @@ export function AddTransactionModal({
               <input
                 type="text"
                 placeholder="Nhập tên mục mới"
+                maxLength={50}
                 value={
                   txType === "expense"
                     ? expenseCategory.name
@@ -824,6 +851,66 @@ export function AddTransactionModal({
               </div>
             )}
 
+            {/* ── HÓA ĐƠN ĐỊNH KỲ (chỉ chi tiêu) ── */}
+            {txType === "expense" && bills.length > 0 && (
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
+                  Hóa đơn định kỳ{" "}
+                  <span className="text-muted-foreground font-normal">
+                    (không bắt buộc)
+                  </span>
+                </label>
+                <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-0.5">
+                  {bills.map((b) => {
+                    const isSelected = selectedBill?.billId === b.billId;
+                    return (
+                      <button
+                        key={b.billId}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedBill(null);
+                          } else {
+                            setSelectedBill(b);
+                            // Gợi ý số tiền & mô tả để khớp với hóa đơn.
+                            if (!amount)
+                              setAmount(String(Math.round(b.averageAmount ?? 0)));
+                            if (!description) setDescription(b.name);
+                          }
+                        }}
+                        className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
+                          isSelected
+                            ? "border-purple-400 bg-purple-50 text-purple-700"
+                            : "border-slate-200 hover:border-slate-300 text-slate-600"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <Receipt size={13} />
+                          <span className="truncate font-semibold">{b.name}</span>
+                        </div>
+                        <div className="text-[10px] mt-0.5">
+                          {b.paidStatus === "expected_unpaid" ? (
+                            <span className="text-yellow-600">Chưa trả kỳ này</span>
+                          ) : b.paidStatus === "paid" ? (
+                            <span className="text-green-600">Đã trả kỳ này</span>
+                          ) : (
+                            <span className="text-muted-foreground">
+                              {fmt(b.averageAmount ?? 0)}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedBill && (
+                  <p className="text-[11px] text-muted-foreground mt-1.5">
+                    Giao dịch này sẽ được ghi nhận là thanh toán cho “{selectedBill.name}”.
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Notes */}
             <div>
               <label className="block text-sm font-semibold text-foreground mb-1.5">
@@ -837,6 +924,39 @@ export function AddTransactionModal({
                 placeholder="Thêm ghi chú chi tiết..."
               />
             </div>
+
+            {/* Receipt attachment (chi tiêu / thu nhập) */}
+            {(txType === "expense" || txType === "income") && (
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
+                  Đính kèm hóa đơn
+                </label>
+                {pendingFile ? (
+                  <div className="flex items-center justify-between gap-2 px-3 py-2 border border-border rounded-lg bg-muted/40">
+                    <span className="text-sm text-foreground truncate">{pendingFile.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setPendingFile(null)}
+                      className="text-muted-foreground hover:text-red-500 shrink-0"
+                      title="Bỏ tệp"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center gap-2 px-3 py-2.5 border border-dashed border-border rounded-lg text-sm text-muted-foreground cursor-pointer hover:border-purple-400 hover:text-foreground transition-colors">
+                    <Paperclip size={15} />
+                    <span>Chọn ảnh/PDF hóa đơn (tùy chọn)</span>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      className="hidden"
+                      onChange={(e) => setPendingFile(e.target.files?.[0] || null)}
+                    />
+                  </label>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Footer */}

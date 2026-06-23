@@ -104,7 +104,7 @@ public class AttachmentsController : BaseController
             return File(stream, mime, filename);
         }
         catch (KeyNotFoundException ex)     { return NotFound(new { message = ex.Message }); }
-        catch (FileNotFoundException)       { return NotFound(new { message = "File missing on disk." }); }
+        catch (FileNotFoundException)       { return NotFound(new { message = "Tập tin không còn trên máy chủ." }); }
         catch (UnauthorizedAccessException) { return Forbid(); }
     }
 }

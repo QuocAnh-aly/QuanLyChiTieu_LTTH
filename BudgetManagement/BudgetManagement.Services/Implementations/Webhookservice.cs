@@ -36,7 +36,7 @@ public class WebhookService : IWebhookService
     public async Task<WebhookDto> GetByIdAsync(int userId, int webhookId)
     {
         var w = await _webhookRepo.GetByIdAsync(webhookId)
-                ?? throw new KeyNotFoundException("Webhook not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy webhook.");
         if (w.UserId != userId) throw new UnauthorizedAccessException();
         return MapToDto(w);
     }
@@ -44,16 +44,16 @@ public class WebhookService : IWebhookService
     public async Task<WebhookDto> CreateAsync(int userId, CreateWebhookDto request)
     {
         if (string.IsNullOrWhiteSpace(request.Title))
-            throw new ArgumentException("Title is required.");
+            throw new ArgumentException("Vui lòng nhập tiêu đề.");
         if (!Uri.TryCreate(request.Url, UriKind.Absolute, out _))
-            throw new ArgumentException("Url must be an absolute HTTP/HTTPS URL.");
+            throw new ArgumentException("URL phải là đường dẫn HTTP/HTTPS đầy đủ.");
 
         var trig = (request.TriggerType ?? "STORE_TRANSACTION").ToUpperInvariant();
         if (!ValidTriggers.Contains(trig))
-            throw new ArgumentException($"trigger_type must be one of: {string.Join(", ", ValidTriggers)}");
+            throw new ArgumentException($"Loại kích hoạt phải là một trong: {string.Join(", ", ValidTriggers)}");
         var resp = (request.Response ?? "TRANSACTIONS").ToUpperInvariant();
         if (!ValidResponses.Contains(resp))
-            throw new ArgumentException($"response must be one of: {string.Join(", ", ValidResponses)}");
+            throw new ArgumentException($"Phản hồi phải là một trong: {string.Join(", ", ValidResponses)}");
 
         var w = new Webhook
         {
@@ -72,26 +72,26 @@ public class WebhookService : IWebhookService
     public async Task<WebhookDto> UpdateAsync(int userId, int webhookId, UpdateWebhookDto request)
     {
         var w = await _webhookRepo.GetByIdAsync(webhookId)
-                ?? throw new KeyNotFoundException("Webhook not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy webhook.");
         if (w.UserId != userId) throw new UnauthorizedAccessException();
 
         if (request.Title != null) w.Title = request.Title.Trim();
         if (request.Url   != null)
         {
             if (!Uri.TryCreate(request.Url, UriKind.Absolute, out _))
-                throw new ArgumentException("Url must be absolute.");
+                throw new ArgumentException("URL phải là đường dẫn đầy đủ.");
             w.Url = request.Url.Trim();
         }
         if (request.TriggerType != null)
         {
             var t = request.TriggerType.ToUpperInvariant();
-            if (!ValidTriggers.Contains(t)) throw new ArgumentException("Invalid trigger_type");
+            if (!ValidTriggers.Contains(t)) throw new ArgumentException("Loại kích hoạt không hợp lệ.");
             w.TriggerType = t;
         }
         if (request.Response != null)
         {
             var r = request.Response.ToUpperInvariant();
-            if (!ValidResponses.Contains(r)) throw new ArgumentException("Invalid response");
+            if (!ValidResponses.Contains(r)) throw new ArgumentException("Phản hồi không hợp lệ.");
             w.Response = r;
         }
         if (request.Secret    != null) w.Secret    = request.Secret;
@@ -103,7 +103,7 @@ public class WebhookService : IWebhookService
     public async Task<bool> DeleteAsync(int userId, int webhookId)
     {
         var w = await _webhookRepo.GetByIdAsync(webhookId)
-                ?? throw new KeyNotFoundException("Webhook not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy webhook.");
         if (w.UserId != userId) throw new UnauthorizedAccessException();
         return await _webhookRepo.DeleteAsync(webhookId);
     }
@@ -113,7 +113,7 @@ public class WebhookService : IWebhookService
     public async Task<IEnumerable<WebhookMessageDto>> GetMessagesAsync(int userId, int webhookId, int take)
     {
         var w = await _webhookRepo.GetByIdAsync(webhookId)
-                ?? throw new KeyNotFoundException("Webhook not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy webhook.");
         if (w.UserId != userId) throw new UnauthorizedAccessException();
 
         var msgs = await _webhookRepo.GetMessagesAsync(webhookId, take <= 0 ? 50 : take);
@@ -123,7 +123,7 @@ public class WebhookService : IWebhookService
     public async Task<WebhookMessageDto> SubmitAsync(int userId, int webhookId, object? customPayload)
     {
         var w = await _webhookRepo.GetByIdAsync(webhookId)
-                ?? throw new KeyNotFoundException("Webhook not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy webhook.");
         if (w.UserId != userId) throw new UnauthorizedAccessException();
 
         var payload = customPayload ?? new { ping = "manual", at = DateTime.UtcNow };

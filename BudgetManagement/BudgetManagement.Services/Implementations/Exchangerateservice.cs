@@ -33,9 +33,9 @@ public class ExchangeRateService : IExchangeRateService
         var from = request.FromCurrency.Trim().ToUpper();
         var to   = request.ToCurrency.Trim().ToUpper();
         if (from == to)
-            throw new ArgumentException("from_currency and to_currency must differ.");
+            throw new ArgumentException("Tiền tệ nguồn và tiền tệ đích phải khác nhau.");
         if (request.Rate <= 0)
-            throw new ArgumentException("Rate must be positive.");
+            throw new ArgumentException("Tỷ giá phải lớn hơn 0.");
 
         await EnsureCurrencyExists(userId, from);
         await EnsureCurrencyExists(userId, to);
@@ -63,12 +63,12 @@ public class ExchangeRateService : IExchangeRateService
     public async Task<ExchangeRateDto> UpdateAsync(int userId, int rateId, UpdateExchangeRateDto request)
     {
         var r = await _rateRepo.GetByIdAsync(rateId)
-                ?? throw new KeyNotFoundException("Exchange rate not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy tỷ giá.");
         if (r.UserId != userId) throw new UnauthorizedAccessException();
 
         if (request.Rate.HasValue)
         {
-            if (request.Rate.Value <= 0) throw new ArgumentException("Rate must be positive.");
+            if (request.Rate.Value <= 0) throw new ArgumentException("Tỷ giá phải lớn hơn 0.");
             r.Rate = request.Rate.Value;
         }
         if (request.RateDate.HasValue) r.RateDate = request.RateDate.Value.Date;
@@ -78,7 +78,7 @@ public class ExchangeRateService : IExchangeRateService
     public async Task<bool> DeleteAsync(int userId, int rateId)
     {
         var r = await _rateRepo.GetByIdAsync(rateId)
-                ?? throw new KeyNotFoundException("Exchange rate not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy tỷ giá.");
         if (r.UserId != userId) throw new UnauthorizedAccessException();
         return await _rateRepo.DeleteAsync(rateId);
     }
@@ -91,7 +91,7 @@ public class ExchangeRateService : IExchangeRateService
     public async Task<int> BulkUpsertAgainstPrimaryAsync(int userId, BulkRatesDto request)
     {
         var primary = await _currencyRepo.GetPrimaryAsync(userId)
-                      ?? throw new InvalidOperationException("No primary currency set.");
+                      ?? throw new InvalidOperationException("Chưa thiết lập tiền tệ chính.");
         var primaryCode = primary.Code;
         var date = (request.RateDate ?? DateTime.Today).Date;
 

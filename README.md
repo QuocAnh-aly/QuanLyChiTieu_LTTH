@@ -67,8 +67,8 @@
          ┌──────▼──────┐
          │   SQL        │
          │   Server     │
-         │  (Docker)    │
-         │  :1434       │
+         │  LocalDB     │
+         │  (or Docker) │
          └─────────────┘
 ```
 
@@ -80,7 +80,7 @@
 | **API Gateway** | `:5229` | Ocelot reverse proxy |
 | **API Service** | `:5133` | Business logic + CRUD |
 | **Auth Service** | `:5134` | Xác thực + JWT |
-| **SQL Server** | `:1434` | Cơ sở dữ liệu (Docker) |
+| **SQL Server** | LocalDB · `:1434` | Cơ sở dữ liệu (LocalDB mặc định, hoặc Docker) |
 
 ### Cấu trúc dự án
 
@@ -124,38 +124,78 @@ Budget Management/
 
 - Node.js 18+
 - .NET 10 SDK
-- Docker (cho SQL Server)
+- **SQL Server** — chọn một:
+  - **SQL Server LocalDB** (đi kèm Visual Studio) — *mặc định của repo*, đơn giản nhất trên Windows
+  - **Docker** (SQL Server 2022) — cần sửa connection string (xem mục Cấu hình)
+
+### Cấu hình (đọc trước khi chạy)
+
+> ⚠️ **`appsettings.json` của APIService và AuthService KHÔNG được commit** (nằm trong `.gitignore`). Nhưng khi chạy bằng `dotnet run --launch-profile http` (môi trường **Development**), app tự đọc `appsettings.Development.json` — file này **đã có sẵn trong repo** kèm connection string + JWT key, nên **không cần tạo lại** `appsettings.json`.
+
+**Connection string mặc định trong repo trỏ tới SQL Server LocalDB:**
+
+```
+Data Source=(localdb)\MSSQLLocalDB; Initial Catalog=BudgetManagement; Integrated Security=True; Encrypt=True; Trust Server Certificate=True
+```
+
+Muốn dùng **Docker** thay vì LocalDB → sửa `ConnectionStrings:DefaultConnection` trong **cả hai** file `BudgetManagement.APIService/appsettings.Development.json` và `BudgetManagement.AuthService/appsettings.Development.json` thành:
+
+```
+Data Source=localhost,1434; Initial Catalog=BudgetManagement; User ID=sa; Password=Hoangphuc@040505; Encrypt=True; Trust Server Certificate=True
+```
+
+> Frontend **không cần** `.env` — `src/app/api/axiosClient.js` đã hard-code gateway `http://localhost:5229`.
 
 ### Cài đặt
 
+#### Cách A — SQL Server LocalDB (Windows, mặc định, đơn giản nhất)
+
+```powershell
+# 1. Tạo database + áp schema (cần sqlcmd; hoặc mở các file .sql bằng SSMS / Azure Data Studio)
+sqlcmd -S "(localdb)\MSSQLLocalDB" -Q "CREATE DATABASE BudgetManagement"
+sqlcmd -S "(localdb)\MSSQLLocalDB" -d BudgetManagement -i data\csdl_sqlserver.sql
+sqlcmd -S "(localdb)\MSSQLLocalDB" -d BudgetManagement -i data\migration_fix.sql
+
+# 2. (Tùy chọn) Nạp dữ liệu demo — phủ mọi chức năng, 12 tháng giao dịch
+sqlcmd -S "(localdb)\MSSQLLocalDB" -d BudgetManagement -i data\seed_demo_2026.sql
+
+# 3. Cài dependencies frontend
+npm install
+```
+
+#### Cách B — Docker SQL Server (nhớ sửa connection string ở mục Cấu hình)
+
 ```bash
-# 1. Khởi động SQL Server (Docker)
+# 1. Khởi động SQL Server (Docker) ở cổng 1434
 docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=Hoangphuc@040505" \
   -p 1434:1433 --name sqlserver_2022 -d mcr.microsoft.com/mssql/server:2022-latest
 
 # 2. Tạo database + áp schema
 docker exec -i sqlserver_2022 /opt/mssql-tools18/bin/sqlcmd \
   -S localhost -U sa -P 'Hoangphuc@040505' -C -Q "CREATE DATABASE BudgetManagement"
-
 docker exec -i sqlserver_2022 /opt/mssql-tools18/bin/sqlcmd \
   -S localhost -U sa -P 'Hoangphuc@040505' -C -d BudgetManagement -i data/csdl_sqlserver.sql
-
 docker exec -i sqlserver_2022 /opt/mssql-tools18/bin/sqlcmd \
   -S localhost -U sa -P 'Hoangphuc@040505' -C -d BudgetManagement -i data/migration_fix.sql
 
-# 3. (Tùy chọn) Nạp dữ liệu demo — phủ mọi chức năng, 12 tháng giao dịch
+# 3. (Tùy chọn) Dữ liệu demo
 docker exec -i sqlserver_2022 /opt/mssql-tools18/bin/sqlcmd \
   -S localhost -U sa -P 'Hoangphuc@040505' -C -d BudgetManagement -i data/seed_demo_2026.sql
 
 # 4. Cài dependencies frontend
 npm install
+```
 
-# 5. Khởi động toàn bộ services
+#### Khởi động services
+
+```bash
 chmod +x run.sh
 ./run.sh
 ```
 
 `run.sh` khởi động cả 4 services với health-check và tự mở trình duyệt. Nhấn `Ctrl+C` để dừng tất cả.
+
+> ⚠️ `run.sh` / `kill.sh` là script **bash** — trên Windows cần chạy bằng **Git Bash** (không chạy được trong PowerShell thuần). Nếu dùng PowerShell, mở 4 terminal theo mục **Chạy thủ công** bên dưới.
 
 ```bash
 ./run.sh                 # Chạy tất cả services

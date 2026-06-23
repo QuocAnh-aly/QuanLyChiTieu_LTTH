@@ -71,7 +71,7 @@ public class AuthController : BaseController
             if (string.IsNullOrEmpty(token))
                 token = request?.RefreshToken;
             if (string.IsNullOrEmpty(token))
-                return Unauthorized(new { message = "Refresh token required" });
+                return Unauthorized(new { message = "Thiếu refresh token." });
 
             var result = await _authService.RefreshTokenAsync(token);
             return OkWithRefreshCookie(result);
@@ -89,7 +89,7 @@ public class AuthController : BaseController
     public IActionResult Logout()
     {
         ClearRefreshCookie();
-        return Ok(new { message = "Logged out" });
+        return Ok(new { message = "Đã đăng xuất." });
     }
 
     // GET api/auth/profile
@@ -118,7 +118,7 @@ public class AuthController : BaseController
         try
         {
             await _authService.ChangePasswordAsync(GetUserId(), request);
-            return Ok(new { message = "Changed successfully" });
+            return Ok(new { message = "Đổi mật khẩu thành công." });
         }
         catch (UnauthorizedAccessException ex)
         {

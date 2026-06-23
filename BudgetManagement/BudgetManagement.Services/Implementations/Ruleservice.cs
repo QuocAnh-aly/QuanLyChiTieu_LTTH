@@ -27,7 +27,7 @@ public class RuleService : IRuleService
     public async Task<RuleDto> GetByIdAsync(int userId, int ruleId)
     {
         var r = await _ruleRepo.GetByIdFullAsync(ruleId)
-                ?? throw new KeyNotFoundException("Rule not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy quy tắc.");
         if (r.UserId != userId) throw new UnauthorizedAccessException();
         return MapToDto(r);
     }
@@ -35,7 +35,7 @@ public class RuleService : IRuleService
     public async Task<RuleDto> CreateAsync(int userId, CreateRuleDto request)
     {
         if (string.IsNullOrWhiteSpace(request.Title))
-            throw new ArgumentException("Title is required.");
+            throw new ArgumentException("Vui lòng nhập tiêu đề.");
 
         var rule = new Rule
         {
@@ -64,7 +64,7 @@ public class RuleService : IRuleService
     public async Task<RuleDto> UpdateAsync(int userId, int ruleId, UpdateRuleDto request)
     {
         var r = await _ruleRepo.GetByIdFullAsync(ruleId)
-                ?? throw new KeyNotFoundException("Rule not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy quy tắc.");
         if (r.UserId != userId) throw new UnauthorizedAccessException();
 
         if (request.Title       != null) r.Title       = request.Title.Trim();
@@ -89,7 +89,7 @@ public class RuleService : IRuleService
     public async Task<bool> DeleteAsync(int userId, int ruleId)
     {
         var r = await _ruleRepo.GetByIdAsync(ruleId)
-                ?? throw new KeyNotFoundException("Rule not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy quy tắc.");
         if (r.UserId != userId) throw new UnauthorizedAccessException();
         return await _ruleRepo.DeleteAsync(ruleId);
     }
@@ -97,7 +97,7 @@ public class RuleService : IRuleService
     public async Task<RuleDto> ToggleActiveAsync(int userId, int ruleId)
     {
         var r = await _ruleRepo.GetByIdFullAsync(ruleId)
-                ?? throw new KeyNotFoundException("Rule not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy quy tắc.");
         if (r.UserId != userId) throw new UnauthorizedAccessException();
         r.IsActive = !(r.IsActive ?? true);
         await _ruleRepo.UpdateAsync(r);
@@ -109,7 +109,7 @@ public class RuleService : IRuleService
     public async Task<RuleTestResultDto> TestAsync(int userId, int ruleId)
     {
         var rule = await _ruleRepo.GetByIdFullAsync(ruleId)
-                   ?? throw new KeyNotFoundException("Rule not found.");
+                   ?? throw new KeyNotFoundException("Không tìm thấy quy tắc.");
         if (rule.UserId != userId) throw new UnauthorizedAccessException();
 
         var allEntries = await _journalRepo.GetByUserIdAsync(userId, 1, 1_000);
@@ -131,7 +131,7 @@ public class RuleService : IRuleService
     public async Task<RuleTriggerResultDto> TriggerAsync(int userId, int ruleId)
     {
         var rule = await _ruleRepo.GetByIdFullAsync(ruleId)
-                   ?? throw new KeyNotFoundException("Rule not found.");
+                   ?? throw new KeyNotFoundException("Không tìm thấy quy tắc.");
         if (rule.UserId != userId) throw new UnauthorizedAccessException();
 
         var allEntries = (await _journalRepo.GetByUserIdAsync(userId, 1, 1_000)).ToList();
@@ -179,7 +179,7 @@ public class RuleService : IRuleService
     public async Task<RuleGroupDto> CreateGroupAsync(int userId, CreateRuleGroupDto request)
     {
         if (string.IsNullOrWhiteSpace(request.Title))
-            throw new ArgumentException("Title is required.");
+            throw new ArgumentException("Vui lòng nhập tiêu đề.");
 
         var g = new RuleGroup
         {
@@ -205,7 +205,7 @@ public class RuleService : IRuleService
     public async Task<RuleGroupDto> UpdateGroupAsync(int userId, int groupId, UpdateRuleGroupDto request)
     {
         var g = await _ruleRepo.GetGroupByIdAsync(groupId)
-                ?? throw new KeyNotFoundException("Rule group not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy nhóm quy tắc.");
         if (g.UserId != userId) throw new UnauthorizedAccessException();
 
         if (request.Title       != null) g.Title       = request.Title.Trim();
@@ -228,7 +228,7 @@ public class RuleService : IRuleService
     public async Task<bool> DeleteGroupAsync(int userId, int groupId)
     {
         var g = await _ruleRepo.GetGroupByIdAsync(groupId)
-                ?? throw new KeyNotFoundException("Rule group not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy nhóm quy tắc.");
         if (g.UserId != userId) throw new UnauthorizedAccessException();
         return await _ruleRepo.DeleteGroupAsync(groupId);
     }

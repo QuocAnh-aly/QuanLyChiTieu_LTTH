@@ -27,10 +27,15 @@ export function AddMoneyModal({ isOpen, onClose, onSave, goal }) {
 
   const leftToSave =
     goal.leftToSave ?? Math.max(0, goal.targetAmount - goal.currentAmount);
-  const maxAmount = leftToSave;
+  const selectedWallet = accounts.find(
+    (a) => String(a.accountId) === String(sourceAccountId),
+  );
+  const walletBalance = selectedWallet?.balance ?? null;
   const enteredAmount = parseFloat(amount) || 0;
-  const canSubmit =
-    enteredAmount > 0 && enteredAmount <= maxAmount && sourceAccountId;
+  // Chỉ giới hạn theo số dư ví nguồn — cho phép tiếp tục tiết kiệm kể cả khi đã
+  // đạt/vượt mục tiêu (phần trăm hiển thị được giới hạn 100%).
+  const exceedsWallet = walletBalance != null && enteredAmount > walletBalance;
+  const canSubmit = enteredAmount > 0 && sourceAccountId && !exceedsWallet;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -152,7 +157,7 @@ export function AddMoneyModal({ isOpen, onClose, onSave, goal }) {
                   value={formatVND(amount)}
                   onChange={(e) => setAmount(parseVND(e.target.value))}
                   className={`w-full pl-9 pr-4 py-2.5 border rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 ${
-                    enteredAmount > maxAmount
+                    exceedsWallet
                       ? "border-red-400 focus:ring-red-400"
                       : "border-border focus:ring-green-500"
                   }`}
@@ -160,13 +165,15 @@ export function AddMoneyModal({ isOpen, onClose, onSave, goal }) {
                   required
                 />
               </div>
-              {enteredAmount > maxAmount && (
+              {exceedsWallet && (
                 <p className="text-xs text-red-500 mt-1">
-                  Tối đa có thể nạp: {fmt(maxAmount)}
+                  Vượt quá số dư ví nguồn ({fmt(walletBalance)})
                 </p>
               )}
               <p className="text-xs text-muted-foreground mt-1">
-                Tối đa: {fmt(maxAmount)}
+                {walletBalance != null
+                  ? `Số dư ví: ${fmt(walletBalance)} · Còn để đạt mục tiêu: ${fmt(leftToSave)}`
+                  : `Còn để đạt mục tiêu: ${fmt(leftToSave)}`}
               </p>
             </div>
 

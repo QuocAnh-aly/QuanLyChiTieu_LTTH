@@ -62,8 +62,8 @@ public class BillService : IBillService
     public async Task<BillDto> GetByIdAsync(int userId, int billId)
     {
         var bill = await _billRepo.GetByIdAsync(billId)
-                   ?? throw new KeyNotFoundException("Bill not found.");
-        if (bill.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
+                   ?? throw new KeyNotFoundException("Không tìm thấy hóa đơn.");
+        if (bill.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         var entries = (await _billRepo.GetLinkedEntriesAsync(billId)).ToList();
         return MapToDto(bill, DateTime.Today, entries, true);
@@ -94,8 +94,8 @@ public class BillService : IBillService
     public async Task<BillDto> UpdateAsync(int userId, int billId, UpdateBillDto request)
     {
         var bill = await _billRepo.GetByIdAsync(billId)
-                   ?? throw new KeyNotFoundException("Bill not found.");
-        if (bill.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
+                   ?? throw new KeyNotFoundException("Không tìm thấy hóa đơn.");
+        if (bill.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         // Required fields keep their previous value when omitted (the edit form
         // always sends them, so null here only happens for non-form callers).
@@ -123,8 +123,8 @@ public class BillService : IBillService
     public async Task<bool> DeleteAsync(int userId, int billId)
     {
         var bill = await _billRepo.GetByIdAsync(billId)
-                   ?? throw new KeyNotFoundException("Bill not found.");
-        if (bill.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
+                   ?? throw new KeyNotFoundException("Không tìm thấy hóa đơn.");
+        if (bill.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         // Unlink all journal entries first (FK = SET NULL, but explicit clear is safer)
         await _billRepo.UnlinkAllEntriesAsync(billId);
@@ -134,12 +134,12 @@ public class BillService : IBillService
     public async Task<BillDto> RescanAsync(int userId, int billId)
     {
         var bill = await _billRepo.GetByIdAsync(billId)
-                   ?? throw new KeyNotFoundException("Bill not found.");
-        if (bill.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
-        if (!bill.Active) throw new InvalidOperationException("Cannot rescan an inactive bill.");
+                   ?? throw new KeyNotFoundException("Không tìm thấy hóa đơn.");
+        if (bill.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
+        if (!bill.Active) throw new InvalidOperationException("Không thể quét lại hóa đơn đã tắt.");
 
         await _billRepo.UnlinkAllEntriesAsync(billId);
-        await _billRepo.LinkEntriesByAmountAsync(billId, userId, bill.AmountMin, bill.AmountMax);
+        await _billRepo.LinkEntriesByAmountAsync(billId, userId, bill.AmountMin, bill.AmountMax, bill.Name);
 
         var entries = (await _billRepo.GetLinkedEntriesAsync(billId)).ToList();
         return MapToDto(bill, DateTime.Today, entries, false);
@@ -148,9 +148,9 @@ public class BillService : IBillService
     public async Task<BillDto> PayAsync(int userId, int billId, PayBillDto request)
     {
         var bill = await _billRepo.GetByIdAsync(billId)
-                   ?? throw new KeyNotFoundException("Bill not found.");
-        if (bill.UserId != userId) throw new UnauthorizedAccessException("Access denied.");
-        if (!bill.Active) throw new InvalidOperationException("Cannot pay an inactive bill.");
+                   ?? throw new KeyNotFoundException("Không tìm thấy hóa đơn.");
+        if (bill.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
+        if (!bill.Active) throw new InvalidOperationException("Không thể thanh toán hóa đơn đã tắt.");
         if (request.Amount <= 0) throw new ArgumentException("Số tiền phải lớn hơn 0.");
         if (request.WalletAccountId <= 0) throw new ArgumentException("Vui lòng chọn ví để trả.");
         if ((request.ExpenseAccountId is null or <= 0) && string.IsNullOrWhiteSpace(request.ExpenseCategoryName))
@@ -184,6 +184,7 @@ public class BillService : IBillService
         var next        = ComputeNextExpectedMatch(b, today);
         var paidStatus  = ComputePaidStatus(b, today, entries);
         var periodTxId  = GetCurrentPeriodTransactionId(b, today, entries);
+        var paidPeriod  = GetPaidAmountThisPeriod(b, today, entries);
         var avgAmount   = (b.AmountMin + b.AmountMax) / 2m;
 
         var dto = new BillDto
@@ -204,6 +205,7 @@ public class BillService : IBillService
             NextExpectedMatch  = next,
             PaidStatus         = paidStatus,
             PaidTransactionId  = periodTxId,
+            PaidAmountThisPeriod = paidPeriod,
             MatchedCount       = entries.Count,
             CreatedAt          = b.CreatedAt,
         };
@@ -276,6 +278,20 @@ public class BillService : IBillService
             e.TransactionDate.Date < periodEnd.Date);
 
         return tx?.JournalId ?? 0;
+    }
+
+    private static decimal GetPaidAmountThisPeriod(Bill b, DateTime today,
+        List<JournalEntry> entries)
+    {
+        var periodStart = GetPeriodStart(b, today);
+        if (periodStart == null) return 0m;
+
+        var periodEnd = AdvanceDate(periodStart.Value, b.RepeatFreq, b.Skip + 1);
+
+        return entries
+            .Where(e => e.TransactionDate.Date >= periodStart.Value.Date &&
+                        e.TransactionDate.Date < periodEnd.Date)
+            .Sum(e => e.JournalDetails?.Sum(d => d.Debit ?? 0) ?? 0m);
     }
 
     private static DateTime? GetPeriodStart(Bill b, DateTime today)

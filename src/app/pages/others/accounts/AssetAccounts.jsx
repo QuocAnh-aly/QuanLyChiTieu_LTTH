@@ -22,6 +22,7 @@ import {
   Plus,
   Pencil,
   Trash2,
+  Smartphone,
 } from "lucide-react";
 import {
   AreaChart,
@@ -46,7 +47,7 @@ import PaginationBar from "../../../components/ui/navigation/PaginationBar";
 import { PageLayout } from "../../../components/layout/PageLayout";
 import { AccountFormModal } from "../../../components/modals/AccountFormModal";
 import { EditAccountModal } from "../../../components/modals/EditAccountModal";
-import { confirmDialog } from "../../../utils/confirmDialog";
+import { DeleteWalletModal } from "../../../components/modals/DeleteWalletModal";
 
 function mapTransaction(t) {
   const details = t.details || [];
@@ -68,6 +69,7 @@ const iconMap = {
   TrendingUp,
   Users,
   PiggyBank,
+  Smartphone,
   Wallet: WalletIcon,
 };
 
@@ -105,6 +107,7 @@ function mapAccount(acc, index) {
     cardNumber: acc.cardNumber || "",
     currencyCode: acc.currencyCode || "VND",
     isActive: acc.isActive,
+    isSavingsWallet: acc.isSavingsWallet ?? false,
     createdAt: acc.createdAt,
   };
 }
@@ -191,6 +194,7 @@ export function AssetAccounts() {
   const [hoveredMonth, setHoveredMonth] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
+  const [deletingAccount, setDeletingAccount] = useState(null);
 
   const fetchWallets = useCallback(async (silent = false) => {
     try {
@@ -258,17 +262,23 @@ export function AssetAccounts() {
     }
   }, [fetchWallets]);
 
-  const handleDeleteAsset = useCallback(async (id, name) => {
-    if (!await confirmDialog(`Xóa tài sản "${name}"?\nHành động này không thể hoàn tác.`)) return;
+  const handleDeleteAsset = useCallback((account) => {
+    setDeletingAccount(account);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async (opts) => {
+    if (!deletingAccount) return;
     try {
-      await accountApi.delete(id);
-      toast.success(`Đã xóa "${name}".`);
+      await accountApi.delete(deletingAccount.id, opts);
+      toast.success(`Đã xóa "${deletingAccount.name}".`);
+      setDeletingAccount(null);
       fetchWallets();
     } catch (error) {
       const msg = error?.response?.data?.message;
-      toast.error(msg || `Không thể xóa "${name}". Tài khoản có thể đang được sử dụng trong giao dịch hoặc ngân sách.`);
+      toast.error(msg || `Không thể xóa "${deletingAccount.name}".`);
+      throw error; // giữ modal mở khi lỗi
     }
-  }, [fetchWallets]);
+  }, [deletingAccount, fetchWallets]);
 
   useEffect(() => { fetchWallets(); }, [fetchWallets]);
   useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
@@ -804,26 +814,41 @@ export function AssetAccounts() {
                         >
                           <Activity size={13} />
                         </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingAccount(account);
-                          }}
-                          className="p-1.5 rounded-lg bg-white/10 hover:bg-white/25 text-white/70 hover:text-white transition-all backdrop-blur-sm"
-                          title="Sửa"
-                        >
-                          <Pencil size={13} />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteAsset(account.id, account.name);
-                          }}
-                          className="p-1.5 rounded-lg bg-white/10 hover:bg-red-400/40 text-white/70 hover:text-red-200 transition-all backdrop-blur-sm"
-                          title="Xóa"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        {account.isSavingsWallet ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate("/piggy-banks");
+                            }}
+                            className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white/90 text-[11px] font-semibold transition-all backdrop-blur-sm"
+                            title="Quản lý ở trang Lợn tiết kiệm"
+                          >
+                            <PiggyBank size={13} /> Lợn tiết kiệm
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingAccount(account);
+                              }}
+                              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/25 text-white/70 hover:text-white transition-all backdrop-blur-sm"
+                              title="Sửa"
+                            >
+                              <Pencil size={13} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteAsset(account);
+                              }}
+                              className="p-1.5 rounded-lg bg-white/10 hover:bg-red-400/40 text-white/70 hover:text-red-200 transition-all backdrop-blur-sm"
+                              title="Xóa"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </>
+                        )}
                         <div
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm ${
                             isPositive ? "bg-white/20 text-white" : "bg-black/20 text-white/80"
@@ -908,22 +933,32 @@ export function AssetAccounts() {
                               <span className="text-xs font-normal ml-1 opacity-60">({diffPct}%)</span>
                             )}
                           </span>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {acc.isSavingsWallet ? (
                             <button
-                              onClick={() => setEditingAccount(acc)}
-                              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                              title="Sửa"
+                              onClick={() => navigate("/piggy-banks")}
+                              className="flex items-center gap-1 px-2 py-1 rounded-lg text-purple-600 hover:bg-purple-50 text-xs font-semibold transition-colors opacity-0 group-hover:opacity-100"
+                              title="Quản lý ở trang Lợn tiết kiệm"
                             >
-                              <Pencil size={13} />
+                              <PiggyBank size={13} /> Lợn tiết kiệm
                             </button>
-                            <button
-                              onClick={() => handleDeleteAsset(acc.id, acc.name)}
-                              className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors"
-                              title="Xóa"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
+                          ) : (
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => setEditingAccount(acc)}
+                                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                                title="Sửa"
+                              >
+                                <Pencil size={13} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteAsset(acc)}
+                                className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors"
+                                title="Xóa"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1123,6 +1158,15 @@ export function AssetAccounts() {
         onSubmit={handleCreateAsset}
         account={null}
         typeId={1}
+      />
+
+      {/* ════════════════════ DELETE WALLET MODAL ════════════════════ */}
+      <DeleteWalletModal
+        isOpen={!!deletingAccount}
+        onClose={() => setDeletingAccount(null)}
+        onConfirm={handleConfirmDelete}
+        account={deletingAccount}
+        targets={accounts.filter((a) => a.typeId === 1)}
       />
 
       {/* ════════════════════ EDIT ASSET MODAL ════════════════════ */}

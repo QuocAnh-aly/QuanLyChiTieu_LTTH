@@ -56,6 +56,7 @@ public class BillRepository : BaseRepository<Bill>, IBillRepository
 
     public async Task<IEnumerable<JournalEntry>> GetLinkedEntriesForUserAsync(int userId)
         => await _context.JournalEntries
+            .Include(j => j.JournalDetails)
             .Where(j => j.UserId == userId && j.BillId != null)
             .ToListAsync();
 
@@ -64,11 +65,18 @@ public class BillRepository : BaseRepository<Bill>, IBillRepository
             .Where(j => j.BillId == billId)
             .ExecuteUpdateAsync(s => s.SetProperty(j => j.BillId, (int?)null));
 
-    public async Task LinkEntriesByAmountAsync(int billId, int userId, decimal amountMin, decimal amountMax)
+    public async Task LinkEntriesByAmountAsync(int billId, int userId, decimal amountMin, decimal amountMax, string name)
     {
-        // Find journal entries for this user where sum of debit details falls in [min, max]
+        var trimmed = (name ?? "").Trim();
+
+        // Chỉ khớp giao dịch CHƯA gắn hóa đơn, có MÔ TẢ trùng tên hóa đơn và số tiền
+        // nằm trong khoảng [min, max]. Điều kiện trùng tên tránh việc gán nhầm một
+        // giao dịch bất kỳ chỉ vì số tiền tình cờ rơi vào khoảng của hóa đơn.
         var matchingIds = await _context.JournalDetails
-            .Where(d => d.Debit > 0 && d.JournalEntry.UserId == userId)
+            .Where(d => d.Debit > 0
+                        && d.JournalEntry.UserId == userId
+                        && d.JournalEntry.BillId == null
+                        && d.JournalEntry.Description == trimmed)
             .GroupBy(d => d.JournalId)
             .Where(g => g.Sum(d => d.Debit ?? 0) >= amountMin &&
                         g.Sum(d => d.Debit ?? 0) <= amountMax)
