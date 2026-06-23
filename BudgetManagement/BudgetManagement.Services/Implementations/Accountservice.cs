@@ -138,6 +138,11 @@ public class AccountService : IAccountService
         if (account.UserId != userId)
             throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
+        // Ví của lợn tiết kiệm không được xóa trực tiếp — phải xóa qua trang Lợn tiết kiệm
+        // (xóa lợn sẽ dọn cả ví + lịch sử), tránh để Budget trỏ tới ví không còn tồn tại.
+        if (await _budgetRepo.HasSavingsGoalByAccountIdAsync(accountId))
+            throw new InvalidOperationException("Đây là ví của lợn tiết kiệm. Vui lòng xóa từ trang Lợn tiết kiệm.");
+
         var balance = account.Balance ?? 0;
         // Kiểm tra trước khi tạo bất kỳ giao dịch nào (để các điều kiện chặn không gây tác dụng phụ).
         bool hadTransaction = await _journalRepo.HasTransaction(accountId);
@@ -224,10 +229,15 @@ public class AccountService : IAccountService
             _              => displayAccounts.OrderBy(a => a.TypeId).ThenBy(a => a.Name).ToList(),
         };
 
-        // 5. Map to DTO
+        // 5. Map to DTO + đánh dấu ví lợn tiết kiệm (Budget savings tham chiếu account)
+        var savingsAccountIds = (await _budgetRepo.GetSavingsGoalsAsync(userId))
+            .Select(b => b.AccountId)
+            .ToHashSet();
         var allDto = displayAccounts.Select(MapToDto).ToList();
+        foreach (var dto in allDto)
+            dto.IsSavingsWallet = savingsAccountIds.Contains(dto.AccountId);
 
-        // 6. Paginate cho card grid
+        // 6. Paginate cho card grid (cùng tham chiếu object nên giữ nguyên cờ vừa gán)
         var paginated = allDto
             .Skip((page - 1) * pageSize)
             .Take(pageSize)

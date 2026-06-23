@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { accountApi } from "../../api/accountApi";
 import { useSettings } from "../../context/SettingsContext";
 import { formatVND, parseVND } from "../../utils/formatMoney";
+import { ReceiptAttachments } from "../attachments/ReceiptAttachments";
 
 export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
   const { fmt, currencies, currency } = useSettings();
@@ -15,9 +16,9 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
 
   // Optional
   const [targetDate, setTargetDate] = useState("");
-  const [notes, setNotes] = useState("");
-  const [objectGroup, setObjectGroup] = useState("");
   const [monthly, setMonthly] = useState("");
+  // Tệp chờ upload (chỉ dùng khi tạo mới — lúc tạo chưa có budgetId để gắn).
+  const [pendingFiles, setPendingFiles] = useState([]);
 
   const [returnHere, setReturnHere] = useState(false);
   const parsedAmount = parseFloat(targetAmount);
@@ -34,17 +35,15 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
       setTargetAmount(String(goal.targetAmount ?? ""));
       setSelectedCurrency(goal.currencyCode ?? goal.currency ?? currency);
       setTargetDate(goal.targetDate ?? "");
-      setNotes(goal.notes ?? "");
-      setObjectGroup(goal.objectGroup ?? "");
       setMonthly(String(goal.savePerMonth ?? ""));
+      setPendingFiles([]);
     } else {
       setName("");
       setTargetAmount("");
       setSelectedCurrency(currency);
       setTargetDate("");
-      setNotes("");
-      setObjectGroup("");
       setMonthly("");
+      setPendingFiles([]);
       setReturnHere(false);
     }
   }, [isOpen, goal, currency]);
@@ -54,20 +53,23 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!canSubmit) return;
-    onSave({
-      title: name.trim(),
-      targetAmount: parseFloat(targetAmount),
-      monthlyContribution: parseFloat(monthly) || 0,
-      targetDate: targetDate || null,
-      notes: notes.trim() || null,
-      currencyCode: selectedCurrency,
-      iconName: goal?.iconName || "PiggyBank",
-      color: goal?.color || "green",
-    });
+    onSave(
+      {
+        title: name.trim(),
+        targetAmount: parseFloat(targetAmount),
+        monthlyContribution: parseFloat(monthly) || 0,
+        targetDate: targetDate || null,
+        currencyCode: selectedCurrency,
+        iconName: goal?.iconName || "PiggyBank",
+        color: goal?.color || "green",
+      },
+      // Tệp chỉ gửi kèm khi tạo mới; lúc sửa đã upload trực tiếp qua ReceiptAttachments.
+      isEdit ? null : pendingFiles,
+    );
     if (returnHere && !isEdit) {
       setName("");
       setTargetAmount("");
-      setNotes("");
+      setPendingFiles([]);
     }
   };
 
@@ -206,60 +208,70 @@ export function PiggyBankFormModal({ isOpen, onClose, onSave, goal = null }) {
                     />
                   </div>
 
-                  <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">
-                      Ghi chú
-                    </label>
-                    <div className="flex-1">
-                      <textarea
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        rows={4}
-                        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y"
-                        placeholder="Ghi chú"
-                      ></textarea>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Hỗ trợ{" "}
-                        <a href="#" className="text-purple-600 hover:underline">
-                          Markdown
-                        </a>
-                        .
-                      </p>
-                    </div>
-                  </div>
+                  {isEdit ? (
+                    <ReceiptAttachments type="piggy" id={goal.id} />
+                  ) : (
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
+                      <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">
+                        Tệp đính kèm
+                      </label>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <label className="cursor-pointer bg-muted hover:bg-muted text-foreground px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+                            Chọn tệp
+                            <input
+                              type="file"
+                              multiple
+                              accept="image/*,application/pdf"
+                              className="hidden"
+                              onChange={(e) => {
+                                const picked = Array.from(e.target.files || []);
+                                if (picked.length)
+                                  setPendingFiles((prev) => [...prev, ...picked]);
+                                e.target.value = "";
+                              }}
+                            />
+                          </label>
+                          <span className="text-sm text-muted-foreground">
+                            {pendingFiles.length
+                              ? `Đã chọn ${pendingFiles.length} tệp`
+                              : "Chưa chọn tệp"}
+                          </span>
+                        </div>
 
-                  <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0 mt-2">
-                      Tệp đính kèm
-                    </label>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <label className="cursor-pointer bg-muted hover:bg-muted text-foreground px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
-                          Chọn tệp
-                          <input type="file" className="hidden" />
-                        </label>
-                        <span className="text-sm text-muted-foreground">
-                          Chưa chọn tệp
-                        </span>
+                        {pendingFiles.length > 0 && (
+                          <ul className="mt-2 space-y-1">
+                            {pendingFiles.map((f, i) => (
+                              <li
+                                key={`${f.name}-${i}`}
+                                className="flex items-center justify-between gap-2 text-xs bg-muted/50 rounded-lg px-2.5 py-1.5"
+                              >
+                                <span className="truncate text-foreground">
+                                  {f.name}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setPendingFiles((prev) =>
+                                      prev.filter((_, j) => j !== i),
+                                    )
+                                  }
+                                  className="text-muted-foreground hover:text-red-500 shrink-0"
+                                  title="Bỏ tệp"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Ảnh hoặc PDF, tối đa 50 MB mỗi tệp. Sẽ được đính kèm sau
+                          khi tạo.
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Kích thước tối đa: 2 MB
-                      </p>
                     </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <label className="sm:w-32 text-sm font-medium text-muted-foreground sm:text-right shrink-0">
-                      Nhóm
-                    </label>
-                    <input
-                      type="text"
-                      value={objectGroup}
-                      onChange={(e) => setObjectGroup(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="Nhóm"
-                    />
-                  </div>
+                  )}
                 </div>
               </div>
             </div>

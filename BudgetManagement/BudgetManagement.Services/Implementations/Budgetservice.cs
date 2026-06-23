@@ -456,6 +456,7 @@ public class BudgetService : IBudgetService
                               ? Math.Round(current / b.TargetAmount * 100, 1)
                               : 0,
             TargetDate      = b.Deadline,
+            CurrencyCode    = b.Account?.CurrencyCode,
             IconName        = b.IconName,
             Color           = b.Color,
             IsActive        = b.IsActive ?? true,

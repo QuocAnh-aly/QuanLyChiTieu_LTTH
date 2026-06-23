@@ -12,6 +12,7 @@ import {
   ArrowUpCircle,
 } from "lucide-react";
 import { piggyBankApi } from "../../api/piggyBankApi";
+import { attachmentApi } from "../../api/attachmentApi";
 import { toast } from "sonner";
 import { PiggyBankFormModal } from "../../components/modals/PiggyBankFormModal";
 import { AddMoneyModal } from "../../components/modals/AddMoneyModal";
@@ -84,9 +85,18 @@ export function PiggyBanks() {
   }, [load]);
 
   // ─── CRUD ──────────────────────────────────────────────────────────────────
-  const handleCreate = async (data) => {
+  const handleCreate = async (data, files) => {
     try {
-      await piggyBankApi.create(data);
+      const created = await piggyBankApi.create(data);
+      // Tạo xong mới có budgetId → upload các tệp đã chọn ở form.
+      if (files?.length && created?.budgetId) {
+        const results = await Promise.allSettled(
+          files.map((f) => attachmentApi.upload("piggy", created.budgetId, f)),
+        );
+        const failed = results.filter((r) => r.status === "rejected").length;
+        if (failed > 0)
+          toast.error(`${failed} tệp đính kèm tải lên thất bại`);
+      }
       await load();
       setFormOpen(false);
       toast.success(`Đã tạo "${data.title}"!`);

@@ -22,6 +22,7 @@ import {
   Plus,
   Pencil,
   Trash2,
+  Smartphone,
 } from "lucide-react";
 import {
   AreaChart,
@@ -68,6 +69,7 @@ const iconMap = {
   TrendingUp,
   Users,
   PiggyBank,
+  Smartphone,
   Wallet: WalletIcon,
 };
 
@@ -105,6 +107,7 @@ function mapAccount(acc, index) {
     cardNumber: acc.cardNumber || "",
     currencyCode: acc.currencyCode || "VND",
     isActive: acc.isActive,
+    isSavingsWallet: acc.isSavingsWallet ?? false,
     createdAt: acc.createdAt,
   };
 }
@@ -811,26 +814,41 @@ export function AssetAccounts() {
                         >
                           <Activity size={13} />
                         </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingAccount(account);
-                          }}
-                          className="p-1.5 rounded-lg bg-white/10 hover:bg-white/25 text-white/70 hover:text-white transition-all backdrop-blur-sm"
-                          title="Sửa"
-                        >
-                          <Pencil size={13} />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteAsset(account);
-                          }}
-                          className="p-1.5 rounded-lg bg-white/10 hover:bg-red-400/40 text-white/70 hover:text-red-200 transition-all backdrop-blur-sm"
-                          title="Xóa"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        {account.isSavingsWallet ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate("/piggy-banks");
+                            }}
+                            className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white/90 text-[11px] font-semibold transition-all backdrop-blur-sm"
+                            title="Quản lý ở trang Lợn tiết kiệm"
+                          >
+                            <PiggyBank size={13} /> Lợn tiết kiệm
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingAccount(account);
+                              }}
+                              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/25 text-white/70 hover:text-white transition-all backdrop-blur-sm"
+                              title="Sửa"
+                            >
+                              <Pencil size={13} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteAsset(account);
+                              }}
+                              className="p-1.5 rounded-lg bg-white/10 hover:bg-red-400/40 text-white/70 hover:text-red-200 transition-all backdrop-blur-sm"
+                              title="Xóa"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </>
+                        )}
                         <div
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm ${
                             isPositive ? "bg-white/20 text-white" : "bg-black/20 text-white/80"
@@ -915,22 +933,32 @@ export function AssetAccounts() {
                               <span className="text-xs font-normal ml-1 opacity-60">({diffPct}%)</span>
                             )}
                           </span>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {acc.isSavingsWallet ? (
                             <button
-                              onClick={() => setEditingAccount(acc)}
-                              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                              title="Sửa"
+                              onClick={() => navigate("/piggy-banks")}
+                              className="flex items-center gap-1 px-2 py-1 rounded-lg text-purple-600 hover:bg-purple-50 text-xs font-semibold transition-colors opacity-0 group-hover:opacity-100"
+                              title="Quản lý ở trang Lợn tiết kiệm"
                             >
-                              <Pencil size={13} />
+                              <PiggyBank size={13} /> Lợn tiết kiệm
                             </button>
-                            <button
-                              onClick={() => handleDeleteAsset(acc)}
-                              className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors"
-                              title="Xóa"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
+                          ) : (
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => setEditingAccount(acc)}
+                                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                                title="Sửa"
+                              >
+                                <Pencil size={13} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteAsset(acc)}
+                                className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors"
+                                title="Xóa"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>
