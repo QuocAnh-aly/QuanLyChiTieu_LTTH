@@ -271,13 +271,15 @@ public class BudgetService : IBudgetService
     // Cập nhật CurrentAmount trên Budget — cộng dồn đúng số đã nạp (KHÔNG kẹp theo
     // mục tiêu, nếu không khi đã đạt mục tiêu thì nạp thêm sẽ không tăng "đã tiết
     // kiệm"). Phần trăm hiển thị được giới hạn 100% ở giao diện.
-        var newAmount = (goal.CurrentAmount ?? 0) + amount;
-        await _budgetRepo.UpdateCurrentAmountAsync(budgetId, newAmount);
+    // Số dư ví mới = số dư hiện tại của ví lợn + tiền nạp (Account.Balance là chuẩn).
+        var newBalance = (goal.Account?.Balance ?? goal.CurrentAmount ?? 0) + amount;
+        await _budgetRepo.UpdateCurrentAmountAsync(budgetId, newBalance);
         await _budgetRepo.AddEventAsync(budgetId, amount, notes);
 
-    // Đồng bộ lại entity đang được theo dõi (ExecuteUpdate ghi thẳng DB, không cập
-    // nhật entity đã tải) để DTO trả về phản ánh số dư mới ngay.
-        goal.CurrentAmount = newAmount;
+    // ExecuteUpdate ghi thẳng DB, không cập nhật entity đã tải. Đồng bộ số dư ví
+    // in-memory để DTO (đọc Account.Balance) phản ánh số dư mới ngay.
+        goal.CurrentAmount = newBalance;
+        if (goal.Account != null) goal.Account.Balance = newBalance;
         return MapToSavingsDto(goal);
     }
 
@@ -288,7 +290,9 @@ public class BudgetService : IBudgetService
         if (goal.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
         if (amount <= 0) throw new ArgumentException("Số tiền phải lớn hơn 0.");
  
-        var current = goal.CurrentAmount ?? 0;
+    // Giới hạn rút theo số dư ví thật (Account.Balance là chuẩn), không theo
+    // CurrentAmount có thể đã lệch do giao dịch thường.
+        var current = goal.Account?.Balance ?? goal.CurrentAmount ?? 0;
         if (amount > current)
             throw new ArgumentException("Số tiền rút vượt quá số dư hiện tại trong lợn.");
  
@@ -325,12 +329,13 @@ public class BudgetService : IBudgetService
         await _accountRepo.UpdateBalanceAsync(piggyAccount.AccountId, - amount);
  
     // Cập nhật CurrentAmount trên Budget
-        var newAmount = Math.Max(0, current - amount);
-        await _budgetRepo.UpdateCurrentAmountAsync(budgetId, newAmount);
+        var newBalance = Math.Max(0, current - amount);
+        await _budgetRepo.UpdateCurrentAmountAsync(budgetId, newBalance);
         await _budgetRepo.AddEventAsync(budgetId, -amount, notes);
 
-    // Đồng bộ entity đang theo dõi để DTO trả về đúng số dư mới.
-        goal.CurrentAmount = newAmount;
+    // Đồng bộ số dư ví in-memory để DTO (đọc Account.Balance) trả về đúng số dư mới.
+        goal.CurrentAmount = newBalance;
+        if (goal.Account != null) goal.Account.Balance = newBalance;
         return MapToSavingsDto(goal);
 }
     public async Task<bool> ResetHistoryAsync(int userId, int budgetId)
@@ -339,7 +344,9 @@ public class BudgetService : IBudgetService
                    ?? throw new KeyNotFoundException("Không tìm thấy lợn tiết kiệm.");
         if (goal.UserId != userId) throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
-        var current = goal.CurrentAmount ?? 0;
+    // Dựa trên số dư ví thật để zero hóa đúng (Account.Balance là chuẩn) — tránh
+    // còn sót tiền nếu CurrentAmount đã lệch so với số dư ví.
+        var current = goal.Account?.Balance ?? goal.CurrentAmount ?? 0;
 
         await _budgetRepo.DeleteEventsByBudgetIdAsync(budgetId);
         await _budgetRepo.UpdateCurrentAmountAsync(budgetId, 0);
@@ -347,7 +354,7 @@ public class BudgetService : IBudgetService
         if (current >0 && goal.AccountId >0)
         {
             await _accountRepo.UpdateBalanceAsync(goal.AccountId, -current);
-        } 
+        }
         return true;
     }
 
@@ -439,7 +446,11 @@ public class BudgetService : IBudgetService
 
     private static SavingsGoalDto MapToSavingsDto(Budget b)
     {
-        var current    = b.CurrentAmount ?? 0;
+        // Số dư ví lợn (Account.Balance) là nguồn sự thật cho "đã tiết kiệm" — mọi
+        // giao dịch (kể cả chuyển tiền thường vào ví) đều phản ánh ngay vào tiến độ.
+        // CurrentAmount chỉ là dự phòng khi navigation Account chưa được nạp
+        // (vd. ngay sau khi tạo lợn, lúc đó Balance == CurrentAmount == số dư đầu).
+        var current    = b.Account?.Balance ?? b.CurrentAmount ?? 0;
         var leftToSave = Math.Max(0, b.TargetAmount - current);
         var monthly    = b.MonthlyContribution ?? 0;
 
