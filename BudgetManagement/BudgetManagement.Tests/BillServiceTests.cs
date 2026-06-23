@@ -283,7 +283,7 @@ public class BillServiceTests
         var bill = MakeBill(1, name: "Test Bill");
         _billRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(bill);
         _billRepoMock.Setup(r => r.UnlinkAllEntriesAsync(1)).Returns(Task.CompletedTask);
-        _billRepoMock.Setup(r => r.LinkEntriesByAmountAsync(1, _userId, 200m, 300m))
+        _billRepoMock.Setup(r => r.LinkEntriesByAmountAsync(1, _userId, 200m, 300m, "Test Bill"))
             .Returns(Task.CompletedTask);
         _billRepoMock.Setup(r => r.GetLinkedEntriesAsync(1))
             .ReturnsAsync(Array.Empty<JournalEntry>());
@@ -291,7 +291,7 @@ public class BillServiceTests
         var result = await _service.RescanAsync(_userId, 1);
 
         result.Name.Should().Be("Test Bill");
-        _billRepoMock.Verify(r => r.LinkEntriesByAmountAsync(1, _userId, 200m, 300m), Times.Once);
+        _billRepoMock.Verify(r => r.LinkEntriesByAmountAsync(1, _userId, 200m, 300m, "Test Bill"), Times.Once);
     }
 
     [Fact]

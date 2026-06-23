@@ -33,6 +33,9 @@ import { useCategories } from "../../../context/CategoriesContext";
 // ── Icon & Color config ────────────────────────────────────────────────────────
 import { ICON_MAP, COLOR_MAP } from "../../../utils/icons";
 
+// Giới hạn độ dài tên danh mục / nguồn thu
+const MAX_NAME_LENGTH = 50;
+
 // ── Expense Category Form ──────────────────────────────────────────────────────
 
 function ExpenseCategoryForm({ initial, onSave, onCancel }) {
@@ -42,8 +45,13 @@ function ExpenseCategoryForm({ initial, onSave, onCancel }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    onSave({ name: name.trim(), iconName, color });
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (trimmed.length > MAX_NAME_LENGTH) {
+      toast.error(`Tên danh mục tối đa ${MAX_NAME_LENGTH} ký tự`);
+      return;
+    }
+    onSave({ name: trimmed, iconName, color });
   };
 
   const IconPreview = ICON_MAP[iconName] || Coffee;
@@ -63,6 +71,7 @@ function ExpenseCategoryForm({ initial, onSave, onCancel }) {
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          maxLength={MAX_NAME_LENGTH}
           className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           placeholder="Ví dụ: Ăn uống"
           required
@@ -148,8 +157,13 @@ function IncomeSourceForm({ initial, onSave, onCancel }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    onSave({ name: name.trim(), iconName, color });
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (trimmed.length > MAX_NAME_LENGTH) {
+      toast.error(`Tên nguồn thu tối đa ${MAX_NAME_LENGTH} ký tự`);
+      return;
+    }
+    onSave({ name: trimmed, iconName, color });
   };
 
   const IconPreview = ICON_MAP[iconName] || Coffee;
@@ -168,6 +182,7 @@ function IncomeSourceForm({ initial, onSave, onCancel }) {
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          maxLength={MAX_NAME_LENGTH}
           className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           placeholder="Ví dụ: Lương, Thưởng..."
           required

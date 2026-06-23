@@ -16,8 +16,10 @@ import {
   Briefcase,
   Percent,
   Package,
+  Smartphone,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { accountApi } from "../../api/accountApi";
 import { formatVND, parseVND } from "../../utils/formatMoney";
 import { useSettings } from "../../context/SettingsContext";
@@ -56,19 +58,19 @@ const ASSET_SUBTYPES = [
     to: "#047857",
   },
   {
-    key: "savings",
-    label: "Tiết kiệm",
-    iconName: "PiggyBank",
-    color: "green",
-    from: "#22c55e",
-    to: "#15803d",
+    key: "e-wallet",
+    label: "Ví điện tử",
+    iconName: "Smartphone",
+    color: "pink",
+    from: "#ec4899",
+    to: "#be185d",
   },
 ];
 
 const ASSET_SUBTYPE_MAP = Object.fromEntries(
   ASSET_SUBTYPES.map((s) => [s.key, s]),
 );
-const SUBTYPE_ICONS = { Landmark, Wallet, PiggyBank, TrendingUp, Home };
+const SUBTYPE_ICONS = { Landmark, Wallet, PiggyBank, TrendingUp, Home, Smartphone };
 
 // Sub-types for Liabilities (typeId=2)
 const LIABILITY_SUBTYPES = [
@@ -291,6 +293,7 @@ export function AccountFormModal({
 
   const [form, setForm] = useState(blankForm);
   const [error, setError] = useState("");
+  const [cardError, setCardError] = useState("");
   const [sourceAccounts, setSourceAccounts] = useState([]);
   const [loadingSources, setLoadingSources] = useState(false);
 
@@ -325,6 +328,7 @@ export function AccountFormModal({
       sourceAccountId: "",
     });
     setError("");
+    setCardError("");
     setShowNotes(false);
   };
 
@@ -398,7 +402,7 @@ export function AccountFormModal({
         Landmark: "bank",
         Wallet: "cash",
         WalletIcon: "cash",
-        PiggyBank: "savings",
+        Smartphone: "e-wallet",
       };
       const liabilityIconToKey = {
         Landmark: "bank-loan",
@@ -439,6 +443,7 @@ export function AccountFormModal({
       setForm(blankForm());
     }
     setError("");
+    setCardError("");
     setShowNotes(false);
   }, [isOpen, account]);
 
@@ -466,6 +471,7 @@ export function AccountFormModal({
       color: st.color,
       cardNumber: clearCard ? "" : f.cardNumber,
     }));
+    setCardError("");
   };
 
   // Quick preset handler: adds preset to current balance
@@ -492,6 +498,27 @@ export function AccountFormModal({
     if (isRevenue && !selectedSubtype && !isEdit) {
       setError("Vui lòng chọn loại thu nhập");
       return;
+    }
+    // Validate số định danh tài sản (tùy chọn) — chỉ khi tạo mới, vì lúc sửa
+    // form chỉ giữ 4 số cuối đã che nên không thể kiểm tra đầy đủ.
+    if (isAsset && !isEdit && form.cardNumber.trim()) {
+      const digits = form.cardNumber.replace(/\D/g, "");
+      if (form.assetSubtype === "bank") {
+        // Số tài khoản ngân hàng VN: 6–19 chữ số
+        if (digits.length < 6 || digits.length > 19) {
+          setCardError("Số tài khoản phải gồm 6–19 chữ số");
+          return;
+        }
+      } else if (form.assetSubtype === "e-wallet") {
+        // Ví điện tử VN (Momo, ZaloPay, ViettelPay…) định danh bằng SĐT:
+        // 10 chữ số, bắt đầu bằng 0, đầu số 3/5/7/8/9
+        if (!/^0[35789]\d{8}$/.test(digits)) {
+          setCardError(
+            "Số điện thoại / mã ví không hợp lệ (10 chữ số, bắt đầu bằng 0 — VD: 0901234567)",
+          );
+          return;
+        }
+      }
     }
     let col;
     let iconName;
@@ -826,11 +853,15 @@ export function AccountFormModal({
                       </div>
                     )}
 
-                    {/* Card number (asset bank) */}
-                    {(isAsset && form.assetSubtype === "bank") && (
+                    {/* Card number (asset bank) / wallet identifier (e-wallet) */}
+                    {(isAsset &&
+                      (form.assetSubtype === "bank" ||
+                        form.assetSubtype === "e-wallet")) && (
                       <div>
                         <label className="block text-sm font-semibold text-foreground mb-1.5">
-                          Số tài khoản
+                          {form.assetSubtype === "e-wallet"
+                            ? "Số điện thoại / Mã ví"
+                            : "Số tài khoản"}
                         </label>
                         <input
                           type="text"
@@ -839,16 +870,33 @@ export function AccountFormModal({
                             "$1 ",
                           )}
                           onChange={(e) => {
+                            // Ngân hàng: tối đa 19 số; ví điện tử (SĐT): tối đa 10 số
+                            const maxDigits =
+                              form.assetSubtype === "bank" ? 19 : 10;
                             const raw = e.target.value
                               .replace(/[^0-9]/g, "")
-                              .slice(0, 12);
+                              .slice(0, maxDigits);
                             setForm((f) => ({ ...f, cardNumber: raw }));
-                            setError("");
+                            setCardError("");
                           }}
-                          placeholder="1234 5678 9012"
-                          maxLength={14}
-                          className="w-full px-4 py-2.5 border border-border rounded-xl text-sm font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-500 bg-card transition-shadow"
+                          placeholder={
+                            form.assetSubtype === "e-wallet"
+                              ? "0901 234 567"
+                              : "1234 5678 9012"
+                          }
+                          maxLength={24}
+                          className={`w-full px-4 py-2.5 border rounded-xl text-sm font-mono tracking-widest focus:outline-none focus:ring-2 bg-card transition-shadow ${
+                            cardError
+                              ? "border-red-400 focus:ring-red-500"
+                              : "border-border focus:ring-purple-500"
+                          }`}
                         />
+                        {cardError && (
+                          <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block shrink-0" />
+                            {cardError}
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -939,6 +987,19 @@ export function AccountFormModal({
                         {selectedSubtype.label}
                       </div>
                     )}
+
+                    {/* Gợi ý: mục tiêu tiết kiệm tạo ở trang Lợn tiết kiệm */}
+                    <Link
+                      to="/piggy-banks"
+                      onClick={onClose}
+                      className="mt-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 text-xs text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
+                    >
+                      <PiggyBank size={14} className="shrink-0" />
+                      <span>
+                        Muốn đặt <strong>mục tiêu tiết kiệm</strong>? Tạo{" "}
+                        <strong>Lợn tiết kiệm</strong> →
+                      </span>
+                    </Link>
                   </div>
                 )}
 

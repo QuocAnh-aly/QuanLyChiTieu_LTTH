@@ -27,6 +27,7 @@ import { vi } from "date-fns/locale";
 import { transactionApi } from "../../../api/transactionApi";
 import { useSettings } from "../../../context/SettingsContext";
 import { PageLayout } from "../../../components/layout/PageLayout";
+import { TransactionDetailModal } from "../../../components/modals/TransactionDetailModal";
 
 const PIE_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899", "#06b6d4", "#14b8a6", "#f43f5e"];
 
@@ -133,6 +134,7 @@ export function ExpenseView() {
   const [showCustom, setShowCustom] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [detailTarget, setDetailTarget] = useState(null);
 
   const { from: rangeFrom, to: rangeTo } = useMemo(() => {
     if (preset === "custom") return {
@@ -554,7 +556,7 @@ export function ExpenseView() {
               </thead>
               <tbody className="divide-y divide-border">
                 {filtered.map(t => (
-                  <tr key={t.journalId} className="hover:bg-muted/50 transition-colors">
+                  <tr key={t.journalId} onClick={() => setDetailTarget(t)} className="hover:bg-muted/50 transition-colors cursor-pointer">
                     <td className="px-4 sm:px-6 py-3.5">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center shrink-0">
@@ -592,6 +594,12 @@ export function ExpenseView() {
         )}
       </div>
       </div>
+
+      <TransactionDetailModal
+        isOpen={!!detailTarget}
+        onClose={() => setDetailTarget(null)}
+        transaction={detailTarget}
+      />
     </PageLayout>
   );
 }

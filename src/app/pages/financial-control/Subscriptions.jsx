@@ -260,6 +260,15 @@ export function Subscriptions() {
                     const daysUntil = nextDate ? differenceInDays(nextDate, today) : null;
                     const isExpired = bill.endDate && new Date(bill.endDate) < today;
 
+                    // Tiến độ thanh toán kỳ hiện tại: đã trả / số tiền trung bình.
+                    const periodAvg  = bill.averageAmount || bill.amountMax || 0;
+                    const periodPaid = bill.paidAmountThisPeriod || 0;
+                    const periodPct  = periodAvg > 0
+                      ? Math.min(100, Math.round((periodPaid / periodAvg) * 100))
+                      : (bill.paidStatus === "paid" ? 100 : 0);
+                    const showProgress = bill.active &&
+                      (bill.paidStatus === "expected_unpaid" || bill.paidStatus === "paid");
+
                     return (
                       <div key={bill.billId}
                         className={`px-3 sm:px-4 py-3 hover:bg-muted transition-colors flex items-center gap-2 sm:gap-3 group flex-wrap sm:flex-nowrap ${!bill.active ? "opacity-60" : ""}`}>
@@ -292,6 +301,20 @@ export function Subscriptions() {
                               </span>
                             )}
                           </p>
+                          {/* Tiến độ thanh toán kỳ hiện tại */}
+                          {showProgress && (
+                            <div className="mt-1.5 flex items-center gap-2">
+                              <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden max-w-[220px]">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-500 ${periodPct >= 100 ? "bg-green-500" : "bg-purple-500"}`}
+                                  style={{ width: `${Math.max(periodPct, 3)}%` }}
+                                />
+                              </div>
+                              <span className="text-[10px] text-muted-foreground shrink-0">
+                                {fmt(periodPaid)}/{fmt(periodAvg)}
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         {/* Amount range - desktop only */}

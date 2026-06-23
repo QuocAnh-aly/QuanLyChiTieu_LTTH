@@ -2,6 +2,7 @@ using BudgetManagement.Dto;
 using BudgetManagement.Entities;
 using BudgetManagement.Repository.Interfaces;
 using BudgetManagement.Services.Implementations;
+using BudgetManagement.Services.Interfaces;
 using FluentAssertions;
 using Moq;
 
@@ -13,6 +14,7 @@ public class AccountServiceTests
     private readonly Mock<IBudgetRepository> _budgetRepoMock;
     private readonly Mock<IJournalRepository> _journalRepoMock;
     private readonly Mock<IRecurringRepository> _recurringRepoMock;
+    private readonly Mock<ITransactionService> _transactionServiceMock;
     private readonly AccountService _service;
     private readonly int _userId = 1;
 
@@ -22,7 +24,8 @@ public class AccountServiceTests
         _budgetRepoMock = new Mock<IBudgetRepository>();
         _journalRepoMock = new Mock<IJournalRepository>();
         _recurringRepoMock = new Mock<IRecurringRepository>();
-        _service = new AccountService(_repoMock.Object, _budgetRepoMock.Object, _journalRepoMock.Object, _recurringRepoMock.Object);
+        _transactionServiceMock = new Mock<ITransactionService>();
+        _service = new AccountService(_repoMock.Object, _budgetRepoMock.Object, _journalRepoMock.Object, _recurringRepoMock.Object, _transactionServiceMock.Object);
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────
@@ -375,9 +378,9 @@ public class AccountServiceTests
     // ─── DeleteAsync ────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task DeleteAsync_OwnAccount_NoTransactions_HardDeletes()
+    public async Task DeleteAsync_OwnAccount_NoBalance_NoTransactions_HardDeletes()
     {
-        var existing = MakeAccount();
+        var existing = MakeAccount(balance: 0);
         _repoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(existing);
         _journalRepoMock.Setup(r => r.HasTransaction(1)).ReturnsAsync(false);
         _repoMock.Setup(r => r.DeleteAsync(1)).ReturnsAsync(true);
@@ -389,19 +392,66 @@ public class AccountServiceTests
     }
 
     [Fact]
-    public async Task DeleteAsync_OwnAccount_WithTransactions_SoftDeletes()
+    public async Task DeleteAsync_OwnAccount_WithTransactions_Forced_SoftDeletes()
     {
-        var existing = MakeAccount();
+        var existing = MakeAccount(balance: 0);
         _repoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(existing);
         _journalRepoMock.Setup(r => r.HasTransaction(1)).ReturnsAsync(true);
         _repoMock.Setup(r => r.UpdateAsync(It.IsAny<Account>())).ReturnsAsync((Account a) => a);
 
-        var result = await _service.DeleteAsync(_userId, 1);
+        var result = await _service.DeleteAsync(_userId, 1, force: true);
 
         // Account kept but deactivated; hard delete must NOT be called.
         result.Should().BeTrue();
         existing.IsActive.Should().BeFalse();
         _repoMock.Verify(r => r.UpdateAsync(It.Is<Account>(a => a.IsActive == false)), Times.Once);
+        _repoMock.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_HasBalance_NoTransferTarget_Throws()
+    {
+        var existing = MakeAccount(balance: 1000m);
+        _repoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(existing);
+        _journalRepoMock.Setup(r => r.HasTransaction(1)).ReturnsAsync(false);
+
+        await FluentActions.Invoking(() => _service.DeleteAsync(_userId, 1))
+            .Should().ThrowAsync<InvalidOperationException>();
+
+        _repoMock.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_HasTransactions_NoForce_Throws()
+    {
+        var existing = MakeAccount(balance: 0);
+        _repoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(existing);
+        _journalRepoMock.Setup(r => r.HasTransaction(1)).ReturnsAsync(true);
+
+        await FluentActions.Invoking(() => _service.DeleteAsync(_userId, 1))
+            .Should().ThrowAsync<InvalidOperationException>();
+
+        _repoMock.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
+        _repoMock.Verify(r => r.UpdateAsync(It.IsAny<Account>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_HasBalance_WithTransfer_TransfersThenSoftDeletes()
+    {
+        var existing = MakeAccount(balance: 1000m);
+        var target   = MakeAccount(accountId: 2, balance: 0);
+        _repoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(existing);
+        _repoMock.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(target);
+        _journalRepoMock.Setup(r => r.HasTransaction(1)).ReturnsAsync(false);
+        _repoMock.Setup(r => r.UpdateAsync(It.IsAny<Account>())).ReturnsAsync((Account a) => a);
+
+        var result = await _service.DeleteAsync(_userId, 1, transferToAccountId: 2, force: true);
+
+        result.Should().BeTrue();
+        existing.IsActive.Should().BeFalse();
+        // Số dư dương → chuyển từ ví đang xóa (credit) sang ví nhận (debit).
+        _transactionServiceMock.Verify(s => s.CreateAsync(_userId,
+            It.Is<CreateTransactionDto>(d => d.DebitAccountId == 2 && d.CreditAccountId == 1 && d.Amount == 1000m)), Times.Once);
         _repoMock.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
     }
 

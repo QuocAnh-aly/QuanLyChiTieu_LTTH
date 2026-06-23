@@ -101,6 +101,7 @@ public class SavingsGoalDto
     public decimal  SavePerMonth        { get; set; }    // monthly contribution needed/set
     public string?  TargetDate          { get; set; }
     public string?  Notes               { get; set; }
+    public string?  CurrencyCode        { get; set; }    // lấy từ ví lợn (Account)
     public string?  IconName            { get; set; }
     public string?  Color               { get; set; }
     public bool     IsActive            { get; set; }

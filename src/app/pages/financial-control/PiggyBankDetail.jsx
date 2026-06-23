@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, PiggyBank, Target, TrendingUp, Calendar,
-  Plus, Minus, RotateCcw, Pencil, Trash2,
+  Plus, Minus, RotateCcw, Pencil, Trash2, CalendarClock,
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -16,7 +16,9 @@ import { useNotifications } from "../../context/NotificationContext";
 import { AddMoneyModal } from "../../components/modals/AddMoneyModal";
 import { RemoveMoneyModal } from "../../components/modals/RemoveMoneyModal";
 import { PiggyBankFormModal } from "../../components/modals/PiggyBankFormModal";
+import { ReceiptAttachments } from "../../components/attachments/ReceiptAttachments";
 import { useSettings } from "../../context/SettingsContext";
+import { confirmDialog } from "../../utils/confirmDialog";
 
 const COLOR_MAP = {
   green:   { bg: "bg-green-100",   text: "text-green-600",   hex: "#22c55e", grad: "from-green-500 to-green-700" },
@@ -205,7 +207,21 @@ export function PiggyBankDetail() {
             <PiggyBank size={22} className={c.text} />
           </div>
           <div className="min-w-0">
-            <h1 className="text-xl md:text-2xl font-bold text-card-foreground truncate">{goal.title}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl md:text-2xl font-bold text-card-foreground truncate">{goal.title}</h1>
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                goal.isActive
+                  ? "bg-green-100 text-green-700"
+                  : "bg-muted text-muted-foreground"
+              }`}>
+                {goal.isActive ? "Đang hoạt động" : "Tạm dừng"}
+              </span>
+              {goal.currencyCode && (
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                  {goal.currencyCode}
+                </span>
+              )}
+            </div>
             {goal.notes && <p className="text-sm text-muted-foreground mt-0.5 truncate">{goal.notes}</p>}
           </div>
         </div>
@@ -253,7 +269,7 @@ export function PiggyBankDetail() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
         <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs text-muted-foreground">Còn lại</p>
@@ -274,6 +290,15 @@ export function PiggyBankDetail() {
             <Calendar size={16} className="text-muted-foreground" />
           </div>
           <p className="text-xl font-bold text-card-foreground text-sm">{goal.targetDate ?? "—"}</p>
+        </div>
+        <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-muted-foreground">Tháng còn lại</p>
+            <CalendarClock size={16} className="text-muted-foreground" />
+          </div>
+          <p className="text-xl font-bold text-card-foreground">
+            {goal.monthsRemaining != null ? `${goal.monthsRemaining} tháng` : "—"}
+          </p>
         </div>
         <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-2">
@@ -362,6 +387,11 @@ export function PiggyBankDetail() {
           </table>
           </div>
         )}
+      </div>
+
+      {/* Attachments */}
+      <div className="bg-card rounded-2xl border border-border shadow-sm p-6 mt-6">
+        <ReceiptAttachments type="piggy" id={Number(id)} />
       </div>
 
       {/* Modals */}

@@ -148,7 +148,7 @@ public class CurrencyServiceTests
 
         await FluentActions.Invoking(() => _service.CreateAsync(_userId, request))
             .Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*already exists*");
+            .WithMessage("*đã tồn tại*");
     }
 
     [Fact]
@@ -228,7 +228,7 @@ public class CurrencyServiceTests
 
         await FluentActions.Invoking(() => _service.DeleteAsync(_userId, "VND"))
             .Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*primary*");
+            .WithMessage("*chính*");
 
         _currencyRepoMock.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
     }
@@ -293,7 +293,7 @@ public class CurrencyServiceTests
 
         await FluentActions.Invoking(() => _service.DisableAsync(_userId, "VND"))
             .Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*primary*");
+            .WithMessage("*chính*");
     }
 
     // ─── EnableAsync ────────────────────────────────────────────────────────

@@ -29,14 +29,14 @@ public class AttachmentService : IAttachmentService
     public async Task<IEnumerable<AttachmentDto>> GetByAttachableAsync(int userId, string type, int id)
     {
         if (!ValidTypes.Contains(type))
-            throw new ArgumentException("Invalid attachable_type.");
+            throw new ArgumentException("Loại đính kèm không hợp lệ.");
         return (await _repo.GetByAttachableAsync(userId, type.ToLowerInvariant(), id)).Select(MapToDto);
     }
 
     public async Task<AttachmentDto> GetByIdAsync(int userId, int attachmentId)
     {
         var a = await _repo.GetByIdAsync(attachmentId)
-                ?? throw new KeyNotFoundException("Attachment not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy tệp đính kèm.");
         if (a.UserId != userId) throw new UnauthorizedAccessException();
         return MapToDto(a);
     }
@@ -44,12 +44,12 @@ public class AttachmentService : IAttachmentService
     public async Task<AttachmentDto> CreateAsync(int userId, CreateAttachmentDto metadata, AttachmentUploadInput file)
     {
         if (file is null || file.Size == 0 || file.Content is null)
-            throw new ArgumentException("File is required.");
+            throw new ArgumentException("Vui lòng chọn tệp.");
         var type = metadata.AttachableType.ToLowerInvariant();
         if (!ValidTypes.Contains(type))
-            throw new ArgumentException("Invalid attachable_type.");
+            throw new ArgumentException("Loại đính kèm không hợp lệ.");
         if (file.Size > 50L * 1024 * 1024)
-            throw new ArgumentException("File too large (50 MB max).");
+            throw new ArgumentException("Tệp quá lớn (tối đa 50 MB).");
 
         var userDir = Path.Combine(_root, userId.ToString());
         Directory.CreateDirectory(userDir);
@@ -81,7 +81,7 @@ public class AttachmentService : IAttachmentService
     public async Task<AttachmentDto> UpdateAsync(int userId, int attachmentId, UpdateAttachmentDto request)
     {
         var a = await _repo.GetByIdAsync(attachmentId)
-                ?? throw new KeyNotFoundException("Attachment not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy tệp đính kèm.");
         if (a.UserId != userId) throw new UnauthorizedAccessException();
 
         if (request.Title != null) a.Title = request.Title.Trim();
@@ -92,7 +92,7 @@ public class AttachmentService : IAttachmentService
     public async Task<bool> DeleteAsync(int userId, int attachmentId)
     {
         var a = await _repo.GetByIdAsync(attachmentId)
-                ?? throw new KeyNotFoundException("Attachment not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy tệp đính kèm.");
         if (a.UserId != userId) throw new UnauthorizedAccessException();
 
         var full = Path.Combine(_root, a.FilePath.Replace('/', Path.DirectorySeparatorChar));
@@ -104,11 +104,11 @@ public class AttachmentService : IAttachmentService
     public async Task<(Stream Stream, string Mime, string Filename)> DownloadAsync(int userId, int attachmentId)
     {
         var a = await _repo.GetByIdAsync(attachmentId)
-                ?? throw new KeyNotFoundException("Attachment not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy tệp đính kèm.");
         if (a.UserId != userId) throw new UnauthorizedAccessException();
 
         var full = Path.Combine(_root, a.FilePath.Replace('/', Path.DirectorySeparatorChar));
-        if (!File.Exists(full)) throw new FileNotFoundException("File missing on disk.");
+        if (!File.Exists(full)) throw new FileNotFoundException("Tập tin không còn trên máy chủ.");
 
         var stream = File.OpenRead(full);
         return (stream, a.Mime ?? "application/octet-stream", a.Filename);

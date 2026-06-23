@@ -106,7 +106,7 @@ public class AuthServiceTests
 
         await FluentActions.Invoking(() => _service.RegisterAsync(request))
             .Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*already exists*");
+            .WithMessage("*đã tồn tại*");
     }
 
     [Fact]
@@ -164,7 +164,7 @@ public class AuthServiceTests
             Account  = "testuser",
             Password = "WrongPassword1!",
         })).Should().ThrowAsync<UnauthorizedAccessException>()
-          .WithMessage("*Invalid credentials*");
+          .WithMessage("*Sai tên đăng nhập hoặc mật khẩu*");
     }
 
     [Fact]
@@ -177,7 +177,7 @@ public class AuthServiceTests
             Account  = "nobody",
             Password = "AnyPass1!",
         })).Should().ThrowAsync<UnauthorizedAccessException>()
-          .WithMessage("*Invalid credentials*");
+          .WithMessage("*Sai tên đăng nhập hoặc mật khẩu*");
     }
 
     // ─── RefreshTokenAsync ──────────────────────────────────────────────────
@@ -189,7 +189,7 @@ public class AuthServiceTests
         await FluentActions.Invoking(() =>
             _service.RefreshTokenAsync("invalid_token"))
             .Should().ThrowAsync<UnauthorizedAccessException>()
-            .WithMessage("*Invalid refresh token*");
+            .WithMessage("*Phiên đăng nhập không hợp lệ*");
     }
 
     // ─── GetProfileAsync ────────────────────────────────────────────────────
@@ -303,7 +303,7 @@ public class AuthServiceTests
                 OldPassword = "WrongOldPass1!",
                 NewPassword = "NewStrongPass1!",
             })).Should().ThrowAsync<UnauthorizedAccessException>()
-              .WithMessage("*incorrect*");
+              .WithMessage("*không đúng*");
     }
 
     [Fact]

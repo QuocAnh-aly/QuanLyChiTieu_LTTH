@@ -47,10 +47,10 @@ public class TransactionService : ITransactionService
     public async Task<TransactionDto> GetByIdAsync(int userId, int journalId)
     {
         var entry = await _journalRepo.GetWithDetailsAsync(journalId)
-                    ?? throw new KeyNotFoundException("Transaction not found.");
+                    ?? throw new KeyNotFoundException("Không tìm thấy giao dịch.");
 
         if (entry.UserId != userId)
-            throw new UnauthorizedAccessException("Access denied.");
+            throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         return MapToDto(entry);
     }
@@ -97,12 +97,12 @@ public class TransactionService : ITransactionService
 
         // Validate cả 2 account thuộc user này
         var debitAccount  = await _accountRepo.GetByIdAsync(request.DebitAccountId)
-                            ?? throw new KeyNotFoundException("Debit account not found.");
+                            ?? throw new KeyNotFoundException("Không tìm thấy tài khoản ghi nợ.");
         var creditAccount = await _accountRepo.GetByIdAsync(request.CreditAccountId)
-                            ?? throw new KeyNotFoundException("Credit account not found.");
+                            ?? throw new KeyNotFoundException("Không tìm thấy tài khoản ghi có.");
 
         if (debitAccount.UserId != userId || creditAccount.UserId != userId)
-            throw new UnauthorizedAccessException("Access denied.");
+            throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         // Tạo journal entry kép
         var entry = new JournalEntry
@@ -140,10 +140,10 @@ public class TransactionService : ITransactionService
     public async Task<TransactionDto> UpdateAsync(int userId, int journalId, UpdateTransactionDto request)
     {
         var entry = await _journalRepo.GetWithDetailsAsync(journalId)
-                    ?? throw new KeyNotFoundException("Transaction not found.");
+                    ?? throw new KeyNotFoundException("Không tìm thấy giao dịch.");
 
         if (entry.UserId != userId)
-            throw new UnauthorizedAccessException("Access denied.");
+            throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         // Cập nhật metadata trước
         await _journalRepo.UpdateEntryAsync(journalId, request.Description, request.Notes, request.Tags, request.TransactionDate);
@@ -187,10 +187,10 @@ public class TransactionService : ITransactionService
     public async Task<bool> DeleteAsync(int userId, int journalId)
     {
         var entry = await _journalRepo.GetWithDetailsAsync(journalId)
-                    ?? throw new KeyNotFoundException("Transaction not found.");
+                    ?? throw new KeyNotFoundException("Không tìm thấy giao dịch.");
 
         if (entry.UserId != userId)
-            throw new UnauthorizedAccessException("Access denied.");
+            throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
         // Điều chỉnh budget: trừ số tiền chi khỏi budget (theo chiều ngược lại)
         foreach (var detail in entry.JournalDetails)

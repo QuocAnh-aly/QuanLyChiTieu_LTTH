@@ -236,17 +236,12 @@ export function BudgetDetail() {
 
       if (data?.accountId) {
         try {
-          // Use budget date range, or fall back to a wide window
-          const from = data.startDate ? startOfDay(parseISO(data.startDate)) : startOfDay(new Date(2026, 0, 1));
-          const to   = data.endDate   ? endOfDay(parseISO(data.endDate))     : endOfDay(new Date(2099, 11, 31));
-          let txs = [];
-          if (from && to) {
-            // Dùng API filter theo accountId để query đúng ngay từ database
-            txs = await transactionApi.getByRangeAndAccount(data.accountId, from.toISOString(), to.toISOString());
-          } else {
-            const res = await transactionApi.getAll({ page: 1, pageSize: 200 });
-            txs = res.items || res || [];
-          }
+          // Hiển thị TẤT CẢ giao dịch thuộc danh mục ngân sách — dùng khung ngày
+          // rộng (không neo theo startDate) để không bỏ sót giao dịch nào.
+          const from = startOfDay(new Date(2000, 0, 1));
+          const to   = endOfDay(new Date(2099, 11, 31));
+          // Dùng API filter theo accountId để query đúng ngay từ database
+          const txs = await transactionApi.getByRangeAndAccount(data.accountId, from.toISOString(), to.toISOString());
           const mapped = (txs || [])
             .map(t => mapTransactionForBudget(t, data.accountId))
             .filter(t => t.matchesBudget);

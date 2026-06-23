@@ -11,6 +11,7 @@ public interface IBudgetRepository : IBaseRepository<Budget>
     Task<IEnumerable<Budget>> GetSavingsGoalsAsync(int userId);     // BudgetType = "savings"
     Task<PaginatedResult<Budget>> GetSavingsGoalsPagedAsync(int userId, int page, int pageSize);
     Task<Budget?> GetActiveByAccountIdAsync(int accountId);
+    Task<bool> HasSavingsGoalByAccountIdAsync(int accountId);   // ví có gắn lợn tiết kiệm?
     Task UpdateCurrentAmountAsync(int budgetId, decimal amount);
     Task<IEnumerable<Budget>> GetExpenseBudgetsNeedingResetAsync();
 

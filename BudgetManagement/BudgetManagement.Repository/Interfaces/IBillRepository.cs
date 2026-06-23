@@ -11,5 +11,5 @@ public interface IBillRepository : IBaseRepository<Bill>
     Task<IEnumerable<JournalEntry>> GetLinkedEntriesAsync(int billId);
     Task<IEnumerable<JournalEntry>> GetLinkedEntriesForUserAsync(int userId);
     Task UnlinkAllEntriesAsync(int billId);
-    Task LinkEntriesByAmountAsync(int billId, int userId, decimal amountMin, decimal amountMax);
+    Task LinkEntriesByAmountAsync(int billId, int userId, decimal amountMin, decimal amountMax, string name);
 }

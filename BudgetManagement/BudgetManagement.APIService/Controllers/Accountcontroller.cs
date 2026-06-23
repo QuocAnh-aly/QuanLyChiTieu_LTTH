@@ -159,11 +159,11 @@ public class AccountController : BaseController
 
     // DELETE api/accounts/{id}
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(int id, [FromQuery] int? transferToAccountId = null, [FromQuery] bool force = false)
     {
         try
         {
-            await _accountService.DeleteAsync(GetUserId(), id);
+            await _accountService.DeleteAsync(GetUserId(), id, transferToAccountId, force);
             return NoContent();
         }
         catch (KeyNotFoundException ex)

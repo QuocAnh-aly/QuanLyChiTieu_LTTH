@@ -11,8 +11,10 @@ import { transactionApi } from "../../api/transactionApi";
 import { toast } from "sonner";
 import { AddTransactionModal } from "../../components/modals/AddTransactionModal";
 import { EditTransactionModal } from "../../components/modals/EditTransactionModal";
+import { TransactionDetailModal } from "../../components/modals/TransactionDetailModal";
 import { useSettings } from "../../context/SettingsContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { confirmDialog } from "../../utils/confirmDialog";
 
 function mapTx(t) {
   const details       = t.details || [];
@@ -62,6 +64,7 @@ export function Transfers() {
   const [showCustom, setShowCustom] = useState(false);
   const [isAddOpen,  setIsAddOpen]  = useState(false);
   const [editTarget, setEditTarget] = useState(null);
+  const [detailTarget, setDetailTarget] = useState(null);
 
   const { from: rangeFrom, to: rangeTo } = useMemo(() => {
     if (preset === "custom") return {
@@ -112,8 +115,9 @@ export function Transfers() {
   const handleAdd = async (data) => {
     try {
       const res = await transactionApi.create(data);
-      if (res?.__offline) { toast.success("Đã lưu offline — sẽ đồng bộ khi có mạng"); return; }
+      if (res?.__offline) { toast.success("Đã lưu offline — sẽ đồng bộ khi có mạng"); return res; }
       await loadData(true); toast.success("Đã chuyển tiền!"); addNotification({ type: 'success', title: 'Chuyển khoản', message: 'Đã thực hiện chuyển tiền giữa các ví', link: '/transactions/transfers' });
+      return res;
     }
     catch { toast.error("Không thể thực hiện chuyển khoản"); addNotification({ type: 'error', title: 'Lỗi', message: 'Không thể thực hiện chuyển khoản' }); }
   };
@@ -253,7 +257,7 @@ export function Transfers() {
                       <td />
                     </tr>
                     {txs.map(t => (
-                      <tr key={t.journalId} className="hover:bg-muted transition-colors group">
+                      <tr key={t.journalId} onClick={() => setDetailTarget(t)} className="hover:bg-muted transition-colors group cursor-pointer">
                         <td className="px-3 sm:px-6 py-3 sm:py-3.5">
                           <div className="flex items-center gap-2 sm:gap-3">
                             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
@@ -288,11 +292,11 @@ export function Transfers() {
                         </td>
                         <td className="px-3 sm:px-6 py-3 sm:py-3.5">
                           <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all justify-end">
-                            <button onClick={() => setEditTarget(t)}
+                            <button onClick={(e) => { e.stopPropagation(); setEditTarget(t); }}
                               className="p-1.5 rounded hover:bg-purple-50 text-muted-foreground hover:text-purple-600">
                               <Pencil size={14} />
                             </button>
-                            <button onClick={() => handleDelete(t.journalId, t.description)}
+                            <button onClick={(e) => { e.stopPropagation(); handleDelete(t.journalId, t.description); }}
                               className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500">
                               <Trash2 size={14} />
                             </button>
@@ -311,6 +315,13 @@ export function Transfers() {
 
       <AddTransactionModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onAdd={handleAdd} initialType="transfer" />
       <EditTransactionModal isOpen={!!editTarget} onClose={() => setEditTarget(null)} onSave={handleSaveEdit} transaction={editTarget} />
+      <TransactionDetailModal
+        isOpen={!!detailTarget}
+        onClose={() => setDetailTarget(null)}
+        transaction={detailTarget}
+        onEdit={(t) => { setDetailTarget(null); setEditTarget(t); }}
+        onDelete={(t) => { setDetailTarget(null); handleDelete(t.journalId, t.description); }}
+      />
     </PageLayout>
   );
 }
