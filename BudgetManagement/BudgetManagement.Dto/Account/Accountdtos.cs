@@ -27,6 +27,7 @@ public class UpdateAccountDto
     public string? CardNumber   { get; set; }
     public string? CurrencyCode { get; set; }
     public bool?   IsActive     { get; set; }
+    public decimal? Balance     { get; set; }   // null = không đổi; có giá trị = chỉnh số dư hiện tại
 }
 
 // ─── Response ────────────────────────────────────────────────────────────────

@@ -375,6 +375,22 @@ public class AccountServiceTests
         result.IsActive.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task UpdateAsync_Balance_UpdatesBalanceAndShiftsInitialBalance()
+    {
+        // balance == initialBalance == 1000 ban đầu (MakeAccount)
+        var existing = MakeAccount(balance: 1000m);
+        _repoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(existing);
+        _repoMock.Setup(r => r.UpdateAsync(It.IsAny<Account>()))
+            .ReturnsAsync((Account a) => a);
+
+        var result = await _service.UpdateAsync(_userId, 1, new UpdateAccountDto { Balance = 1500m });
+
+        // delta = +500 → cả Balance lẫn InitialBalance dịch chuyển +500 (giữ bất biến sổ cái)
+        result.Balance.Should().Be(1500m);
+        result.InitialBalance.Should().Be(1500m);
+    }
+
     // ─── DeleteAsync ────────────────────────────────────────────────────────
 
     [Fact]

@@ -11,6 +11,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 import { piggyBankApi } from "../../api/piggyBankApi";
+import { transactionApi } from "../../api/transactionApi";
 import { toast } from "sonner";
 import { useNotifications } from "../../context/NotificationContext";
 import { AddMoneyModal } from "../../components/modals/AddMoneyModal";
@@ -75,7 +76,59 @@ export function PiggyBankDetail() {
         piggyBankApi.getEvents(id),
       ]);
       setGoal(g);
-      setEvents(evs || []);
+
+      // Lịch sử = sự kiện nạp/rút (Piggy_Bank_Events) + các giao dịch thường trên
+      // ví lợn (vd. chuyển khoản vào/ra). Lấy thêm giao dịch theo tài khoản ví lợn
+      // và loại bỏ bút toán nạp/rút (đã có trong events) để tránh trùng.
+      const evItems = (evs || []).map((e) => ({
+        id: `ev-${e.eventId}`,
+        eventDate: e.eventDate,
+        amount: e.amount,
+        notes: e.notes,
+        isTransaction: false,
+      }));
+
+      let txItems = [];
+      if (g?.accountId) {
+        try {
+          const from = new Date(2000, 0, 1).toISOString();
+          const to = new Date(2099, 11, 31).toISOString();
+          const txs = await transactionApi.getByRangeAndAccount(
+            g.accountId,
+            from,
+            to,
+          );
+          txItems = (txs || [])
+            .filter((t) => {
+              const d = t.description || "";
+              return (
+                !d.startsWith("Nạp tiền vào lợn:") &&
+                !d.startsWith("Rút tiền từ lợn:")
+              );
+            })
+            .map((t) => {
+              const detail = (t.details || []).find(
+                (x) => x.accountId === g.accountId,
+              );
+              // + = tiền vào ví lợn (debit), − = tiền ra (credit)
+              const amount = (detail?.debit || 0) - (detail?.credit || 0);
+              return {
+                id: `tx-${t.journalId}`,
+                eventDate: t.transactionDate,
+                amount,
+                notes: t.description || t.notes || null,
+                isTransaction: true,
+              };
+            });
+        } catch {
+          txItems = [];
+        }
+      }
+
+      const merged = [...evItems, ...txItems].sort(
+        (a, b) => new Date(a.eventDate) - new Date(b.eventDate),
+      );
+      setEvents(merged);
     } catch {
       toast.error("Không thể tải dữ liệu");
     } finally {
@@ -361,8 +414,11 @@ export function PiggyBankDetail() {
             <tbody className="divide-y divide-border">
               {[...events].reverse().map(e => {
                 const isAdd = e.amount > 0;
+                const label = e.isTransaction
+                  ? (isAdd ? "Chuyển vào" : "Chuyển ra")
+                  : (isAdd ? "Nạp tiền" : "Rút tiền");
                 return (
-                  <tr key={e.eventId} className="hover:bg-muted">
+                  <tr key={e.id} className="hover:bg-muted">
                     <td className="px-4 md:px-6 py-3 text-sm text-muted-foreground whitespace-nowrap">
                       {e.eventDate
                         ? format(parseISO(e.eventDate), "dd/MM/yyyy HH:mm", { locale: vi })
@@ -373,7 +429,7 @@ export function PiggyBankDetail() {
                         isAdd ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
                       }`}>
                         {isAdd ? <Plus size={10} /> : <Minus size={10} />}
-                        {isAdd ? "Nạp tiền" : "Rút tiền"}
+                        {label}
                       </span>
                     </td>
                     <td className="px-4 md:px-6 py-3 text-sm text-muted-foreground hidden md:table-cell">{e.notes || "—"}</td>
