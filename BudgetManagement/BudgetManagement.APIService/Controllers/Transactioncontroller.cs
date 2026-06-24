@@ -48,6 +48,14 @@ public class TransactionController : BaseController
         return Ok(result);
     }
 
+    // GET api/transactions/budget/{budgetId}
+    [HttpGet("budget/{budgetId:int}")]
+    public async Task<IActionResult> GetByBudget(int budgetId)
+    {
+        var result = await _transactionService.GetByBudgetAsync(GetUserId(), budgetId);
+        return Ok(result);
+    }
+
     // GET api/transactions/{id}
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)

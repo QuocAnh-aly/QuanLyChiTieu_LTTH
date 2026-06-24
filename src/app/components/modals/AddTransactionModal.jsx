@@ -21,6 +21,7 @@ import { attachmentApi } from "../../api/attachmentApi";
 import { useCategories } from "../../context/CategoriesContext";
 import { useSettings } from "../../context/SettingsContext";
 import { formatVND, parseVND } from "../../utils/formatMoney";
+import { confirmDialog } from "../../utils/confirmDialog";
 
 const TX_TYPES = [
   {
@@ -116,6 +117,9 @@ export function AddTransactionModal({
 
   const [createAnother, setCreateAnother] = useState(false);
   const [budgets, setBudgets] = useState([]);
+  // Ngân sách cụ thể mà giao dịch chi tiêu sẽ được tính vào (một danh mục có thể
+  // có nhiều ngân sách). null = không tính vào ngân sách nào.
+  const [budgetId, setBudgetId] = useState(null);
   const [bills, setBills] = useState([]);
   const [selectedBill, setSelectedBill] = useState(null);
 
@@ -156,6 +160,7 @@ export function AddTransactionModal({
     setToWalletId("");
     setExpenseCategory(DEFAULT_CATEGORY);
     setIncomeCategory(DEFAULT_CATEGORY);
+    setBudgetId(null);
     setLiabilityId("");
     setAmount("");
     setDescription("");
@@ -172,9 +177,21 @@ export function AddTransactionModal({
     setToWalletId("");
     setExpenseCategory(DEFAULT_CATEGORY);
     setIncomeCategory(DEFAULT_CATEGORY);
+    setBudgetId(null);
     setLiabilityId("");
     setShowCustomCategory(false);
     setSelectedBill(null);
+  };
+
+  // Chọn danh mục chi tiêu → mặc định chọn ngân sách đầu tiên của danh mục (nếu có).
+  const selectExpenseCategory = (cat) => {
+    setExpenseCategory({ accountId: cat.accountId, name: cat.name });
+    setShowCustomCategory(false);
+    const catBudgets =
+      Number(cat.accountId) > 0
+        ? budgets.filter((b) => b.accountId === cat.accountId)
+        : [];
+    setBudgetId(catBudgets.length > 0 ? catBudgets[0].budgetId : null);
   };
 
   const sameWalletError =
@@ -201,6 +218,18 @@ export function AddTransactionModal({
     e.preventDefault();
     if (!canSubmit) return;
 
+    // Gắn vào hóa đơn đã trả kỳ này → cảnh báo tránh trả trùng (vẫn cho nếu xác nhận).
+    if (txType === "expense" && selectedBill?.paidStatus === "paid") {
+      const paidInfo = selectedBill.paidAmountThisPeriod
+        ? ` (đã trả ${fmt(selectedBill.paidAmountThisPeriod)} kỳ này)`
+        : "";
+      const ok = await confirmDialog(
+        `Hóa đơn "${selectedBill.name}" đã được trả cho kỳ này${paidInfo}. Bạn có chắc muốn ghi thêm một giao dịch nữa?`,
+        { destructive: false, title: "Kỳ này đã trả" },
+      );
+      if (!ok) return;
+    }
+
     const base = {
       amount: parseFloat(amount),
       description: description || null,
@@ -218,6 +247,7 @@ export function AddTransactionModal({
         creditAccountId: parseInt(walletId),
         expenseCategoryName: expenseCategory.name.trim() || "Chưa phân loại",
         billId: selectedBill ? selectedBill.billId : undefined,
+        budgetId: budgetId ?? undefined,
       };
     } else if (txType === "income") {
       payload = {
@@ -402,52 +432,55 @@ export function AddTransactionModal({
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     {expenseCategories.map((cat) => {
-                      // Ngân sách (nếu có) gắn với danh mục này — hiển thị ngay
-                      // trên danh mục thay vì lưới chọn riêng.
-                      const catBudget =
+                      // Một danh mục có thể gắn nhiều ngân sách (vd. tháng + năm)
+                      // — hiển thị tất cả ngay trên danh mục.
+                      const catBudgets =
                         Number(cat.accountId) > 0
-                          ? budgets.find((b) => b.accountId === cat.accountId)
-                          : null;
+                          ? budgets.filter((b) => b.accountId === cat.accountId)
+                          : [];
                       const isSel =
                         !showCustomCategory &&
                         expenseCategory.name === cat.name &&
                         String(expenseCategory.accountId) ===
                           String(cat.accountId);
-                      const pct = Math.min(catBudget?.percentage ?? 0, 100);
                       return (
                         <button
                           key={cat.accountId || cat.name}
                           type="button"
-                          onClick={() => {
-                            setExpenseCategory({
-                              accountId: cat.accountId,
-                              name: cat.name,
-                            });
-                            setShowCustomCategory(false);
-                          }}
+                          onClick={() => selectExpenseCategory(cat)}
                           className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
                             isSel
                               ? `${COLOR_MAP[cat.color] || COLOR_MAP.red}`
                               : "border-slate-200 hover:border-slate-300 text-slate-700"
                           }`}>
                           <span className="block truncate">{cat.name}</span>
-                          {catBudget && (
+                          {catBudgets.length > 0 && (
                             <>
-                              <div className="w-full bg-slate-100 rounded-full h-1 mt-1.5">
-                                <div
-                                  className={`h-1 rounded-full ${
-                                    pct >= 100
-                                      ? "bg-red-500"
-                                      : pct >= 80
-                                        ? "bg-amber-400"
-                                        : "bg-purple-500"
-                                  }`}
-                                  style={{ width: `${pct}%` }}
-                                />
+                              <div className="mt-1.5 space-y-1">
+                                {catBudgets.map((b) => {
+                                  const pct = Math.min(b.percentage ?? 0, 100);
+                                  return (
+                                    <div
+                                      key={b.budgetId}
+                                      className="w-full bg-slate-100 rounded-full h-1">
+                                      <div
+                                        className={`h-1 rounded-full ${
+                                          pct >= 100
+                                            ? "bg-red-500"
+                                            : pct >= 80
+                                              ? "bg-amber-400"
+                                              : "bg-purple-500"
+                                        }`}
+                                        style={{ width: `${pct}%` }}
+                                      />
+                                    </div>
+                                  );
+                                })}
                               </div>
                               <span className="text-[10px] text-slate-400">
-                                {fmt(catBudget.currentAmount ?? 0)} /{" "}
-                                {fmt(catBudget.targetAmount ?? 0)}
+                                {catBudgets.length === 1
+                                  ? `${fmt(catBudgets[0].currentAmount ?? 0)} / ${fmt(catBudgets[0].targetAmount ?? 0)}`
+                                  : `${catBudgets.length} ngân sách`}
                               </span>
                             </>
                           )}
@@ -459,6 +492,7 @@ export function AddTransactionModal({
                       type="button"
                       onClick={() => {
                         setExpenseCategory(DEFAULT_CATEGORY);
+                        setBudgetId(null);
                         setShowCustomCategory(true);
                       }}
                       className={`px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-all ${
@@ -470,38 +504,80 @@ export function AddTransactionModal({
                     </button>
                   </div>
 
-                  {/* Gợi ý ngân sách cho danh mục đang chọn */}
+                  {/* Chọn ngân sách cho danh mục đang chọn */}
                   {!showCustomCategory &&
                     expenseCategory.name.trim() &&
                     (() => {
-                      const selBudget =
+                      const selBudgets =
                         Number(expenseCategory.accountId) > 0
-                          ? budgets.find(
+                          ? budgets.filter(
                               (b) => b.accountId === expenseCategory.accountId,
                             )
-                          : null;
-                      return selBudget ? (
-                        <p className="text-[11px] text-muted-foreground mt-2">
-                          Sẽ tính vào ngân sách “
-                          <span className="font-semibold">
-                            {selBudget.title}
-                          </span>
-                          ” — đã dùng {fmt(selBudget.currentAmount ?? 0)}/
-                          {fmt(selBudget.targetAmount ?? 0)}
-                        </p>
-                      ) : (
-                        <p className="text-[11px] text-muted-foreground mt-2">
-                          Danh mục này chưa có ngân sách.{" "}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              onClose();
-                              navigate("/budgets");
-                            }}
-                            className="text-purple-600 hover:underline font-medium">
-                            Tạo ngân sách
-                          </button>
-                        </p>
+                          : [];
+                      if (selBudgets.length === 0) {
+                        return (
+                          <p className="text-[11px] text-muted-foreground mt-2">
+                            Danh mục này chưa có ngân sách.{" "}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onClose();
+                                navigate("/budgets");
+                              }}
+                              className="text-purple-600 hover:underline font-medium">
+                              Tạo ngân sách
+                            </button>
+                          </p>
+                        );
+                      }
+                      // Có ngân sách → cho chọn tính vào ngân sách nào (mặc định cái đầu).
+                      return (
+                        <div className="mt-2">
+                          <p className="text-[11px] font-semibold text-muted-foreground mb-1">
+                            Tính vào ngân sách
+                          </p>
+                          <div className="space-y-1.5">
+                            {selBudgets.map((b) => {
+                              const active = budgetId === b.budgetId;
+                              return (
+                                <button
+                                  key={b.budgetId}
+                                  type="button"
+                                  onClick={() => setBudgetId(b.budgetId)}
+                                  className={`w-full px-3 py-2 rounded-lg border-2 text-left transition-all ${
+                                    active
+                                      ? "border-purple-400 bg-purple-50"
+                                      : "border-slate-200 hover:border-slate-300"
+                                  }`}>
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span
+                                      className={`text-xs font-semibold truncate ${
+                                        active
+                                          ? "text-purple-700"
+                                          : "text-slate-700"
+                                      }`}>
+                                      {b.title}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 shrink-0">
+                                      {fmt(b.currentAmount ?? 0)}/
+                                      {fmt(b.targetAmount ?? 0)}
+                                    </span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                            <button
+                              type="button"
+                              onClick={() => setBudgetId(null)}
+                              className={`w-full px-3 py-1.5 rounded-lg border-2 text-left text-xs font-medium transition-all ${
+                                budgetId === null
+                                  ? "border-slate-400 bg-slate-50 text-slate-700"
+                                  : "border-slate-200 hover:border-slate-300 text-slate-500"
+                              }`}>
+                              Không tính vào ngân sách
+                            </button>
+                          </div>
+                        </div>
                       );
                     })()}
                 </div>
@@ -906,6 +982,12 @@ export function AddTransactionModal({
                 {selectedBill && (
                   <p className="text-[11px] text-muted-foreground mt-1.5">
                     Giao dịch này sẽ được ghi nhận là thanh toán cho “{selectedBill.name}”.
+                  </p>
+                )}
+                {selectedBill?.paidStatus === "paid" && (
+                  <p className="text-[11px] text-amber-600 mt-1 flex items-center gap-1">
+                    <AlertCircle size={12} /> Hóa đơn này đã được trả trong kỳ — ghi
+                    thêm sẽ tính là một lần trả nữa.
                   </p>
                 )}
               </div>
