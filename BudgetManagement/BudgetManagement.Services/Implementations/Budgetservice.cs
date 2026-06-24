@@ -69,20 +69,12 @@ public class BudgetService : IBudgetService
         if (expenseAccount.TypeId != TypeExpenseAccount)
             throw new ArgumentException("Danh mục được chọn phải là danh mục chi tiêu (Expense).");
 
-        // Chỉ tính giao dịch từ startDate đến hiện tại (không lấy giao dịch trước ngày bắt đầu)
         var now        = DateTime.UtcNow;
         var periodType = request.PeriodType ?? "monthly";
 
-        decimal pastExpenseTotal = 0;
-        var pastTransactions = await _journalRepo.GetByDateRangeAndAccountAsync(userId, request.StartDate, now, expenseAccount.AccountId);
-        if (pastTransactions.Any())
-        {
-            pastExpenseTotal = pastTransactions
-                .SelectMany(e => e.JournalDetails)
-                .Where(d => d.AccountId == expenseAccount.AccountId && (d.Debit ?? 0) > 0)
-                .Sum(d => d.Debit ?? 0);
-        }
-
+        // Ngân sách mới bắt đầu từ 0: chỉ cộng những giao dịch được gán cho ngân sách
+        // này KỂ TỪ khi tạo (một danh mục có thể có nhiều ngân sách nên không backfill
+        // theo tổng chi của danh mục để tránh đếm trùng/nhập nhằng).
         var budget = new Budget
         {
             UserId              = userId,
@@ -90,7 +82,7 @@ public class BudgetService : IBudgetService
             Title               = request.Title,
             BudgetType          = "expense",
             TargetAmount        = request.TargetAmount,
-            CurrentAmount       = pastExpenseTotal,
+            CurrentAmount       = 0,
             PeriodType          = periodType,
             StartDate           = request.StartDate,
             EndDate             = request.EndDate,
@@ -133,6 +125,8 @@ public class BudgetService : IBudgetService
         if (budget.UserId != userId)
             throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
+        // FK NO ACTION: bỏ gắn budget_id khỏi các giao dịch trước khi xóa.
+        await _journalRepo.UnlinkBudgetEntriesAsync(budgetId);
         return await _budgetRepo.DeleteAsync(budgetId);
     }
 
@@ -374,11 +368,13 @@ public class BudgetService : IBudgetService
         });
     }
 
-    public async Task UpdateSpentAmountAsync(int accountId, decimal delta)
+    public async Task UpdateSpentForBudgetAsync(int budgetId, decimal delta)
     {
-        var budget = await _budgetRepo.GetActiveByAccountIdAsync(accountId);
-        if (budget is not null)
-            await _budgetRepo.UpdateCurrentAmountAsync(budget.BudgetId, (budget.CurrentAmount ?? 0) + delta);
+        // Cộng/trừ "đã chi" vào ĐÚNG ngân sách mà giao dịch được gán (một danh mục
+        // có thể có nhiều ngân sách → giao dịch tự nhớ nó thuộc ngân sách nào).
+        var budget = await _budgetRepo.GetByIdAsync(budgetId);
+        if (budget is not null && budget.BudgetType == "expense")
+            await _budgetRepo.UpdateCurrentAmountAsync(budgetId, (budget.CurrentAmount ?? 0) + delta);
     }
 
     // ─── Private helpers ────────────────────────────────────────────────────

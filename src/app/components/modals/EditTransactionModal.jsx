@@ -9,6 +9,8 @@ import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { useSettings } from "../../context/SettingsContext";
 import { useCategories } from "../../context/CategoriesContext";
+import { budgetApi } from "../../api/budgetApi";
+import { billApi } from "../../api/billApi";
 import { ReceiptAttachments } from "../attachments/ReceiptAttachments";
 
 const TAG_COLORS = {
@@ -32,6 +34,12 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedTags, setSelectedTags] = useState([]);
+  // Ngân sách giao dịch được tính vào (chỉ áp dụng cho chi tiêu). null = không gắn.
+  const [budgetId, setBudgetId] = useState(null);
+  const [budgets, setBudgets] = useState([]);
+  // Hóa đơn định kỳ giao dịch được gắn (chỉ chi tiêu). null = không gắn.
+  const [billId, setBillId] = useState(null);
+  const [bills, setBills] = useState([]);
 
   useEffect(() => {
     if (!isOpen || !transaction) return;
@@ -56,6 +64,44 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
             .filter(Boolean)
         : [],
     );
+    setBudgetId(transaction.budgetId ?? null);
+
+    // Nạp các ngân sách của danh mục chi tiêu (nếu là giao dịch chi tiêu).
+    const exp = (transaction.details || []).find(
+      (d) => d.typeId === 5 && d.debit > 0,
+    );
+    if (exp?.accountId) {
+      budgetApi
+        .getExpenseBudgets({ page: 1, pageSize: 50 })
+        .then((data) => {
+          const items = data.items || data || [];
+          setBudgets(
+            items.filter(
+              (b) => b.isActive !== false && b.accountId === exp.accountId,
+            ),
+          );
+        })
+        .catch(() => setBudgets([]));
+    } else {
+      setBudgets([]);
+    }
+
+    // Gắn hóa đơn định kỳ (chỉ giao dịch chi tiêu).
+    setBillId(transaction.billId ?? null);
+    if (exp?.accountId) {
+      billApi
+        .getAll({ page: 1, pageSize: 100 })
+        .then((data) => {
+          const items = data.items || data || [];
+          // Hiện hóa đơn đang hoạt động + hóa đơn đang gắn hiện tại (kể cả đã tắt).
+          setBills(
+            items.filter((b) => b.active || b.billId === transaction.billId),
+          );
+        })
+        .catch(() => setBills([]));
+    } else {
+      setBills([]);
+    }
   }, [isOpen, transaction]);
 
   if (!isOpen || !transaction) return null;
@@ -105,13 +151,19 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     const parsed = parseFloat(amount.replace(/,/g, ""));
-    onSave({
+    const payload = {
       description: description.trim() || null,
       notes: notes.trim() || null,
       tags: selectedTags.length > 0 ? selectedTags.join(",") : null,
       transactionDate: new Date(`${date}T${time}`).toISOString(),
       amount: isNaN(parsed) || parsed <= 0 ? undefined : parsed,
-    });
+    };
+    // Chỉ gửi gán ngân sách/hóa đơn cho giao dịch chi tiêu (0 = bỏ gắn, >0 = gán/đổi).
+    if (isExpense) {
+      payload.budgetId = budgetId ?? 0;
+      payload.billId = billId ?? 0;
+    }
+    onSave(payload);
   };
 
   return (
@@ -206,6 +258,100 @@ export function EditTransactionModal({ isOpen, onClose, onSave, transaction }) {
                 />
               </div>
             </div>
+
+            {/* Hóa đơn định kỳ (chỉ chi tiêu) */}
+            {isExpense && bills.length > 0 && (
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
+                  Gắn vào hóa đơn định kỳ
+                </label>
+                <div className="space-y-1.5 max-h-[180px] overflow-y-auto pr-0.5">
+                  {bills.map((b) => {
+                    const active = billId === b.billId;
+                    return (
+                      <button
+                        key={b.billId}
+                        type="button"
+                        onClick={() => setBillId(b.billId)}
+                        className={`w-full px-3 py-2 rounded-lg border-2 text-left transition-all ${
+                          active
+                            ? "border-purple-400 bg-purple-50"
+                            : "border-border hover:border-slate-300"
+                        }`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className={`text-xs font-semibold truncate ${
+                              active ? "text-purple-700" : "text-foreground"
+                            }`}>
+                            {b.name}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground shrink-0">
+                            {fmt(b.amountMin)}–{fmt(b.amountMax)}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setBillId(null)}
+                    className={`w-full px-3 py-1.5 rounded-lg border-2 text-left text-xs font-medium transition-all ${
+                      billId === null
+                        ? "border-slate-400 bg-muted text-foreground"
+                        : "border-border hover:border-slate-300 text-muted-foreground"
+                    }`}>
+                    Không gắn hóa đơn
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Ngân sách (chỉ chi tiêu) */}
+            {isExpense && budgets.length > 0 && (
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
+                  Tính vào ngân sách
+                </label>
+                <div className="space-y-1.5">
+                  {budgets.map((b) => {
+                    const active = budgetId === b.budgetId;
+                    return (
+                      <button
+                        key={b.budgetId}
+                        type="button"
+                        onClick={() => setBudgetId(b.budgetId)}
+                        className={`w-full px-3 py-2 rounded-lg border-2 text-left transition-all ${
+                          active
+                            ? "border-purple-400 bg-purple-50"
+                            : "border-border hover:border-slate-300"
+                        }`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className={`text-xs font-semibold truncate ${
+                              active ? "text-purple-700" : "text-foreground"
+                            }`}>
+                            {b.title}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground shrink-0">
+                            {fmt(b.currentAmount ?? 0)}/{fmt(b.targetAmount ?? 0)}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setBudgetId(null)}
+                    className={`w-full px-3 py-1.5 rounded-lg border-2 text-left text-xs font-medium transition-all ${
+                      budgetId === null
+                        ? "border-slate-400 bg-muted text-foreground"
+                        : "border-border hover:border-slate-300 text-muted-foreground"
+                    }`}>
+                    Không tính vào ngân sách
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-semibold text-foreground mb-2">

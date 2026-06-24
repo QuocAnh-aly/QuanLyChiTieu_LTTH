@@ -41,6 +41,14 @@ public class JournalRepository : BaseRepository<JournalEntry>, IJournalRepositor
             .OrderByDescending(e => e.TransactionDate)
             .ToListAsync();
 
+    public async Task<IEnumerable<JournalEntry>> GetByBudgetIdAsync(int userId, int budgetId)
+        => await _context.JournalEntries
+            .Where(e => e.UserId == userId && e.BudgetId == budgetId)
+            .Include(e => e.JournalDetails)
+                .ThenInclude(d => d.Account)
+            .OrderByDescending(e => e.TransactionDate)
+            .ToListAsync();
+
     public async Task<JournalEntry?> GetWithDetailsAsync(int journalId)
         => await _context.JournalEntries
             .Include(e => e.JournalDetails)
@@ -96,6 +104,23 @@ public class JournalRepository : BaseRepository<JournalEntry>, IJournalRepositor
         return await _context.JournalDetails
             .AnyAsync(d => d.AccountId == accountId);
     }
+
+    public async Task<bool> UpdateEntryBudgetAsync(int journalId, int? budgetId)
+        => await _context.JournalEntries
+            .Where(e => e.JournalId == journalId)
+            .ExecuteUpdateAsync(s => s.SetProperty(e => e.BudgetId, budgetId)) > 0;
+
+    public async Task<bool> UpdateEntryBillAsync(int journalId, int? billId)
+        => await _context.JournalEntries
+            .Where(e => e.JournalId == journalId)
+            .ExecuteUpdateAsync(s => s.SetProperty(e => e.BillId, billId)) > 0;
+
+    // Bỏ gắn ngân sách khỏi mọi giao dịch trỏ tới nó — gọi trước khi xóa Budget
+    // (FK NO ACTION nên phải unlink thủ công).
+    public async Task UnlinkBudgetEntriesAsync(int budgetId)
+        => await _context.JournalEntries
+            .Where(e => e.BudgetId == budgetId)
+            .ExecuteUpdateAsync(s => s.SetProperty(e => e.BudgetId, (int?)null));
 
     public async Task<bool> UpdateEntryAmountAsync(int journalId, decimal newAmount)
     {

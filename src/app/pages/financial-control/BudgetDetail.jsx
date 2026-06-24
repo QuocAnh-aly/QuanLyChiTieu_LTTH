@@ -11,7 +11,7 @@ import {
   PieChart, Pie, Cell,
   LineChart, Line, ReferenceLine,
 } from "recharts";
-import { format, parseISO, startOfDay, endOfDay } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 import { toast } from "sonner";
 import { useNotifications } from "../../context/NotificationContext";
@@ -234,17 +234,13 @@ export function BudgetDetail() {
         }
       }
 
-      if (data?.accountId) {
+      if (data?.budgetId) {
         try {
-          // Hiển thị TẤT CẢ giao dịch thuộc danh mục ngân sách — dùng khung ngày
-          // rộng (không neo theo startDate) để không bỏ sót giao dịch nào.
-          const from = startOfDay(new Date(2000, 0, 1));
-          const to   = endOfDay(new Date(2099, 11, 31));
-          // Dùng API filter theo accountId để query đúng ngay từ database
-          const txs = await transactionApi.getByRangeAndAccount(data.accountId, from.toISOString(), to.toISOString());
-          const mapped = (txs || [])
-            .map(t => mapTransactionForBudget(t, data.accountId))
-            .filter(t => t.matchesBudget);
+          // Chỉ lấy các giao dịch đã được GÁN cho đúng ngân sách này (theo budget_id),
+          // không phải mọi giao dịch của danh mục — vì một danh mục có thể có nhiều
+          // ngân sách.
+          const txs = await transactionApi.getByBudget(data.budgetId);
+          const mapped = (txs || []).map(t => mapTransactionForBudget(t, data.accountId));
           setTransactions(mapped);
         } catch {
           setTransactions([]);

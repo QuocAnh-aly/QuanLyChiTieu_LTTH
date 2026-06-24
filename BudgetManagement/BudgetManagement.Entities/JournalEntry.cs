@@ -17,7 +17,12 @@ public class JournalEntry
 
     public int? BillId { get; set; }
 
+    // Ngân sách mà giao dịch chi tiêu này được tính vào (một danh mục có thể có
+    // nhiều ngân sách). Null = không gắn ngân sách nào.
+    public int? BudgetId { get; set; }
+
     public User User { get; set; } = null!;
     public Bill? Bill { get; set; }
+    public Budget? Budget { get; set; }
     public ICollection<JournalDetail> JournalDetails { get; set; } = new List<JournalDetail>();
 }

@@ -142,6 +142,7 @@ CREATE TABLE Journal_Entries (
 	notes NVARCHAR(MAX) NULL,
 	tags NVARCHAR(1000) NULL,
 	bill_id INT NULL,                    -- liên kết subscription (Bills)
+	budget_id INT NULL,                  -- ngân sách mà giao dịch chi tiêu này được tính vào (FK thêm ở section 5)
 	foreign_amount DECIMAL(18,2) NULL,           -- amount in original currency (when different from primary)
 	foreign_currency_code NVARCHAR(10) NULL,     -- original currency code (e.g. 'USD' for "85.50 USD ≈ 2,176,000 VND")
 	created_at DATETIME2 DEFAULT GETDATE(),
@@ -204,6 +205,12 @@ CREATE TABLE Budgets (
 );
 
 CREATE INDEX idx_budget_user_type ON Budgets (user_id, budget_type);
+
+-- FK Journal_Entries.budget_id → Budgets. Dùng NO ACTION (tránh multi-path cascade
+-- giống bill_id); Service tự set budget_id = NULL cho các giao dịch trước khi xóa Budget.
+ALTER TABLE Journal_Entries ADD CONSTRAINT FK_JournalEntries_Budgets
+	FOREIGN KEY (budget_id) REFERENCES Budgets(budget_id) ON DELETE NO ACTION;
+CREATE INDEX idx_journal_budget ON Journal_Entries (budget_id);
 
 -- Dữ liệu mẫu:
 -- budget_type = 'expense':

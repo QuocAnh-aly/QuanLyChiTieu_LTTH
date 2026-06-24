@@ -315,6 +315,10 @@ public class BillServiceTests
         _billRepoMock.Setup(r => r.GetLinkedEntriesAsync(7))
             .ReturnsAsync(Array.Empty<JournalEntry>());
 
+        _transactionServiceMock
+            .Setup(t => t.CreateAsync(_userId, It.IsAny<CreateTransactionDto>()))
+            .ReturnsAsync(new TransactionDto { JournalId = 123 });
+
         var request = new PayBillDto
         {
             WalletAccountId = 3,
@@ -325,6 +329,8 @@ public class BillServiceTests
         var result = await _service.PayAsync(_userId, 7, request);
 
         result.BillId.Should().Be(7);
+        // Trả về journalId của giao dịch vừa tạo (để FE đính kèm ảnh hóa đơn).
+        result.PaidTransactionId.Should().Be(123);
         // Delegates to TransactionService with BillId stamped + bill name as description.
         _transactionServiceMock.Verify(t => t.CreateAsync(_userId,
             It.Is<CreateTransactionDto>(d =>

@@ -13,6 +13,7 @@ public class TransactionServiceTests
     private readonly Mock<IJournalRepository> _journalRepoMock;
     private readonly Mock<IAccountRepository> _accountRepoMock;
     private readonly Mock<IBudgetService> _budgetServiceMock;
+    private readonly Mock<IBillRepository> _billRepoMock;
     private readonly TransactionService _service;
     private readonly int _userId = 1;
 
@@ -21,10 +22,12 @@ public class TransactionServiceTests
         _journalRepoMock  = new Mock<IJournalRepository>();
         _accountRepoMock  = new Mock<IAccountRepository>();
         _budgetServiceMock = new Mock<IBudgetService>();
+        _billRepoMock     = new Mock<IBillRepository>();
         _service = new TransactionService(
             _journalRepoMock.Object,
             _accountRepoMock.Object,
-            _budgetServiceMock.Object);
+            _budgetServiceMock.Object,
+            _billRepoMock.Object);
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────
@@ -333,21 +336,24 @@ public class TransactionServiceTests
     {
         var request = new CreateTransactionDto
         {
+            DebitAccountId      = 10,
             CreditAccountId     = 2,
             Amount              = 100m,
             Description         = "Groceries",
             ExpenseCategoryName = "Groceries",
+            BudgetId            = 50,
         };
 
         var expenseAccount = MakeAccount(10, typeId: 5, name: "Groceries");
         var creditAccount  = MakeAccount(2, typeId: 1, name: "Checking", balance: 500m);
 
-        // Existing expense account found by name
-        _accountRepoMock
-            .Setup(r => r.FindByUserAndNameAsync(_userId, 5, "Groceries"))
-            .ReturnsAsync(expenseAccount);
+        // Existing expense account found by id
         _accountRepoMock.Setup(r => r.GetByIdAsync(10)).ReturnsAsync(expenseAccount);
         _accountRepoMock.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(creditAccount);
+        // Ngân sách 50 thuộc danh mục (account) 10
+        _budgetServiceMock
+            .Setup(r => r.GetExpenseBudgetByIdAsync(_userId, 50))
+            .ReturnsAsync(new BudgetDto { BudgetId = 50, AccountId = 10 });
         _journalRepoMock
             .Setup(r => r.CreateWithDetailsAsync(It.IsAny<JournalEntry>(),
                 It.IsAny<IEnumerable<JournalDetail>>()))
@@ -362,8 +368,8 @@ public class TransactionServiceTests
 
         // Should NOT auto-create a new account
         _accountRepoMock.Verify(r => r.CreateAsync(It.IsAny<Account>()), Times.Never);
-        // Should update budget spent for expense account
-        _budgetServiceMock.Verify(r => r.UpdateSpentAmountAsync(10, 100m), Times.Once);
+        // Should update spent on the chosen budget
+        _budgetServiceMock.Verify(r => r.UpdateSpentForBudgetAsync(50, 100m), Times.Once);
     }
 
     [Fact]
@@ -380,11 +386,7 @@ public class TransactionServiceTests
         var newExpenseAccount = MakeAccount(10, typeId: 5, name: "NonExistentCategory");
         var creditAccount     = MakeAccount(2, typeId: 1, name: "Checking", balance: 500m);
 
-        // No existing expense account → will auto-create
-        _accountRepoMock
-            .Setup(r => r.FindByUserAndNameAsync(_userId, 5, "NonExistentCategory"))
-            .ReturnsAsync((Account?)null);
-
+        // No existing expense account (id 0) → will auto-create
         _accountRepoMock
             .Setup(r => r.CreateAsync(It.Is<Account>(a =>
                 a.TypeId == 5 && a.Name == "NonExistentCategory")))
@@ -408,8 +410,9 @@ public class TransactionServiceTests
         // Should have auto-created the account
         _accountRepoMock.Verify(r => r.CreateAsync(It.Is<Account>(a =>
             a.TypeId == 5 && a.Name == "NonExistentCategory")), Times.Once);
-        // Should update budget spent
-        _budgetServiceMock.Verify(r => r.UpdateSpentAmountAsync(10, 100m), Times.Once);
+        // Không gắn ngân sách (request không có BudgetId) → không cộng vào ngân sách nào
+        _budgetServiceMock.Verify(
+            r => r.UpdateSpentForBudgetAsync(It.IsAny<int>(), It.IsAny<decimal>()), Times.Never);
         result.Should().NotBeNull();
         result.Description.Should().Be("Groceries");
     }

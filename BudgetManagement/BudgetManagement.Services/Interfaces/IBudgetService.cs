@@ -24,8 +24,8 @@ public interface IBudgetService
     Task<bool> ResetHistoryAsync(int userId, int budgetId);
     Task<IEnumerable<PiggyBankEventDto>> GetEventsAsync(int userId, int budgetId);
 
-    // Cập nhật số tiền đã chi / đã tiết kiệm
-    Task UpdateSpentAmountAsync(int budgetId, decimal delta);
+    // Cập nhật số tiền đã chi vào MỘT ngân sách cụ thể (theo budget_id giao dịch đã gán)
+    Task UpdateSpentForBudgetAsync(int budgetId, decimal delta);
 
     // Budget period reset — called by RecurringHostedService at midnight
     Task ResetExpiredPeriodsAsync();

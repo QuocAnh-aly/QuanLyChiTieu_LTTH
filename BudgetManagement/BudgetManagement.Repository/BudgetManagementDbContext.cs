@@ -145,6 +145,14 @@ public class BudgetManagementDbContext : DbContext
             .HasForeignKey(j => j.BillId)
             .OnDelete(DeleteBehavior.ClientSetNull);
 
+        // Giao dịch → Ngân sách. ClientSetNull (không cascade ở SQL để tránh multi-path);
+        // Service luôn unlink budget_id trước khi xóa Budget.
+        modelBuilder.Entity<JournalEntry>()
+            .HasOne(j => j.Budget)
+            .WithMany()
+            .HasForeignKey(j => j.BudgetId)
+            .OnDelete(DeleteBehavior.ClientSetNull);
+
         modelBuilder.Entity<Currency>()
             .HasOne(c => c.User)
             .WithMany()
