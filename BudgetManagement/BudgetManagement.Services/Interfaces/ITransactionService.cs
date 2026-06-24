@@ -11,6 +11,9 @@ public interface ITransactionService
     Task<IEnumerable<TransactionDto>> GetByDateRangeAndAccountAsync(
         int userId, DateTime from, DateTime to, int accountId);
 
+    // Lấy giao dịch đã gán cho một ngân sách cụ thể
+    Task<IEnumerable<TransactionDto>> GetByBudgetAsync(int userId, int budgetId);
+
     Task<TransactionDto> GetByIdAsync(int userId, int journalId);
 
     // Tạo giao dịch kép: debit + credit

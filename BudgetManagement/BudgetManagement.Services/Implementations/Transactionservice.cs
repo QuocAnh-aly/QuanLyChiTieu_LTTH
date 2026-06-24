@@ -10,6 +10,7 @@ public class TransactionService : ITransactionService
     private readonly IJournalRepository  _journalRepo;
     private readonly IAccountRepository  _accountRepo;
     private readonly IBudgetService      _budgetService;
+    private readonly IBillRepository     _billRepo;
 
     private const int TypeRevenue = 4;
     private const int TypeExpense = 5;
@@ -17,12 +18,13 @@ public class TransactionService : ITransactionService
     public TransactionService(
         IJournalRepository journalRepo,
         IAccountRepository accountRepo,
-        IBudgetService budgetService)
+        IBudgetService budgetService,
+        IBillRepository billRepo)
     {
         _journalRepo   = journalRepo;
         _accountRepo   = accountRepo;
         _budgetService = budgetService;
-        
+        _billRepo      = billRepo;
     }
 
     public async Task<IEnumerable<TransactionDto>> GetByUserAsync(int userId, int page, int pageSize)
@@ -41,6 +43,12 @@ public class TransactionService : ITransactionService
         int userId, DateTime from, DateTime to, int accountId)
     {
         var entries = await _journalRepo.GetByDateRangeAndAccountAsync(userId, from, to, accountId);
+        return entries.Select(MapToDto);
+    }
+
+    public async Task<IEnumerable<TransactionDto>> GetByBudgetAsync(int userId, int budgetId)
+    {
+        var entries = await _journalRepo.GetByBudgetIdAsync(userId, budgetId);
         return entries.Select(MapToDto);
     }
 
@@ -104,6 +112,18 @@ public class TransactionService : ITransactionService
         if (debitAccount.UserId != userId || creditAccount.UserId != userId)
             throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
+        // Chi tiêu có thể được gán vào MỘT ngân sách cụ thể của danh mục đó
+        // (một danh mục có thể có nhiều ngân sách). Validate ngân sách thuộc user
+        // và đúng danh mục chi tiêu.
+        int? budgetId = null;
+        if (debitAccount.TypeId == TypeExpense && request.BudgetId is > 0)
+        {
+            var budget = await _budgetService.GetExpenseBudgetByIdAsync(userId, request.BudgetId.Value);
+            if (budget.AccountId != debitAccount.AccountId)
+                throw new ArgumentException("Ngân sách được chọn không thuộc danh mục chi tiêu này.");
+            budgetId = budget.BudgetId;
+        }
+
         // Tạo journal entry kép
         var entry = new JournalEntry
         {
@@ -113,6 +133,7 @@ public class TransactionService : ITransactionService
             Notes           = request.Notes,
             Tags            = request.Tags,
             BillId          = request.BillId,
+            BudgetId        = budgetId,
             CreatedAt       = DateTime.UtcNow
         };
 
@@ -130,9 +151,9 @@ public class TransactionService : ITransactionService
         await UpdateAccountBalanceAsync(debitAccount,  +request.Amount);
         await UpdateAccountBalanceAsync(creditAccount, -request.Amount);
 
-        // Nếu debit account là Expense → cập nhật budget spent
-        if (debitAccount.TypeId == TypeExpense)
-            await _budgetService.UpdateSpentAmountAsync(debitAccount.AccountId, request.Amount);
+        // Cộng khoản chi vào đúng ngân sách đã chọn (nếu có)
+        if (budgetId.HasValue)
+            await _budgetService.UpdateSpentForBudgetAsync(budgetId.Value, request.Amount);
 
         return MapToDto(created);
     }
@@ -148,36 +169,80 @@ public class TransactionService : ITransactionService
         // Cập nhật metadata trước
         await _journalRepo.UpdateEntryAsync(journalId, request.Description, request.Notes, request.Tags, request.TransactionDate);
 
-        // Nếu có thay đổi số tiền → cập nhật cả details, balance và budget
-        if (request.Amount.HasValue)
+        var oldAmount = entry.JournalDetails
+            .Where(d => (d.Debit ?? 0) > 0)
+            .Sum(d => d.Debit ?? 0);
+        var newAmount = request.Amount ?? oldAmount;
+
+        // Danh mục chi tiêu của giao dịch (nếu có) — dùng để validate ngân sách gán lại.
+        var expenseAccountId = entry.JournalDetails
+            .FirstOrDefault(d => (d.Debit ?? 0) > 0 && d.Account?.TypeId == TypeExpense)?.AccountId;
+
+        // Ngân sách đích: mặc định giữ nguyên; request.BudgetId == 0 = bỏ gắn,
+        // > 0 = đổi sang ngân sách khác (phải cùng danh mục).
+        var oldBudgetId = entry.BudgetId;
+        int? newBudgetId = oldBudgetId;
+        if (request.BudgetId.HasValue && expenseAccountId.HasValue)
         {
-            var oldAmount = entry.JournalDetails
-                .Where(d => d.Debit > 0)
-                .Sum(d => d.Debit ?? 0);
-
-            if (Math.Abs(request.Amount.Value - oldAmount) > 0.01m)
+            if (request.BudgetId.Value <= 0)
             {
-                var delta = request.Amount.Value - oldAmount;
-
-                // Cập nhật số tiền trong JournalDetails
-                await _journalRepo.UpdateEntryAmountAsync(journalId, request.Amount.Value);
-
-                // Điều chỉnh balance 2 tài khoản
-                foreach (var detail in entry.JournalDetails)
-                {
-                    var account = await _accountRepo.GetByIdAsync(detail.AccountId);
-                    if (account is null) continue;
-
-                    if (detail.Debit > 0)
-                        await UpdateAccountBalanceAsync(account, delta);
-                    else if (detail.Credit > 0)
-                        await UpdateAccountBalanceAsync(account, -delta);
-
-                    // Điều chỉnh budget nếu là Expense
-                    if (detail.Account?.TypeId == TypeExpense && detail.Debit > 0)
-                        await _budgetService.UpdateSpentAmountAsync(detail.AccountId, delta);
-                }
+                newBudgetId = null;
             }
+            else
+            {
+                var budget = await _budgetService.GetExpenseBudgetByIdAsync(userId, request.BudgetId.Value);
+                if (budget.AccountId != expenseAccountId.Value)
+                    throw new ArgumentException("Ngân sách được chọn không thuộc danh mục chi tiêu này.");
+                newBudgetId = budget.BudgetId;
+            }
+        }
+
+        // Đổi số tiền → cập nhật JournalDetails + balance 2 tài khoản
+        var amountChanged = Math.Abs(newAmount - oldAmount) > 0.01m;
+        if (amountChanged)
+        {
+            var delta = newAmount - oldAmount;
+            await _journalRepo.UpdateEntryAmountAsync(journalId, newAmount);
+            foreach (var detail in entry.JournalDetails)
+            {
+                var account = await _accountRepo.GetByIdAsync(detail.AccountId);
+                if (account is null) continue;
+
+                if ((detail.Debit ?? 0) > 0)
+                    await UpdateAccountBalanceAsync(account, delta);
+                else if ((detail.Credit ?? 0) > 0)
+                    await UpdateAccountBalanceAsync(account, -delta);
+            }
+        }
+
+        // Điều chỉnh "đã chi" của ngân sách
+        if (newBudgetId != oldBudgetId)
+        {
+            // Đổi/bỏ ngân sách: trừ toàn bộ khỏi ngân sách cũ, cộng toàn bộ vào ngân sách mới.
+            if (oldBudgetId.HasValue)
+                await _budgetService.UpdateSpentForBudgetAsync(oldBudgetId.Value, -oldAmount);
+            if (newBudgetId.HasValue)
+                await _budgetService.UpdateSpentForBudgetAsync(newBudgetId.Value, newAmount);
+            await _journalRepo.UpdateEntryBudgetAsync(journalId, newBudgetId);
+        }
+        else if (amountChanged && newBudgetId.HasValue)
+        {
+            // Cùng ngân sách, chỉ đổi số tiền → áp chênh lệch.
+            await _budgetService.UpdateSpentForBudgetAsync(newBudgetId.Value, newAmount - oldAmount);
+        }
+
+        // Gán lại hóa đơn định kỳ: null = giữ nguyên, 0 = bỏ gắn, >0 = gắn vào hóa đơn.
+        if (request.BillId.HasValue)
+        {
+            int? newBillId = request.BillId.Value <= 0 ? (int?)null : request.BillId.Value;
+            if (newBillId.HasValue)
+            {
+                var bill = await _billRepo.GetByIdAsync(newBillId.Value);
+                if (bill is null || bill.UserId != userId)
+                    throw new KeyNotFoundException("Không tìm thấy hóa đơn.");
+            }
+            if (newBillId != entry.BillId)
+                await _journalRepo.UpdateEntryBillAsync(journalId, newBillId);
         }
 
         var updated = await _journalRepo.GetWithDetailsAsync(journalId);
@@ -192,13 +257,14 @@ public class TransactionService : ITransactionService
         if (entry.UserId != userId)
             throw new UnauthorizedAccessException("Không có quyền truy cập.");
 
-        // Điều chỉnh budget: trừ số tiền chi khỏi budget (theo chiều ngược lại)
-        foreach (var detail in entry.JournalDetails)
+        // Điều chỉnh budget: trừ số tiền chi khỏi đúng ngân sách giao dịch đã gán.
+        if (entry.BudgetId.HasValue)
         {
-            if (detail.Account?.TypeId == TypeExpense && (detail.Debit ?? 0) > 0)
-            {
-                await _budgetService.UpdateSpentAmountAsync(detail.AccountId, -(detail.Debit ?? 0));
-            }
+            var spent = entry.JournalDetails
+                .Where(d => (d.Debit ?? 0) > 0 && d.Account?.TypeId == TypeExpense)
+                .Sum(d => d.Debit ?? 0);
+            if (spent > 0)
+                await _budgetService.UpdateSpentForBudgetAsync(entry.BudgetId.Value, -spent);
         }
 
         // Reverse balance trước khi xoá
@@ -266,6 +332,8 @@ public class TransactionService : ITransactionService
         Description     = e.Description,
         Notes           = e.Notes,
         Tags            = e.Tags,
+        BudgetId        = e.BudgetId,
+        BillId          = e.BillId,
         CreatedAt       = e.CreatedAt,
         Details         = e.JournalDetails.Select(d => new JournalDetailDto
         {

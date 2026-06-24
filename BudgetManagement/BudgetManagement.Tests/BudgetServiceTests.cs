@@ -218,17 +218,11 @@ public class BudgetServiceTests
             .Setup(r => r.GetWithDetailsAsync(10))
             .ReturnsAsync(existingAccount);
 
-        // No past transactions for this account
-        _journalRepoMock
-            .Setup(r => r.GetByDateRangeAndAccountAsync(
-                _userId, It.IsAny<DateTime>(), It.IsAny<DateTime>(), 10))
-            .ReturnsAsync(Array.Empty<JournalEntry>());
-
         _budgetRepoMock
             .Setup(r => r.CreateAsync(It.Is<Budget>(b =>
                 b.Title == "Budget Ăn uống T6" &&
                 b.TargetAmount == 2000m &&
-                b.CurrentAmount == 0m)))  // no past transactions → CurrentAmount = 0
+                b.CurrentAmount == 0m)))  // ngân sách mới luôn bắt đầu từ 0 (không backfill)
             .ReturnsAsync((Budget b) => b);  // return the actual budget the service built
 
         var result = await _service.CreateExpenseBudgetAsync(_userId, request);
@@ -238,8 +232,6 @@ public class BudgetServiceTests
         result.CurrentAmount.Should().Be(0m);
         _accountRepoMock.Verify(r => r.CreateAsync(It.IsAny<Account>()), Times.Never);
         _budgetRepoMock.Verify(r => r.CreateAsync(It.IsAny<Budget>()), Times.Once);
-        _journalRepoMock.Verify(r => r.GetByDateRangeAndAccountAsync(
-            _userId, It.IsAny<DateTime>(), It.IsAny<DateTime>(), 10), Times.Once);
     }
 
     [Fact]

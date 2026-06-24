@@ -12,6 +12,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 import { billApi } from "../../api/billApi";
+import { attachmentApi } from "../../api/attachmentApi";
 import { toast } from "sonner";
 import { useNotifications } from "../../context/NotificationContext";
 import { ReceiptAttachments } from "../../components/attachments/ReceiptAttachments";
@@ -119,9 +120,28 @@ export function SubscriptionDetail() {
     }
   };
 
-  const handlePay = async (payload) => {
+  const handlePay = async (payload, attachmentFile) => {
+    // Kỳ này đã trả rồi → cảnh báo tránh trả trùng (vẫn cho phép nếu xác nhận).
+    if (bill?.paidStatus === "paid") {
+      const paidInfo = bill.paidAmountThisPeriod
+        ? ` (đã trả ${fmt(bill.paidAmountThisPeriod)} kỳ này)`
+        : "";
+      const ok = await confirmDialog(
+        `Hóa đơn "${bill.name}" đã được trả cho kỳ này${paidInfo}. Bạn có chắc muốn ghi thêm một giao dịch nữa?`,
+        { destructive: false, title: "Kỳ này đã trả" },
+      );
+      if (!ok) return;
+    }
     try {
-      await billApi.pay(id, payload);
+      const result = await billApi.pay(id, payload);
+      // Đính kèm ảnh hóa đơn vào đúng giao dịch vừa tạo (nếu có chọn tệp).
+      if (attachmentFile && result?.paidTransactionId) {
+        try {
+          await attachmentApi.upload("transaction", result.paidTransactionId, attachmentFile);
+        } catch {
+          toast.error("Đã thanh toán nhưng không tải lên được ảnh đính kèm");
+        }
+      }
       await load();
       setPayOpen(false);
       toast.success(`Đã thanh toán "${bill?.name}"!`);

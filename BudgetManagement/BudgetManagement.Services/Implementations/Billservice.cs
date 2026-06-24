@@ -170,10 +170,14 @@ public class BillService : IBillService
             TransactionDate     = request.Date ?? DateTime.UtcNow,
             BillId              = billId,
         };
-        await _transactionService.CreateAsync(userId, txRequest);
+        var created = await _transactionService.CreateAsync(userId, txRequest);
 
         var entries = (await _billRepo.GetLinkedEntriesAsync(billId)).ToList();
-        return MapToDto(bill, DateTime.Today, entries, false);
+        var dto = MapToDto(bill, DateTime.Today, entries, false);
+        // Trả về đúng journalId của giao dịch vừa tạo để FE đính kèm ảnh hóa đơn
+        // (không phụ thuộc vào việc nó có phải giao dịch mới nhất trong kỳ hay không).
+        dto.PaidTransactionId = created.JournalId;
+        return dto;
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────────

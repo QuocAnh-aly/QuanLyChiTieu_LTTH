@@ -1,4 +1,4 @@
-import { X, Receipt, AlertTriangle } from "lucide-react";
+import { X, Receipt, AlertTriangle, Paperclip } from "lucide-react";
 import { useState, useEffect } from "react";
 import { accountApi } from "../../api/accountApi";
 import { useCategories } from "../../context/CategoriesContext";
@@ -17,6 +17,7 @@ export function PayBillModal({ isOpen, onClose, onPay, bill }) {
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [pendingFile, setPendingFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   // On open: load asset accounts (typeId 1) to pay from, and resync expense
@@ -41,6 +42,7 @@ export function PayBillModal({ isOpen, onClose, onPay, bill }) {
     setAmount(String(Math.round(bill.averageAmount ?? bill.amountMin ?? 0)));
     setDate(new Date().toISOString().split("T")[0]);
     setNotes("");
+    setPendingFile(null);
   }, [isOpen, bill]);
 
   if (!isOpen || !bill) return null;
@@ -60,14 +62,17 @@ export function PayBillModal({ isOpen, onClose, onPay, bill }) {
     );
     setSubmitting(true);
     try {
-      await onPay({
-        walletAccountId: parseInt(walletId),
-        expenseAccountId: category?.accountId ? parseInt(category.accountId) : null,
-        expenseCategoryName: category?.name ?? null,
-        amount: amountNum,
-        date,
-        notes: notes.trim() || null,
-      });
+      await onPay(
+        {
+          walletAccountId: parseInt(walletId),
+          expenseAccountId: category?.accountId ? parseInt(category.accountId) : null,
+          expenseCategoryName: category?.name ?? null,
+          amount: amountNum,
+          date,
+          notes: notes.trim() || null,
+        },
+        pendingFile,
+      );
     } finally {
       setSubmitting(false);
     }
@@ -189,6 +194,37 @@ export function PayBillModal({ isOpen, onClose, onPay, bill }) {
               className="w-full px-3 py-2 border border-border rounded-lg text-sm resize-y focus:outline-none focus:ring-2 focus:ring-purple-500"
               placeholder="Tùy chọn"
             />
+          </div>
+
+          {/* Đính kèm ảnh hóa đơn */}
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">
+              Đính kèm hóa đơn
+            </label>
+            {pendingFile ? (
+              <div className="flex items-center justify-between gap-2 px-3 py-2 border border-border rounded-lg bg-muted/40">
+                <span className="text-sm text-foreground truncate">{pendingFile.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setPendingFile(null)}
+                  className="text-muted-foreground hover:text-red-500 shrink-0"
+                  title="Bỏ tệp"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center gap-2 px-3 py-2.5 border border-dashed border-border rounded-lg text-sm text-muted-foreground cursor-pointer hover:border-purple-400 hover:text-foreground transition-colors">
+                <Paperclip size={15} />
+                <span>Chọn ảnh/PDF hóa đơn (tùy chọn)</span>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  className="hidden"
+                  onChange={(e) => setPendingFile(e.target.files?.[0] || null)}
+                />
+              </label>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-2">

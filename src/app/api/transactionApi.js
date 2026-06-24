@@ -21,6 +21,12 @@ export const transactionApi = {
     return axiosClient.get(url, { params: { accountId, from, to } });
   },
 
+  // Giao dịch đã được gán cho một ngân sách cụ thể
+  getByBudget(budgetId) {
+    const url = `/api/transactions/budget/${budgetId}`;
+    return axiosClient.get(url);
+  },
+
   getById(id) {
     const url = `/api/transactions/${id}`;
     return axiosClient.get(url);
