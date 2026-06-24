@@ -126,6 +126,16 @@ public class AccountService : IAccountService
         account.CurrencyCode   = request.CurrencyCode   ?? account.CurrencyCode;
         account.IsActive       = request.IsActive       ?? account.IsActive;
 
+        // Chỉnh số dư hiện tại: dịch chuyển cả số dư đầu kỳ một lượng bằng nhau để
+        // giữ bất biến sổ cái (Balance = InitialBalance + Σ sổ cái), tránh lệch khi
+        // đối soát. Với tài khoản mới tạo (chưa có giao dịch) thì Balance = InitialBalance.
+        if (request.Balance.HasValue)
+        {
+            var delta = request.Balance.Value - (account.Balance ?? 0);
+            account.Balance        = request.Balance.Value;
+            account.InitialBalance = (account.InitialBalance ?? 0) + delta;
+        }
+
         var updated = await _accountRepo.UpdateAsync(account);
         return MapToDto(updated);
     }

@@ -1008,7 +1008,9 @@ export function AddTransactionModal({
             </div>
 
             {/* Receipt attachment (chi tiêu / thu nhập) */}
-            {(txType === "expense" || txType === "income") && (
+            {(txType === "expense" ||
+              txType === "income" ||
+              txType === "transfer") && (
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-1.5">
                   Đính kèm hóa đơn
